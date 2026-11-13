@@ -23,6 +23,14 @@ pdfplumber==0.11.10
 # --- vector store (D-003) ---
 lancedb==0.41.0
 
+# --- transitive pins that must not drift (D-018) ---
+# lancedb/pyarrow hard-require numpy >= 2; other tools (aider-chat, for one) pin
+# numpy < 2 and would silently break the vector store if these were left free.
+numpy==2.5.4
+pyarrow==26.0.1
+scipy==1.18.1
+Pillow==13.0.0
+
 # --- embeddings + reranker, CPU only (D-004, D-010) ---
 sentence-transformers==6.3.0
 torch==2.15.0
