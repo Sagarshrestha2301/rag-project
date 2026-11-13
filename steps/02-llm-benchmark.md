@@ -12,11 +12,11 @@
 6. Record the choice and the fallback in `DECISIONS.md`.
 
 ## Definition of done
-- [ ] Comparison table (VRAM, speeds, TTFT, oracle answer scores) for all 3 models in `DECISIONS.md`
-- [ ] Everything measured with the same settings, temperature 0
-- [ ] One model chosen plus one fallback, with the reason
-- [ ] Latency targets confirmed feasible or flagged with options
-- [ ] Final context size and KV-cache setting recorded
+- [ ] Comparison table (VRAM, speeds, TTFT, oracle answer scores) for all 3 models in `DECISIONS.md` — **one model measured only**: the owner chose their existing `qwen2.5` 7B and declined the other two downloads, so rows 2 and 3 will never exist. Recorded as a stated deviation in PROPOSED D-040, not silently passed.
+- [x] Everything measured with the same settings, temperature 0
+- [x] One model chosen plus one fallback, with the reason (`qwen2.5` 7B; fallback `qwen2.5-1.5b`)
+- [x] Latency targets confirmed feasible or flagged with options (flagged: ~28 s for a standard RAG question against the 20 s target)
+- [x] Final context size and KV-cache setting recorded (4096 context, f16 KV; q8_0 measured at 6144 context as the alternative)
 
 ## Context to read
 `STATUS.md` (pinned llama.cpp, measured facts), `EVAL.md`, `DECISIONS.md` (D-002, OD-3), `eval/questions.jsonl` (gold pages for the oracle test), this file.
