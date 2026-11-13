@@ -1,0 +1,8 @@
+﻿firewall rules active during test: 2 (2 = inbound + outbound block)
+server pid: 27680
+health ready with network blocked: True
+completion returned: 26 tokens at 74.2 tok/s
+answer:  The capital of Nepal is Kathmandu, and it sits on the two rivers, the Ganges and the Karnali.
+vram used during run: 1594 MiB
+firewall rules removed (remaining: 0)
+offline run: PASS

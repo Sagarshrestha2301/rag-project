@@ -1,0 +1,23 @@
+# llama.cpp offload + timing evidence (extracted from a -lv 5 run)
+# full log: artifacts/step0/offline-run.log (not committed, 5060 lines)
+
+0.00.212.389 I cmn  common_param: device_info:
+0.00.351.280 I cmn  common_param:   - CUDA0   : NVIDIA GeForce RTX 3050 Laptop GPU (4095 MiB, 3303 MiB free)
+0.00.425.239 I llama_prepare_model_devices: using device CUDA0 (NVIDIA GeForce RTX 3050 Laptop GPU) (0000:01:00.0) - 3303 MiB free
+0.00.601.610 I print_info: n_ctx_train           = 32768
+0.00.601.746 D load_tensors: layer   0 assigned to device CUDA0, is_swa = 0
+0.00.601.747 D load_tensors: layer   1 assigned to device CUDA0, is_swa = 0
+0.00.601.747 D load_tensors: layer   2 assigned to device CUDA0, is_swa = 0
+0.00.601.748 D load_tensors: layer   3 assigned to device CUDA0, is_swa = 0
+0.00.601.749 D load_tensors: layer   4 assigned to device CUDA0, is_swa = 0
+0.00.601.749 D load_tensors: layer   5 assigned to device CUDA0, is_swa = 0
+0.00.601.750 D load_tensors: layer   6 assigned to device CUDA0, is_swa = 0
+0.00.601.751 D load_tensors: layer   7 assigned to device CUDA0, is_swa = 0
+0.00.601.751 D load_tensors: layer   8 assigned to device CUDA0, is_swa = 0
+0.00.601.752 D load_tensors: layer   9 assigned to device CUDA0, is_swa = 0
+0.00.601.753 D load_tensors: layer  10 assigned to device CUDA0, is_swa = 0
+0.00.601.753 D load_tensors: layer  11 assigned to device CUDA0, is_swa = 0
+0.00.601.754 D load_tensors: layer  12 assigned to device CUDA0, is_swa = 0
+0.00.601.755 D load_tensors: layer  13 assigned to device CUDA0, is_swa = 0
+0.00.601.755 D load_tensors: layer  14 assigned to device CUDA0, is_swa = 0
+0.00.601.756 D load_tensors: layer  15 assigned to device CUDA0, is_swa = 0

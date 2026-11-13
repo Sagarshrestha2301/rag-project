@@ -16,14 +16,14 @@
 10. Write `STATUS.md` "Measured facts" and a short `env-report.md`.
 
 ## Definition of done
-- [ ] llama.cpp server answers a test prompt using the GPU (evidence: log showing offloaded layers + output)
-- [ ] VRAM and RAM numbers recorded
-- [ ] All tool and model versions pinned in `STATUS.md`, including LibreOffice
+- [x] llama.cpp server answers a test prompt using the GPU (evidence: log showing offloaded layers + output)
+- [x] VRAM and RAM numbers recorded
+- [x] All tool and model versions pinned in `STATUS.md`, including LibreOffice
 - [x] One .docx converted to PDF headless with the pinned LibreOffice (output file shown)
 - [x] Git repository exists (created by the owner) with `.gitignore` in place; working tree clean
 - [x] Hardlink test result recorded (works / does not work, with output)
 - [x] Downloaded-file list started; offline mode set in the launch script
-- [ ] Offline proof: llama.cpp test passes with the network disabled
+- [x] Offline proof: llama.cpp test passes with the network disabled
 - [x] Free disk on the project drive confirmed at 50GB or more (or flagged)
 - [x] No application code written
 

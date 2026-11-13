@@ -11,3 +11,4 @@ __pycache__/
 
 # Tool marker folder (not project content)
 .freebuff/
+/tools/
