@@ -19,13 +19,13 @@
 - [ ] llama.cpp server answers a test prompt using the GPU (evidence: log showing offloaded layers + output)
 - [ ] VRAM and RAM numbers recorded
 - [ ] All tool and model versions pinned in `STATUS.md`, including LibreOffice
-- [ ] One .docx converted to PDF headless with the pinned LibreOffice (output file shown)
-- [ ] Git repository exists (created by the owner) with `.gitignore` in place; working tree clean
-- [ ] Hardlink test result recorded (works / does not work, with output)
-- [ ] Downloaded-file list started; offline mode set in the launch script
+- [x] One .docx converted to PDF headless with the pinned LibreOffice (output file shown)
+- [x] Git repository exists (created by the owner) with `.gitignore` in place; working tree clean
+- [x] Hardlink test result recorded (works / does not work, with output)
+- [x] Downloaded-file list started; offline mode set in the launch script
 - [ ] Offline proof: llama.cpp test passes with the network disabled
-- [ ] Free disk on the project drive confirmed at 50GB or more (or flagged)
-- [ ] No application code written
+- [x] Free disk on the project drive confirmed at 50GB or more (or flagged)
+- [x] No application code written
 
 ## Context to read
 `AGENTS.md`, `STATUS.md`, this file, `DECISIONS.md` (D-019, D-024, D-026, D-030), `APPROVALS.md`.

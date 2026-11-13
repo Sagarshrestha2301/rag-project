@@ -1,0 +1,31 @@
+# Pinned Python dependencies (D-018, AGENTS.md rule 7). No application code here.
+#
+# Install into the project venv:
+#   python -m venv .venv
+#   .venv\Scripts\python -m pip install --require-hashes -r requirements.txt   (hashes added in Step 3)
+#   .venv\Scripts\python -m pip install -r requirements.txt                    (until then)
+#
+# Versions were read from the PyPI JSON API on 2026-11-13 and are direct
+# dependencies only. Transitive pins are not listed yet: they are frozen with
+# `pip freeze` after the first real install, at the start of Step 3.
+#
+# Windows wheel check (2026-11-13): pymupdf ships cp311-abi3 and lancedb ships
+# cp310-abi3 win_amd64 wheels, and torch 2.15.0 ships cp314 wheels, so the
+# installed Python 3.14.10 works. Verified from wheel filenames, not installed yet.
+
+# --- parsing (D-005) ---
+pymupdf4llm==2.1
+pymupdf==2.1
+pdfplumber==0.11.10
+
+# --- vector store (D-003) ---
+lancedb==0.41.0
+
+# --- embeddings + reranker, CPU only (D-004, D-010) ---
+sentence-transformers==6.3.0
+torch==2.15.0
+
+# --- local web UI (F1) ---
+fastapi==0.162.5
+uvicorn==0.54.0
+httpx==0.28.1
