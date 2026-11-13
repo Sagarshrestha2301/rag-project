@@ -38,6 +38,8 @@ All are reported as a **count and a percentage** (`17/20`, `85%`), never a perce
 
 **Answer**
 - `citation_correct`: every cited `(file, page)` is in `gold_sources` **and** every cited quote exists in the parsed text of that page after whitespace normalisation. A run with no citations fails.
+
+  **Matching is strict, by the owner's decision (2026-11-13, D-041).** Surrounding quotation marks are *not* stripped and a hyphen the PDF split across a line (`East- Rapti`) is *not* joined, so both count as failures. Do not "fix" this in a later step: on the `qwen2.5` oracle run the strict rule scores citations 14/26 against 19/26 for the lenient one, and the stricter number is the one the project agreed to track. The fix belongs in the Step 6 prompt, which must return unquoted verbatim sentences.
 - `numeric_exact`: after normalisation (strip thousands separators, unify `m3/s` / `m3 s-1` / `m³ s⁻¹`, unify `mm h-1` / `mm/h` / `mm per hour`), every gold number appears with the same value; units must match after the same normalisation.
 - `not_found_a`: on `answerable: false` questions, the run said "not found" (or returned no answer). Reported on the dev set; zero tolerance in the gate (`EVAL.md`, D-029, D-034).
 - `not_found_b`: on `answerable: true` questions, the run did **not** falsely say "not found".
