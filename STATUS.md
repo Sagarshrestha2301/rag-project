@@ -23,7 +23,7 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 States: not started / in progress / awaiting verification / awaiting approval / done / blocked.
 
 ## Next action
-Owner tags `step-00-approved` and `step-01-approved`, then approves the start of Step 2 (LLM benchmark: three models, same settings, temperature 0). Step 2 downloads models, so the download list needs approval before it starts.
+Owner tags `step-00-approved` and `step-01-approved`, then approves the start of Step 2 **and the 8.38 GB download list in proposal 10** (three Q4_K_M models: Qwen3.5-4B, Phi-4-mini-instruct, Gemma 4 E2B). Nothing is downloaded until that approval exists.
 
 ## Earlier next action
 Owner approved the 30 questions and the scorer spec in chat; the scorer was then implemented and tested on fake outputs, which completed Step 1.
@@ -41,7 +41,8 @@ Owner approved the 30 questions and the scorer spec in chat; the scorer was then
 - LibreOffice: 26.8.2.2, headless .docx -> PDF works (1-page test PDF, 23240 bytes).
 - Hardlinks `data/raw` -> `data/corpus`: **work** (same inode, links=2, write-through confirmed).
 - Free disk on the project drive (C:): 814.2 GB of 952.8 GB.
-- llama.cpp build: **b12340** (CUDA 12.4 prebuilt + cudart), offloaded **29/29 layers** to the GPU.
+- llama.cpp build: **b12340** (CUDA 12.4 prebuilt + cudart), offloaded **29/29 layers** to the GPU. Reports `0.9.0-dev (build 12340, commit 8954f1948)`, built with Clang 20.1.8.
+- Supported architectures in that build (checked by scanning `llama.dll`): `gemma2`, `gemma3`, `gemma3n`, `gemma4`, `qwen2`, `qwen3`, `qwen35`, `phi3`, `phi4` — so Qwen3.5, Gemma 4 and Phi-4 GGUFs all load without changing the pinned tool.
 - Test model: Qwen2.5-1.5B-Instruct Q4_K_M. Prompt **219.0 tok/s** (22 tokens), generation **65.4 tok/s** (96 tokens), temperature 0.
 - VRAM with that model at 4k context: **1622 MiB** of 4096 (2343 MiB free).
 - Offline proof: firewall-blocked run answered at 74.2 tok/s, VRAM 1594 MiB, `offline run: PASS`.
@@ -85,6 +86,27 @@ Owner approved the 30 questions and the scorer spec in chat; the scorer was then
 
 7. **Eval expectations with a single PDF (owner's note, for Step 1).** With about 4 pages, recall@k is near 100% regardless of method, so the Step 1-3 results must be labelled "smoke baseline", never accuracy. The Marahatta paper has no real tables (a core requirement), its equations extract as garbled text, its text layer drops spaces ("duringthe", "byfloods") which will hurt BM25, and Figures 4-6 are images that must stay out of the eval.
 
+10. **Step 2 candidate list and download approval (needs owner decision).** OD-3 says the list is re-checked at the start of Step 2; that re-check is done, and the step file's hints ("Phi-4-mini, Qwen3-4B, Gemma 4 E2B/E4B") were mostly still current but partly superseded:
+
+   - **Qwen3.5-4B** exists (released February 2026; Qwen3 is the previous generation, April 2025). 4.21B dense, **Apache-2.0**, Q4_K_M **2.71-2.78 GB**.
+   - **Gemma 4** exists, but **E4B is 8B total parameters and 4.98 GB at Q4_K_M, needing about 6 GB of VRAM — it cannot fit this 4 GB card** and is excluded. **E2B** is 5B total (2B effective), **Apache-2.0**, Q4_K_M **3.11 GB**.
+   - **Phi-4-mini-instruct** is still current as the small Microsoft model: 3.8B, **MIT**, GGUF architecture `phi3`, Q4_K_M **2.49 GB**.
+   - **No llama.cpp change is needed (measured).** The pinned build reports `0.9.0-dev (build 12340, commit 8954f1948)`, and `llama.dll` carries the architecture strings `gemma2`, `gemma3`, `gemma3n`, `gemma4`, `qwen2`, `qwen3`, `qwen35`, `phi3`, `phi4`. All three candidates load on the pinned tool, so no re-pin and no re-verification of Step 0.
+
+   **Proposed three**, all Q4_K_M, all text-only:
+
+   | # | Model | File | Source | Size | Licence | Why it is in the list |
+   |---|---|---|---|---|---|---|
+   | 1 | Qwen3.5-4B | `Qwen3.5-4B-Q4_K_M.gguf` | `ggml-org/Qwen3.5-4B-GGUF` (HF) | 2.78 GB | Apache-2.0 | Closest to D-002's 3-4B target; newest weights; thinking and non-thinking modes |
+   | 2 | Phi-4-mini-instruct | `Phi-4-mini-instruct-Q4_K_M.gguf` | `bartowski/microsoft_Phi-4-mini-instruct-GGUF` (HF) | 2.49 GB | MIT | Control: same class, older, no thinking mode, smallest file; its publisher SHA-256 is already published (`01999f17c39cc3074afae5e9c539bc82d45f2dd7faa3917c66cbef76fce8c0c2`) |
+   | 3 | Gemma 4 E2B | `gemma-4-E2B-it-Q4_K_M.gguf` | `unsloth/gemma-4-E2B-it-GGUF` (HF) | 3.11 GB | Apache-2.0 | Different family, so a same-class model that still answers our questions is a real finding. Note it is 5B total (2B effective), so it is outside the 3-4B band in weights while sitting in the same memory band |
+
+   **Total download: 8.38 GB** into `models/`. Each file's SHA-256 is read from the Hugging Face LFS metadata at download time and compared after, as in Step 0. No new Python packages: the models are served by the pinned `llama-server.exe` over HTTP.
+
+   **Two things the owner should know before approving:**
+   - **VRAM is the real constraint, not the file size.** The card has 4096 MiB total and the display already uses 377 MiB, so about 3719 MiB is free. Weights of 2.5-3.1 GB plus KV cache and compute buffers will not fit fully at a 3.5k-token prompt and 4096 context. Step 2 task 2 measures exactly this (several context sizes, with and without KV-cache quantisation), and the answer may be KV cache `q8_0` at 2048-3072 context, or partial offload with a slower generation rate. If all three miss the 20 s target, the owner chooses between answer quality and latency; that decision is not mine to make.
+   - **Step 0's 219 tok/s prompt number cannot be extrapolated.** It was measured with a 22-token prompt, where fixed overhead dominates. Prompt-processing speed at 512, 2048 and 4096 tokens is measured first in Step 2, because at 3.5k tokens of context prompt processing may be the largest part of the 20 s budget.
+
 ## Pinned tools and downloaded files
 Pinned tool versions (D-018):
 
@@ -111,6 +133,7 @@ Downloaded files (name, source, version, SHA-256, path):
 All three hashes were compared with the digest published on the release page (GitHub) and in the Hugging Face API, and match.
 
 ## Session log (newest first)
+- 2026-11-13: Step 2 planning only (Step 2 has no start approval, so nothing was downloaded). Re-checked OD-3 against current releases: Qwen3.5-4B supersedes Qwen3-4B, Gemma 4 exists but E4B is 8B/4.98 GB and cannot fit 4 GB VRAM, Phi-4-mini is still current (MIT). Verified by scanning `llama.dll` that the pinned build b12340 supports `gemma4`, `qwen35` and `phi3`, so no tool re-pin is needed. Proposed three candidates and an 8.38 GB download list as proposal 10, with the VRAM and prompt-processing risks stated.
 - 2026-11-13: Step 1 finished. Owner approved the 30 questions and the scorer spec in chat; added `eval/score.py` (recall@5/10/30 over answerable questions, MRR, citation correctness with quote verification, numeric exact match, not-found a and b, per-question diff, SHA-256 integrity gate), `eval/make_fixtures.py` and `eval/test_scorer.py`. All 30 checks pass: perfect 30/30, empty 4/30, partial 15/30 with exactly q016-q030 flagged as regressions, a run citing `data/raw/` rejected (exit 3), and a tampered gold hash rejected (exit 3) with no scores written. Also added `eval/build_review.py`, a static side-by-side review page used to approve the questions, and recorded the approval in `APPROVALS.md`.
 - 2026-11-13: Owner added 4 PDFs; corpus is now 5 documents (all hardlinked, hashes pinned). Extended the eval set to the full 30-question composition with 6 verified table questions from Das Tables 1-3 (the owner's table requirement is now covered), split 20 dev / 10 held-out. `eval/build_questions.py` checks every quote and every file hash before writing.
 - 2026-11-13: Step 1 started. Corpus set up (Marahatta PDF hardlinked into `data/corpus/`, SHA-256 `1b42e67f…`, 5 physical pages = printed 44-48). Built the Stage A eval draft: 24 questions with gold answers, page numbers and quotes, every quote verified against the PDF text by `eval/build_questions.py`; split 16 dev / 8 held-out; `eval/SCORER.md` written. Blocked on owner approval of the questions and the table-type gap (proposal 8).
