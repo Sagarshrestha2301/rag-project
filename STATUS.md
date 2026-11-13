@@ -1,8 +1,8 @@
 # Status
 
 **Last updated:** 2026-11-13
-**Phase:** Step 0 complete and verified, awaiting owner completion approval. No Step 1 work started.
-**Current step:** Step 0 (environment check) — every definition-of-done box ticked with evidence. Start approval was given by the owner in chat on 2026-11-13; the durable `APPROVALS.md` line is still to be written by the owner.
+**Phase:** Step 0 complete and verified (owner approved completion in chat 2026-11-13), plus the Python 3.12 environment. No Step 1 work started.
+**Current step:** Step 0 done pending the owner's written approval in `APPROVALS.md` and the `step-00-approved` tag, which only the owner writes. Step 1 needs its own start approval.
 
 ## Step tracker
 Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the owner's `step-NN-approved` git tags.
@@ -23,7 +23,7 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 States: not started / in progress / awaiting verification / awaiting approval / done / blocked.
 
 ## Next action
-Owner reviews `env-report.md` and the proposals below, decides on (a) the Python interpreter and (b) the staged corpus plan, then records the Step 0 completion approval and tag.
+Owner records the Step 0 completion approval in `APPROVALS.md` and tags `step-00-approved`, decides on the staged corpus plan (proposal 4, drafted as D-038) which needs edits to `steps/01-*.md` and `steps/03-*.md`, then approves the start of Step 1.
 
 ## Blockers / open questions
 - `APPROVALS.md` still has no approval line (the file was not edited by the agent, by rule). Work ran on the owner's explicit chat instruction.
@@ -41,6 +41,7 @@ Owner reviews `env-report.md` and the proposals below, decides on (a) the Python
 - Test model: Qwen2.5-1.5B-Instruct Q4_K_M. Prompt **219.0 tok/s** (22 tokens), generation **65.4 tok/s** (96 tokens), temperature 0.
 - VRAM with that model at 4k context: **1622 MiB** of 4096 (2343 MiB free).
 - Offline proof: firewall-blocked run answered at 74.2 tok/s, VRAM 1594 MiB, `offline run: PASS`.
+- Python stack: Python 3.12.10 venv; torch **2.15.0+cpu** (`torch.cuda.is_available() = False` by design, D-010), lancedb 0.41.0, pymupdf 2.1, sentence-transformers 6.3.0, transformers 5.22.2, fastapi 0.162.5. All imports succeed with offline env vars set.
 - Chosen LLM + tokens/s + VRAM: not measured (Step 2 decides the model).
 - Parse speed (pages/min): not measured.
 - Embedding speed (pages/min): not measured.
@@ -70,7 +71,7 @@ Owner reviews `env-report.md` and the proposals below, decides on (a) the Python
 
 4. **Staged corpus growth (owner's plan, 2026-11-13) — needs a `DECISIONS.md` entry.** Stage A: only `1970_Marahatta_Relating_Hydrological_Extremes…pdf` for Steps 1-3 as a plumbing test. Stage B: 30-50 documents before the Step 4 embedder benchmark and Step 5, from the real corpus including table-heavy files, plus near-topic flood/rainfall papers as hard distractors. Stage C: full corpus in Step 8. Re-baseline the eval whenever the corpus grows. This changes the approved plan (Step 1 eval built from one document; Step 3 sample of 1 instead of 50), so the step files need an owner edit. Drafted as PROPOSED in `DECISIONS.md`.
 
-5. **Python interpreter — decision needed before the wheels download.** All nine direct dependencies can install on both 3.12 and 3.14 (per-package evidence in `env-report.md`). Recommendation: **Python 3.12** in a project venv. Reason: 3.14 coverage is proven only for the direct pins; transitive packages (pyarrow, tokenizers, safetensors, pillow and friends) were not checked, and 3.12 has the widest wheel coverage. Cost: one installer download (~25 MB) and it needs approval. Alternative: use the installed 3.14.10 and save the download, accepting unverified transitive risk.
+5. **Python interpreter — DECIDED by the owner (2026-11-13): Python 3.12.** Installed as 3.12.10 project-local in `tools\python312` (3.12.11 and later are security-only releases with no Windows installer). Venv at `.venv`, `requirements.txt` installed, imports verified. Open sub-point: wheel-level SHA-256 is recorded only for the Python installer; the 76 installed packages are pinned by version in `requirements.lock.txt`. Adding `--require-hashes` (and therefore wheel hashes) is proposed for the next dependency change.
 
 6. **Eval expectations with a single PDF (owner's note, for Step 1).** With about 4 pages, recall@k is near 100% regardless of method, so the Step 1-3 results must be labelled "smoke baseline", never accuracy. The Marahatta paper has no real tables (a core requirement), its equations extract as garbled text, its text layer drops spaces ("duringthe", "byfloods") which will hurt BM25, and Figures 4-6 are images that must stay out of the eval.
 
@@ -80,8 +81,8 @@ Pinned tool versions (D-018):
 | Tool | Version |
 |---|---|
 | Windows | 11 Pro, build 26300 |
-| Python | 3.14.10 installed (interpreter for the project not yet decided, see proposal 5) |
-| pip | 26.2.2 |
+| Python (project) | **3.12.10**, project-local at `tools\python312`, venv `.venv` |
+| pip | 25.0.1 (in `.venv`) |
 | Git | 2.56.0.windows.2 |
 | LibreOffice | 26.8.2.2 |
 | llama.cpp | b12340 (prebuilt win-cuda-12.4-x64 + cudart 12.4) |
@@ -94,10 +95,13 @@ Downloaded files (name, source, version, SHA-256, path):
 | `llama-b12340-bin-win-cuda-12.4-x64.zip` | github.com/ggml-org/llama.cpp releases | b12340 | `72c3654c1495c7b08444ac8edf5e1c658943e9721a70787074612e3480286f9e` | `tools/llama.cpp/` |
 | `cudart-llama-bin-win-cuda-12.4-x64.zip` | github.com/ggml-org/llama.cpp releases | b12340 | `8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6` | `tools/llama.cpp/` |
 | `qwen2.5-1.5b-instruct-q4_k_m.gguf` | huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF | main | `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` | `models/` |
+| `python-3.12.10-amd64.exe` | python.org/ftp/python/3.12.10 | 3.12.10 | `67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb` | `tools/installers/` |
+| Python wheel set (76 packages) | PyPI | see `requirements.lock.txt` | not recorded per wheel (version-pinned only) | `.venv/Lib/site-packages` |
 
 All three hashes were compared with the digest published on the release page (GitHub) and in the Hugging Face API, and match.
 
 ## Session log (newest first)
+- 2026-11-13: Python 3.12 environment built after the owner approved it: 3.12.10 installed project-local (`tools\python312`, hash recorded), venv `.venv`, all pinned requirements installed (exit 0), imports verified offline, exact transitive pins frozen in `requirements.lock.txt` (77 lines). torch is the CPU build, so VRAM stays free for the LLM.
 - 2026-11-13: Step 0 finished. llama.cpp b12340 downloaded, hash-verified against the publisher and run with **29/29 layers on the GPU**: 219.0 tok/s prompt, 65.4 tok/s generation, 1622 MiB VRAM. Offline proof passed with `llama-server.exe` firewall-blocked (74.2 tok/s, `offline run: PASS`). Python wheels item held by the owner; per-package wheel check recorded. Staged corpus plan drafted as a PROPOSED decision.
 - 2026-11-13: Step 0 started. Recorded environment (`env-report.md` + `scripts/env-report.ps1`); LibreOffice 26.8.2.2 headless conversion verified; NTFS hardlink test passed; `requirements.txt` pinned and `scripts/launch-llm.ps1` sets offline mode; repo bootstrapped with root commit `initial docs`.
 - 2026-11-13: Third review applied: D-032 (owner runs git init and first commit; `.gitignore` added), D-033 (tamper check split, tested in scratch repo), D-034 (held-out not-found zero tolerance), attribution wording fixed in D-025 and D-028, D-035 to D-037 (Task/Context/Output, code rules, plan before code). Context and output sections added to steps 00-09; Step 7 got a UI spec task.

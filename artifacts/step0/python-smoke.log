@@ -1,0 +1,10 @@
+=== imports ===
+pymupdf 2.1
+lancedb 0.41.0
+torch 2.15.0+cpu | cuda build: None | available: False
+sentence-transformers 6.3.0
+fastapi 0.162.5
+uvicorn 0.54.0
+httpx 0.28.1
+imports_exit=0
+lock_lines=77

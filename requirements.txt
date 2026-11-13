@@ -1,17 +1,19 @@
 # Pinned Python dependencies (D-018, AGENTS.md rule 7). No application code here.
 #
-# Install into the project venv:
-#   python -m venv .venv
-#   .venv\Scripts\python -m pip install --require-hashes -r requirements.txt   (hashes added in Step 3)
-#   .venv\Scripts\python -m pip install -r requirements.txt                    (until then)
+# Interpreter: Python 3.12.10, installed project-local at tools\python312\
+# (3.12 chosen by the owner on 2026-11-13; 3.12.11+ are security-only releases
+# with no Windows installer, so 3.12.10 is the newest with binaries).
 #
-# Versions were read from the PyPI JSON API on 2026-11-13 and are direct
-# dependencies only. Transitive pins are not listed yet: they are frozen with
-# `pip freeze` after the first real install, at the start of Step 3.
+# Setup, from the project root:
+#   tools\python312\python.exe -m venv .venv
+#   .venv\Scripts\python.exe -m pip install -r requirements.txt
 #
-# Windows wheel check (2026-11-13): pymupdf ships cp311-abi3 and lancedb ships
-# cp310-abi3 win_amd64 wheels, and torch 2.15.0 ships cp314 wheels, so the
-# installed Python 3.14.10 works. Verified from wheel filenames, not installed yet.
+# Exact transitive versions are frozen in requirements.lock.txt (77 lines).
+# Direct pins are below; re-freeze the lock after any change.
+#
+# torch must stay the CPU build: embeddings and the reranker run on CPU so the
+# 4GB of VRAM stays free for the LLM (D-010). The default PyPI wheel on Windows
+# is CPU-only, which is why no extra index URL is used.
 
 # --- parsing (D-005) ---
 pymupdf4llm==2.1
@@ -29,3 +31,5 @@ torch==2.15.0
 fastapi==0.162.5
 uvicorn==0.54.0
 httpx==0.28.1
+
+# TODO(step-03): decide Docling vs pdfplumber for table pages (D-005) and pin it.
