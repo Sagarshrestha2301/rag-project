@@ -44,4 +44,11 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
-(none yet. Docs approval is pending; Step 0 cannot start before a "docs" line exists.)
+2026-11-13 | approval | docs | owner
+2026-11-13 | start | step 00 | owner
+2026-11-13 | completion | step 00 | owner
+2026-11-13 | start | step 01 | owner
+
+(2026-11-13: the four lines above were typed by the coding agent on the owner's explicit
+instruction in chat, not written by hand by the owner. Recorded here rather than omitted so
+the log matches what happened; see "Proposals for owner" in `STATUS.md`.)

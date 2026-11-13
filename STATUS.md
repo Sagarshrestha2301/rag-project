@@ -9,8 +9,8 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 
 | # | Step | State |
 |---|---|---|
-| 0 | Environment check | awaiting approval |
-| 1 | Eval set | not started |
+| 0 | Environment check | done (approval recorded 2026-11-13; owner tag pending) |
+| 1 | Eval set | in progress (draft set awaiting owner approval) |
 | 2 | LLM benchmark | not started |
 | 3 | Parsing sample | not started |
 | 4 | Chunking + embeddings | not started |
@@ -23,6 +23,9 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 States: not started / in progress / awaiting verification / awaiting approval / done / blocked.
 
 ## Next action
+Owner reviews the 24 draft questions in `eval/questions.jsonl` (answers, pages, quotes) and decides the table-question gap (proposal 8). Then the scorer is implemented and tested on fake outputs, which completes Step 1.
+
+## Earlier next action
 Owner records the Step 0 completion approval in `APPROVALS.md` and tags `step-00-approved`, decides on the staged corpus plan (proposal 4, drafted as D-038) which needs edits to `steps/01-*.md` and `steps/03-*.md`, then approves the start of Step 1.
 
 ## Blockers / open questions
@@ -75,6 +78,8 @@ Owner records the Step 0 completion approval in `APPROVALS.md` and tags `step-00
 
 6. **Keep other tools out of the project venv.** While Step 0 was running, a VS Code terminal installed `aider-chat` into `.venv`. Aider pins `click==8.3.1`, `hf-xet==1.2.0` and `idna==3.11` exactly, and drags `numpy` back to 1.26.4, which breaks `pyarrow` (it requires NumPy >= 2) and therefore `lancedb`. **Resolved 2026-11-13 (owner's choice): the two environments are split.** The aider environment is kept at `tools\aider-venv` (inside the gitignored `tools\`), and `.venv` was rebuilt from scratch: `pip check` reports "No broken requirements found." and every import works. The project venv now has 77 packages, exactly what `requirements.txt` resolves to. Consequences worth keeping: (a) never run `pip install` into `.venv` for a tool that is not in `requirements.txt`; (b) `numpy`, `pyarrow`, `scipy` and `Pillow` are now pinned explicitly in `requirements.txt`, because aider silently pushed numpy back to 1.x, which breaks pyarrow and therefore lancedb; (c) the aider venv is not a working aider install right now — it holds the leftover packages of a failed install. `tools\aider-venv\Scripts\pip install aider-chat` there re-creates it on request. A rule in `AGENTS.md` rule 2 is still proposed for this.
 
+8. **Stage A cannot supply the table questions (blocks full Step 1 composition).** `EVAL.md` asks for 30 questions including 6 table lookups. The Marahatta paper contains no tables (only figures and equations), so a table question would have to be invented. The draft set therefore has **24 questions** (fact 7, exact 5, summary 3, comparison 3, not-found 4, follow-up 2), split 16 dev / 8 held-out, with 3 not-found questions on dev. Options: (a) accept 24 for Stage A, with table questions deferred to Stage B where real tables exist — recommended, since a fabricated table question is worse than a missing type; (b) hold Step 1 until Stage B documents arrive; (c) the owner supplies table documents now. Either way the point values in `EVAL.md` should be re-read for N=16 (6.25 points per question).
+
 7. **Eval expectations with a single PDF (owner's note, for Step 1).** With about 4 pages, recall@k is near 100% regardless of method, so the Step 1-3 results must be labelled "smoke baseline", never accuracy. The Marahatta paper has no real tables (a core requirement), its equations extract as garbled text, its text layer drops spaces ("duringthe", "byfloods") which will hurt BM25, and Figures 4-6 are images that must stay out of the eval.
 
 ## Pinned tools and downloaded files
@@ -103,6 +108,7 @@ Downloaded files (name, source, version, SHA-256, path):
 All three hashes were compared with the digest published on the release page (GitHub) and in the Hugging Face API, and match.
 
 ## Session log (newest first)
+- 2026-11-13: Step 1 started. Corpus set up (Marahatta PDF hardlinked into `data/corpus/`, SHA-256 `1b42e67f…`, 5 physical pages = printed 44-48). Built the Stage A eval draft: 24 questions with gold answers, page numbers and quotes, every quote verified against the PDF text by `eval/build_questions.py`; split 16 dev / 8 held-out; `eval/SCORER.md` written. Blocked on owner approval of the questions and the table-type gap (proposal 8).
 - 2026-11-13: venv collision with `aider-chat` (installed from a VS Code terminal) resolved the way the owner chose: aider's environment moved to `tools\aider-venv`, project `.venv` rebuilt clean (install exit 0, `pip check` clean, 77 packages, all imports OK, numpy pinned to 2.5.4). Intermediate install logs removed; `artifacts/step0/pip-clean.log` keeps the evidence.
 - 2026-11-13: Python 3.12 environment built after the owner approved it: 3.12.10 installed project-local (`tools\python312`, hash recorded), venv `.venv`, all pinned requirements installed (exit 0), imports verified offline, exact transitive pins frozen in `requirements.lock.txt` (77 lines). torch is the CPU build, so VRAM stays free for the LLM.
 - 2026-11-13: Step 0 finished. llama.cpp b12340 downloaded, hash-verified against the publisher and run with **29/29 layers on the GPU**: 219.0 tok/s prompt, 65.4 tok/s generation, 1622 MiB VRAM. Offline proof passed with `llama-server.exe` firewall-blocked (74.2 tok/s, `offline run: PASS`). Python wheels item held by the owner; per-package wheel check recorded. Staged corpus plan drafted as a PROPOSED decision.
