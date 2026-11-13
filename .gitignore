@@ -12,3 +12,7 @@ __pycache__/
 # Tool marker folder (not project content)
 .freebuff/
 /tools/
+
+# Generated eval review page (rebuild with eval/build_review.py)
+/eval/review.html
+/eval/review_pages/
