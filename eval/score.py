@@ -239,6 +239,9 @@ def _metrics(results: list[dict], questions: list[dict], split: str | None = Non
 def summarize(results: list[dict], questions: list[dict]) -> dict:
     out = _metrics(results, questions)
     out["by_split"] = {sp: _metrics(results, questions, sp) for sp in ("dev", "heldout")}
+    # points are only meaningful per scored set (dev / held-out), never over both
+    out["points_per_question"] = None
+    out["points_per_question_by_split"] = {sp: m["points_per_question"] for sp, m in out["by_split"].items()}
     return out
 
 
@@ -254,7 +257,9 @@ def diff(baseline: list[dict], current: list[dict]) -> dict:
 
 
 def to_markdown(summary: dict, results: list[dict], d: dict | None, label: str) -> str:
-    lines = [f"# Scores: {label}", "", f"{summary['n']} questions, {summary['points_per_question']} points each", ""]
+    pts = summary.get("points_per_question_by_split") or {}
+    per_set = ", ".join(f"{sp} {v} points" for sp, v in pts.items()) or "points not fixed"
+    lines = [f"# Scores: {label}", "", f"{summary['n']} questions; one question is worth: {per_set}", ""]
     for key in ("recall@5", "recall@10", "recall@30"):
         v = summary["retrieval"][key]["pass"]
         lines.append(f"- {key}: {v['count']}/{v['of']} ({v['pct']}%) [answerable only]")
@@ -335,7 +340,8 @@ def main() -> int:
         {"label": label, "summary": summary, "results": results, "diff": d}, indent=2), encoding="utf-8")
     (out_dir / "scores.md").write_text(to_markdown(summary, results, d, label), encoding="utf-8")
 
-    print(f"{label}: {summary['n']} questions, {summary['points_per_question']} points each")
+    pts = summary["points_per_question_by_split"]
+    print(f"{label}: {summary['n']} questions (dev {pts['dev']} pts each, held-out {pts['heldout']} pts each)")
     print(f"  recall@5  {summary['retrieval']['recall@5']['pass']['count']}/{summary['retrieval']['recall@5']['pass']['of']}")
     print(f"  MRR       {summary['mrr']}")
     print(f"  citation  {summary['citation']['count']}/{summary['n']}")
@@ -343,6 +349,8 @@ def main() -> int:
     print(f"  nf(a) dev {summary['notfound_a']['count']}/{summary['notfound_a']['of']}")
     print(f"  nf(b)     {summary['notfound_b']['count']}/{summary['notfound_b']['of']}")
     print(f"  passed    {summary['passed']['count']}/{summary['n']}")
+    for sp, m in summary["by_split"].items():
+        print(f"  {sp:<8}  {m['passed']['count']}/{m['n']} passed")
     print(f"  wrote {out_dir/'scores.json'} and {out_dir/'scores.md'}")
     return 0
 

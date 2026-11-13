@@ -74,7 +74,8 @@ def main() -> int:
             check("MRR 1.0", s["mrr"] == 1.0, str(s["mrr"]))
             check("not-found (a) dev 3/3", s["notfound_a"]["count"] == 3 and s["notfound_a"]["of"] == 3,
                   f"{s['notfound_a']['count']}/{s['notfound_a']['of']} scope={s['notfound_a_scope']}")
-            check("points per question 3.33", s["points_per_question"] == 3.33, str(s["points_per_question"]))
+            check("points: dev 5, held-out 10", s["points_per_question_by_split"] == {"dev": 5.0, "heldout": 10.0},
+                  str(s["points_per_question_by_split"]))
             check("split blocks 20/10", (s["by_split"]["dev"]["n"], s["by_split"]["heldout"]["n"]) == (20, 10),
                   f"{s['by_split']['dev']['n']} dev / {s['by_split']['heldout']['n']} held-out")
 
