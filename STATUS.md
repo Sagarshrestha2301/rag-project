@@ -11,7 +11,7 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 |---|---|---|
 | 0 | Environment check | done (approval recorded 2026-11-13; owner tag pending) |
 | 1 | Eval set | done (30 questions and scorer approved 2026-11-13; owner tag pending) |
-| 2 | LLM benchmark | not started |
+| 2 | LLM benchmark | in progress (`qwen2.5` 7B measured; 2 of 3 candidates open — see proposal 11) |
 | 3 | Parsing sample | not started |
 | 4 | Chunking + embeddings | not started |
 | 5 | Hybrid retrieval | not started |
@@ -47,7 +47,13 @@ Owner approved the 30 questions and the scorer spec in chat; the scorer was then
 - VRAM with that model at 4k context: **1622 MiB** of 4096 (2343 MiB free).
 - Offline proof: firewall-blocked run answered at 74.2 tok/s, VRAM 1594 MiB, `offline run: PASS`.
 - Python stack: Python 3.12.10 venv; torch **2.15.0+cpu** (`torch.cuda.is_available() = False` by design, D-010), lancedb 0.41.0, pymupdf 2.1, sentence-transformers 6.3.0, transformers 5.22.2, fastapi 0.162.5. All imports succeed with offline env vars set.
-- Chosen LLM + tokens/s + VRAM: not measured (Step 2 decides the model).
+- Generator measured so far: **`qwen2.5` Q4_K_M, 7.62B, 4.36 GiB** (the owner's existing Ollama model, `ollama 0.40.16`), served by the pinned `llama-server.exe` from a hardlink (`links=2`, no extra disk). SHA-256 `2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730`, which is exactly the digest Ollama stores the blob under.
+  - `llama-bench` (auto layer split): pp512 **347.8 tok/s**, pp2048 **293.3**, pp4096 **261.0**; tg128 **8.38 tok/s**.
+  - 4096 ctx, f16 KV cache: VRAM **3800 MiB of 4096** loaded; 3389-token prompt evaluated in **11.56 s (293 tok/s)**, generation **7.46 tok/s**; answer correct ("540 mm") for a 17-token reply, 13.9 s total.
+  - 6144 ctx, `q8_0` KV cache: VRAM **3835 MiB of 4096**; 5397-token prompt in **24.0 s (225 tok/s)**, generation **5.77 tok/s**; answer correct ("about 100 years").
+  - Latency projection from those numbers: short follow-up (1k prompt, 100 tokens) ≈ **16 s**, inside the 20 s target; standard RAG (3.4k prompt, 120 tokens) ≈ **28 s**, outside it; deep (5.4k) ≈ **41 s**, inside the 30 s+ target only.
+- A 4226-token prompt was rejected at 4096 context (`exceed_context_size_error`), so the prompt budget must stay under the context window minus the answer; recorded because it is easy to hit with five chunks plus history.
+- Chosen LLM and fallback: not decided (needs the owner's call, see proposal 11).
 - Parse speed (pages/min): not measured.
 - Embedding speed (pages/min): not measured.
 
@@ -85,6 +91,13 @@ Owner approved the 30 questions and the scorer spec in chat; the scorer was then
 9. **Superseded proposal 8 (kept for the record).** `EVAL.md` asks for 30 questions including 6 table lookups. The Marahatta paper contains no tables (only figures and equations), so a table question would have to be invented. The draft set therefore has **24 questions** (fact 7, exact 5, summary 3, comparison 3, not-found 4, follow-up 2), split 16 dev / 8 held-out, with 3 not-found questions on dev. Options: (a) accept 24 for Stage A, with table questions deferred to Stage B where real tables exist — recommended, since a fabricated table question is worse than a missing type; (b) hold Step 1 until Stage B documents arrive; (c) the owner supplies table documents now. Either way the point values in `EVAL.md` should be re-read for N=16 (6.25 points per question).
 
 7. **Eval expectations with a single PDF (owner's note, for Step 1).** With about 4 pages, recall@k is near 100% regardless of method, so the Step 1-3 results must be labelled "smoke baseline", never accuracy. The Marahatta paper has no real tables (a core requirement), its equations extract as garbled text, its text layer drops spaces ("duringthe", "byfloods") which will hurt BM25, and Figures 4-6 are images that must stay out of the eval.
+
+11. **Step 2 needs a decision: 7B that misses 20 s, or one 3-4B download (2026-11-13).** The owner approved Step 2 and said to use the existing `qwen2.5`. Measured (see "Measured facts"): it runs, answers our gold questions correctly, and fits in VRAM at 4096 ctx (3800 MiB) and even at 6144 ctx with `q8_0` KV (3835 MiB) — but it generates at **7.46 tok/s**, so a standard 3.4k-token RAG prompt plus a 120-token answer takes about **28 s**, missing the 20 s target for short follow-ups by roughly 8 s. It is also outside **D-002**, which pinned the generator to a 3-4B model at Q4 *because* 7B spills on this 4 GB card; D-002 is owner-only, so the agent cannot change it. Options:
+   - **(a) Accept `qwen2.5` 7B.** Best answer quality already on disk, zero download, but the 20 s target is missed and VRAM headroom is only ~260 MiB. D-002 would need an owner edit explaining the exception.
+   - **(b) Add one 3-4B model for comparison** (Qwen3.5-4B `Q4_K_M`, 2.78 GB, Apache-2.0, or Qwen2.5-3B, ~1.9 GB). Expected to hit 20 s and leave VRAM headroom; costs one download and roughly 20 minutes of measurement.
+   - **(c) Complete the table with the models already on disk** (`deepseek-r1`, `starcoder2:7b`). Zero download, but neither is a sensible RAG generator (a reasoning model and a code model), so the comparison would choose `qwen2.5` on quality, not on measurement.
+
+   Recommendation: **(b) with Qwen3.5-4B**, because the step exists to choose a generator on numbers and currently only one candidate has any. If the owner prefers no download, (a) is workable: every metric is already honest, the 20 s target just becomes "~28 s for a standard question".
 
 10. **Step 2 candidate list and download approval (needs owner decision).** OD-3 says the list is re-checked at the start of Step 2; that re-check is done, and the step file's hints ("Phi-4-mini, Qwen3-4B, Gemma 4 E2B/E4B") were mostly still current but partly superseded:
 
@@ -129,10 +142,12 @@ Downloaded files (name, source, version, SHA-256, path):
 | `qwen2.5-1.5b-instruct-q4_k_m.gguf` | huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF | main | `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` | `models/` |
 | `python-3.12.10-amd64.exe` | python.org/ftp/python/3.12.10 | 3.12.10 | `67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb` | `tools/installers/` |
 | Python wheel set (76 packages) | PyPI | see `requirements.lock.txt` | not recorded per wheel (version-pinned only) | `.venv/Lib/site-packages` |
+| `qwen2.5-7b-instruct-q4_k_m.gguf` | owner's existing Ollama store (`ollama pull qwen2.5`) | Q4_K_M, 7.62B | `2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730` | `models/` (hardlink to `~/.ollama/models/blobs/sha256-2bada8a7…3730`) |
 
 All three hashes were compared with the digest published on the release page (GitHub) and in the Hugging Face API, and match.
 
 ## Session log (newest first)
+- 2026-11-13: Step 2 started with the owner's existing `qwen2.5` (7.62B Q4_K_M) instead of downloads. Hardlinked the Ollama blob into `models/` (no extra disk); its SHA-256 equals Ollama's blob digest. Measured with the pinned build: pp512/2048/4096 = 347.8/293.3/261.0 tok/s, tg128 8.38 tok/s; 4096 ctx uses 3800 MiB VRAM and answers a 3389-token prompt in 11.56 s at 7.46 tok/s; 6144 ctx with q8_0 KV uses 3835 MiB and takes 24.0 s for 5397 tokens at 5.77 tok/s. Both answers were correct. A 4226-token prompt is rejected at 4096 ctx. The 7B misses the 20 s target for standard RAG prompts (~28 s projected) and is outside D-002, so proposal 11 asks the owner to choose: accept 7B, or approve one 3-4B download for comparison.
 - 2026-11-13: Step 2 planning only (Step 2 has no start approval, so nothing was downloaded). Re-checked OD-3 against current releases: Qwen3.5-4B supersedes Qwen3-4B, Gemma 4 exists but E4B is 8B/4.98 GB and cannot fit 4 GB VRAM, Phi-4-mini is still current (MIT). Verified by scanning `llama.dll` that the pinned build b12340 supports `gemma4`, `qwen35` and `phi3`, so no tool re-pin is needed. Proposed three candidates and an 8.38 GB download list as proposal 10, with the VRAM and prompt-processing risks stated.
 - 2026-11-13: Step 1 finished. Owner approved the 30 questions and the scorer spec in chat; added `eval/score.py` (recall@5/10/30 over answerable questions, MRR, citation correctness with quote verification, numeric exact match, not-found a and b, per-question diff, SHA-256 integrity gate), `eval/make_fixtures.py` and `eval/test_scorer.py`. All 30 checks pass: perfect 30/30, empty 4/30, partial 15/30 with exactly q016-q030 flagged as regressions, a run citing `data/raw/` rejected (exit 3), and a tampered gold hash rejected (exit 3) with no scores written. Also added `eval/build_review.py`, a static side-by-side review page used to approve the questions, and recorded the approval in `APPROVALS.md`.
 - 2026-11-13: Owner added 4 PDFs; corpus is now 5 documents (all hardlinked, hashes pinned). Extended the eval set to the full 30-question composition with 6 verified table questions from Das Tables 1-3 (the owner's table requirement is now covered), split 20 dev / 10 held-out. `eval/build_questions.py` checks every quote and every file hash before writing.
