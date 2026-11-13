@@ -203,33 +203,43 @@ def score_question(q: dict, row: dict | None) -> dict:
     return out
 
 
-def summarize(results: list[dict], questions: list[dict]) -> dict:
-    n = len(results)
+def pct(count: int, total: int) -> dict:
+    return {"count": count, "of": total, "pct": round(100 * count / total, 1) if total else 0.0}
+
+
+def _metrics(results: list[dict], questions: list[dict], split: str | None = None) -> dict:
     by_id = {q["id"]: q for q in questions}
+    rows = [r for r in results if split is None or by_id[r["id"]]["split"] == split]
+    answerable = [r for r in rows if by_id[r["id"]]["answerable"]]
+    unanswerable = [r for r in rows if not by_id[r["id"]]["answerable"]]
+    with_numbers = [r for r in rows if r["numeric_ok"] is not None]
 
-    def pct(count: int, total: int) -> dict:
-        return {"count": count, "of": total, "pct": round(100 * count / total, 1) if total else 0.0}
-
-    retrievable = [r for r in results if r["retrieval_scored"]]
-    retrieval = {f"recall@{k}": {"pass": pct(sum(1 for r in retrievable if r["recall"][k][1]), len(retrievable))}
+    # recall, MRR and citation are scored on answerable questions only: a not-found
+    # question has no page to retrieve and nothing to cite (eval/SCORER.md).
+    retrieval = {f"recall@{k}": {"pass": pct(sum(1 for r in answerable if r["recall"][k][1]), len(answerable))}
                  for k in RECALL_KS}
-    mrr_avg = sum(r["mrr"] for r in retrievable) / len(retrievable) if retrievable else 0.0
+    mrr = sum(r["mrr"] for r in answerable) / len(answerable) if answerable else 0.0
 
-    answerable = [r for r in results if by_id[r["id"]]["answerable"]]
-    unanswerable = [r for r in results if not by_id[r["id"]]["answerable"]]
-    with_numbers = [r for r in results if r["numeric_ok"] is not None]
-
+    # not-found (a) is gated on the dev set, so the overall figure is the dev one
+    gate_a = [r for r in unanswerable if by_id[r["id"]]["split"] == "dev"] if split is None else unanswerable
     return {
-        "n": n,
+        "n": len(rows),
         "retrieval": retrieval,
-        "mrr": round(mrr_avg, 3),
+        "mrr": round(mrr, 3),
         "citation": pct(sum(1 for r in answerable if r["citation_ok"]), len(answerable)),
         "numeric": pct(sum(1 for r in with_numbers if r["numeric_ok"]), len(with_numbers)),
-        "notfound_a": pct(sum(1 for r in unanswerable if r["notfound_correct"]), len(unanswerable)),
+        "notfound_a": pct(sum(1 for r in gate_a if r["notfound_correct"]), len(gate_a)),
+        "notfound_a_scope": "dev" if split is None else split,
         "notfound_b": pct(sum(1 for r in answerable if r["notfound_correct"]), len(answerable)),
-        "passed": pct(sum(1 for r in results if r["passed"]), n),
-        "points_per_question": round(100 / n, 2) if n else 0.0,
+        "passed": pct(sum(1 for r in rows if r["passed"]), len(rows)),
+        "points_per_question": round(100 / len(rows), 2) if rows else 0.0,
     }
+
+
+def summarize(results: list[dict], questions: list[dict]) -> dict:
+    out = _metrics(results, questions)
+    out["by_split"] = {sp: _metrics(results, questions, sp) for sp in ("dev", "heldout")}
+    return out
 
 
 def diff(baseline: list[dict], current: list[dict]) -> dict:
@@ -251,7 +261,20 @@ def to_markdown(summary: dict, results: list[dict], d: dict | None, label: str) 
     lines.append(f"- MRR: {summary['mrr']}")
     for key in ("citation", "numeric", "notfound_a", "notfound_b", "passed"):
         v = summary[key]
-        lines.append(f"- {key}: {v['count']}/{v['of']} ({v['pct']}%)")
+        scope = " [dev]" if key == "notfound_a" else ""
+        lines.append(f"- {key}{scope}: {v['count']}/{v['of']} ({v['pct']}%)")
+
+    lines += ["", "## By split", "",
+              "| split | n | recall@5 | MRR | citation | numeric | nf(a) | nf(b) | passed |",
+              "|---|---|---|---|---|---|---|---|---|"]
+    for sp, m in summary.get("by_split", {}).items():
+        r5 = m["retrieval"]["recall@5"]["pass"]
+        lines.append(f"| {sp} | {m['n']} | {r5['count']}/{r5['of']} | {m['mrr']} | "
+                     f"{m['citation']['count']}/{m['citation']['of']} | "
+                     f"{m['numeric']['count']}/{m['numeric']['of']} | "
+                     f"{m['notfound_a']['count']}/{m['notfound_a']['of']} | "
+                     f"{m['notfound_b']['count']}/{m['notfound_b']['of']} | "
+                     f"{m['passed']['count']}/{m['n']} |")
     lines += ["", "| id | type | rank | cite | numeric | not-found | verdict |", "|---|---|---|---|---|---|---|"]
     for r in results:
         num = "n/a" if r["numeric_ok"] is None else ("ok" if r["numeric_ok"] else "FAIL")
@@ -317,7 +340,7 @@ def main() -> int:
     print(f"  MRR       {summary['mrr']}")
     print(f"  citation  {summary['citation']['count']}/{summary['n']}")
     print(f"  numeric   {summary['numeric']['count']}/{summary['numeric']['of']}")
-    print(f"  nf(a)     {summary['notfound_a']['count']}/{summary['notfound_a']['of']}")
+    print(f"  nf(a) dev {summary['notfound_a']['count']}/{summary['notfound_a']['of']}")
     print(f"  nf(b)     {summary['notfound_b']['count']}/{summary['notfound_b']['of']}")
     print(f"  passed    {summary['passed']['count']}/{summary['n']}")
     print(f"  wrote {out_dir/'scores.json'} and {out_dir/'scores.md'}")

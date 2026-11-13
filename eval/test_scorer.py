@@ -72,8 +72,11 @@ def main() -> int:
             check("recall@5 26/26", s["retrieval"]["recall@5"]["pass"]["count"] == 26,
                   f"{s['retrieval']['recall@5']['pass']['count']}/26")
             check("MRR 1.0", s["mrr"] == 1.0, str(s["mrr"]))
-            check("not-found (a) 4/4", s["notfound_a"]["count"] == 4, f"{s['notfound_a']['count']}/4")
+            check("not-found (a) dev 3/3", s["notfound_a"]["count"] == 3 and s["notfound_a"]["of"] == 3,
+                  f"{s['notfound_a']['count']}/{s['notfound_a']['of']} scope={s['notfound_a_scope']}")
             check("points per question 3.33", s["points_per_question"] == 3.33, str(s["points_per_question"]))
+            check("split blocks 20/10", (s["by_split"]["dev"]["n"], s["by_split"]["heldout"]["n"]) == (20, 10),
+                  f"{s['by_split']['dev']['n']} dev / {s['by_split']['heldout']['n']} held-out")
 
         # ---------------------------------------------------------- empty
         print("case 2: empty run")
@@ -86,7 +89,7 @@ def main() -> int:
             check("recall@5 0/26", s["retrieval"]["recall@5"]["pass"]["count"] == 0,
                   f"{s['retrieval']['recall@5']['pass']['count']}/26")
             check("MRR 0.0", s["mrr"] == 0.0, str(s["mrr"]))
-            check("not-found (a) 4/4", s["notfound_a"]["count"] == 4, f"{s['notfound_a']['count']}/4")
+            check("not-found (a) dev 3/3", s["notfound_a"]["count"] == 3, f"{s['notfound_a']['count']}/3")
             check("not-found (b) 0/26", s["notfound_b"]["count"] == 0, f"{s['notfound_b']['count']}/26")
 
         # ---------------------------------------------------------- partial

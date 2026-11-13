@@ -48,7 +48,15 @@ All are reported as a **count and a percentage** (`17/20`, `85%`), never a perce
 
 ## Point values
 
-One question is worth `100 / N` points for the set being scored. With the current Stage A set: dev N=16 → 6.25 points per question; held-out N=8 → 12.5. Not-found (a) on dev rests on 3 questions, so one flip is 33 points — which is why it has zero tolerance.
+One question is worth `100 / N` points for the set being scored. With the current set: dev N=20 → 5 points per question; held-out N=10 → 10. Not-found (a) on dev rests on 3 questions, so one flip is 33 points — which is why it has zero tolerance.
+
+## Which questions a metric counts
+
+`recall@k`, `MRR` and `citation_correct` are scored on **answerable questions only**. A not-found question has no page that has to be retrieved and nothing to cite, so scoring it there would fail every run by construction. Not-found questions are covered by `not_found_a` alone.
+
+`numeric_exact` counts only questions that have gold numbers. Units are required for physical measures (`mm`, `m3/s`, `km2`, `mm/h`) but not for counts, years or coefficients, where the prose legitimately says `households`, `growers` or nothing at all.
+
+Every metric is also reported **per split** (dev / held-out), because the gate uses dev and the held-out figure is the honest one.
 
 ## Output
 
@@ -63,9 +71,9 @@ The scorer is tested on three hand-made run files against `eval/questions.jsonl`
 
 | Fixture | Expected |
 |---|---|
-| `perfect` — gold answer, correct citation and quote on every question | recall 100%, MRR 1.0, citation 100%, numeric 100%, not-found (a) 3/3 |
-| `empty` — no retrieval, no answer, says "not found" everywhere | retrieval 0, not-found (a) 3/3, not-found (b) 0/13 |
-| `partial` — correct on the first half, wrong page and wrong number on the rest | recall and numeric near 50%, per-question diff lists exactly the failing ids |
+| `perfect` — gold answer, correct citation and quote on every question | 30/30 pass, recall 26/26, MRR 1.0, citation 26/26, numeric 24/24, not-found (a) dev 3/3, (b) 26/26 |
+| `empty` — no retrieval, no answer, says "not found" everywhere | 4/30 pass, retrieval 0, not-found (a) dev 3/3, (b) 0/26 |
+| `partial` — correct on the first half, wrong page and wrong number on the rest | 15/30 pass; the diff against `perfect` lists exactly q016-q030 as pass→fail |
 
 Plus two integrity fixtures: a run file citing a corpus path whose hash is wrong, and one citing a path outside `data/corpus/`. Both must exit non-zero.
 
