@@ -1,0 +1,72 @@
+# Evaluation
+
+Built in Step 1, used in every later step. The owner approves every question.
+
+## Dataset (`eval/questions.jsonl`, one JSON object per line)
+Fields: `id`, `split` (dev/heldout), `type`, `question`, `history` (list, for follow-ups, else empty), `answerable` (true/false), `gold_answer`, `gold_numbers` (list of value+unit, if any), `gold_sources` (list of corpus file + page + file SHA-256), `gold_quote` (short exact text from the page), `added_in_step`, `notes`.
+
+**Gold pages refer to the corpus files in `data/corpus/`** (the stored PDFs; for Word files, the stored converted PDF), using the physical PDF page number (1-based). The scorer checks that each file's SHA-256 still matches; a mismatch stops the run. The converter and its version are pinned (D-019, D-023).
+
+## Proposed composition (30 questions, from real documents)
+| Type | Count |
+|---|---|
+| Specific fact | 7 |
+| Exact lookup (names, IDs, numbers) | 5 |
+| Table lookup | 6 |
+| Cross-document summary | 3 |
+| Comparison | 3 |
+| Not-found (answer is not in the corpus) | 4 |
+| Follow-up (needs chat history) | 2 |
+
+Split: 20 dev, 10 held-out (stratified, frozen). Held-out is run only at the end of Steps 5, 6 and 8. Never tune on it.
+
+## Growing the dev set
+- Every failure found after Step 1 (in any step) becomes a new **dev** question: an agent proposes it, the owner approves it, and it is tagged with `added_in_step`.
+- Target: about 50-60 dev questions by the end of Step 5. Keep not-found questions at about 10-15% of dev.
+- Until Step 8, new questions must be answerable from the Step 3 sample documents.
+- The held-out set stays frozen at 10 questions and never grows.
+- **Re-baseline when the dev set changes:** re-run the last accepted configuration on the new dev set and log it as the new baseline. The gate only compares runs on the same question set. Also re-run the start-of-step baseline commit on the new set.
+
+## Metrics (reported separately)
+**Retrieval**
+- recall@k (k = 5, 10, 30): at least one gold (file, page) in the top k. For summary/comparison: fraction of gold sources found.
+- MRR: reciprocal rank of the first gold (file, page).
+
+**Answer**
+- Citation correctness: every cited (file, page) is in the gold sources, and every quote exists in the cited text (checked in code).
+- Numeric exact match: the number and unit in the answer equal the gold after normalization.
+- Not-found accuracy: report both (a) correctly says "not found" on unanswerable questions and (b) does not falsely say "not found" on answerable ones.
+
+**Secondary (never a gate):** faithfulness from a local LLM judge; latency p50/p95 per stage and end to end.
+
+## How big is one question
+One question is worth 100 / N points, where N is the number of questions in the set being scored.
+| Set | N | One question |
+|---|---|---|
+| Dev at start | 20 | 5 points |
+| Dev target (Step 5) | 50-60 | about 2 points |
+| Held-out | 10 | 10 points |
+| Not-found (a) on dev at start | about 3 | about 33 points |
+
+Report every metric as a count as well as a percentage (for example 17/20).
+
+## Regression gate
+- Runs are deterministic: temperature 0, fixed seeds, pinned versions.
+- Compare each change with two baselines on the **dev** set (same question set): (i) the last accepted baseline, and (ii) the baseline from the start of the current step. Record the commit id of every baseline so it can be re-run.
+- Accept a change only if all of these hold:
+  1. **No unexplained pass-to-fail question.** Print a per-question diff. Every question that went from pass to fail needs a written explanation in the change notes, and the owner reviews it when approving the step.
+  2. **No metric drops by more than one question against the last accepted baseline** (count-based metrics: a drop of 2 or more questions fails). MRR may drop by at most 1/N, one question's worth.
+  3. **No drift:** against the start-of-step baseline, the total drop over all changes in the step is also at most one question per metric (MRR: at most 1/N). Five changes that each lose one question do not pass.
+  4. **Not-found accuracy (a) does not drop at all** against either baseline. On about 3 dev questions, one question of tolerance would mean missing a third of the unanswerable ones. (Not-found (b) follows rules 2 and 3.)
+- Held-out is checked at milestones (end of Steps 5, 6, 8). A milestone is blocked if any metric is worse by more than one question there, or a pass-to-fail question is unexplained, or not-found (a) is worse at all (held-out has only about 1 not-found question, so a one-question tolerance would allow missing all of them).
+- A gate pass is evidence, not proof: with a small set, read the per-question diff.
+
+## Run protocol
+1. Record versions (models, parser, converter, chunker, index version, prompt version).
+2. Run retrieval eval, then answer eval. Save raw outputs in `eval/runs/<date>-<label>/`.
+3. Append a row to the results table below.
+
+## Results (fill in)
+| Date | Label | Step | Split | N | recall@5 | recall@10 | recall@30 | MRR | Citation | Numeric | Not-found (a / b) | p50 s | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | | | | |

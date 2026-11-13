@@ -1,0 +1,13 @@
+# Data, models and indexes are never committed
+/data/
+/models/
+*.sqlite
+*.lance/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Tool marker folder (not project content)
+.freebuff/
