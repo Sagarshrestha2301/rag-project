@@ -14,12 +14,12 @@
 8. Write down the process for adding new dev questions later (agent proposes, owner approves, tagged `added_in_step`, re-baseline) as in `EVAL.md`.
 
 ## Definition of done
-- [ ] `eval/questions.jsonl` has 30 questions, each approved by the owner
-- [ ] Split frozen and recorded; number of not-found questions on dev counted (expected about 3) and the one-question point values reported
-- [ ] Every gold source points to a file in `data/corpus/` with its SHA-256; the scorer fails on a hash mismatch (tested)
-- [ ] Source document list saved
-- [ ] Scorer gives the expected scores on hand-made fake outputs (perfect, empty, partly wrong)
-- [ ] Metric definitions match `EVAL.md`; any change recorded in `DECISIONS.md`
+- [x] `eval/questions.jsonl` has 30 questions, each approved by the owner (approved in chat 2026-11-13)
+- [x] Split frozen and recorded; 3 not-found questions on dev, and one question is worth 5 points on dev and 10 on held-out (20 dev / 10 held-out)
+- [x] Every gold source points to a file in `data/corpus/` with its SHA-256; the scorer fails on a hash mismatch (tested: `eval/test_scorer.py` case 5, exit 3 and no scores written)
+- [x] Source document list saved (`eval/source_documents.md`)
+- [x] Scorer gives the expected scores on hand-made fake outputs (perfect 30/30, empty 4/30, partly wrong 15/30, all in `eval/test_scorer.py`)
+- [x] Metric definitions match `EVAL.md`; no change was needed, so no `DECISIONS.md` entry
 
 ## Context to read
 `EVAL.md`, `REQUIREMENTS.md` (F2-F4), this file, `DECISIONS.md` (D-013 to D-015, D-022, D-023, D-030), the documents the owner chose.

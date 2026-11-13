@@ -1,8 +1,8 @@
 # Status
 
 **Last updated:** 2026-11-13
-**Phase:** Step 0 complete and verified (owner approved completion in chat 2026-11-13), plus the Python 3.12 environment. No Step 1 work started.
-**Current step:** Step 0 done pending the owner's written approval in `APPROVALS.md` and the `step-00-approved` tag, which only the owner writes. Step 1 needs its own start approval.
+**Phase:** Steps 0 and 1 complete and verified (owner approved both in chat 2026-11-13): environment, Python 3.12 stack, 30-question eval set and scorer. No application code written.
+**Current step:** Step 1 done, pending the owner's `step-01-approved` tag (and `step-00-approved`), which only the owner writes. Step 2 needs its own start approval.
 
 ## Step tracker
 Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the owner's `step-NN-approved` git tags.
@@ -10,7 +10,7 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 | # | Step | State |
 |---|---|---|
 | 0 | Environment check | done (approval recorded 2026-11-13; owner tag pending) |
-| 1 | Eval set | in progress (draft set awaiting owner approval) |
+| 1 | Eval set | done (30 questions and scorer approved 2026-11-13; owner tag pending) |
 | 2 | LLM benchmark | not started |
 | 3 | Parsing sample | not started |
 | 4 | Chunking + embeddings | not started |
@@ -23,14 +23,15 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 States: not started / in progress / awaiting verification / awaiting approval / done / blocked.
 
 ## Next action
-Owner reviews the 24 draft questions in `eval/questions.jsonl` (answers, pages, quotes) and decides the table-question gap (proposal 8). Then the scorer is implemented and tested on fake outputs, which completes Step 1.
+Owner tags `step-00-approved` and `step-01-approved`, then approves the start of Step 2 (LLM benchmark: three models, same settings, temperature 0). Step 2 downloads models, so the download list needs approval before it starts.
 
 ## Earlier next action
-Owner records the Step 0 completion approval in `APPROVALS.md` and tags `step-00-approved`, decides on the staged corpus plan (proposal 4, drafted as D-038) which needs edits to `steps/01-*.md` and `steps/03-*.md`, then approves the start of Step 1.
+Owner approved the 30 questions and the scorer spec in chat; the scorer was then implemented and tested on fake outputs, which completed Step 1.
 
 ## Blockers / open questions
-- `APPROVALS.md` still has no approval line (the file was not edited by the agent, by rule). Work ran on the owner's explicit chat instruction.
-- Python interpreter undecided: the venv install is on hold until the owner picks 3.12 or 3.14 (see proposal 5).
+- Two owner tags are outstanding (`step-00-approved`, `step-01-approved`); agents never tag.
+- Step 2 needs a download approval for the candidate models before measurement starts.
+- Proposal 4 (staged corpus plan, drafted as D-038) is still undecided by the owner.
 
 ## Measured facts
 - GPU / driver / CUDA: NVIDIA RTX 3050 Laptop, 4096 MiB, compute 8.6; driver 566.07; CUDA 12.7 (driver-reported). No CUDA toolkit installed.
@@ -110,6 +111,7 @@ Downloaded files (name, source, version, SHA-256, path):
 All three hashes were compared with the digest published on the release page (GitHub) and in the Hugging Face API, and match.
 
 ## Session log (newest first)
+- 2026-11-13: Step 1 finished. Owner approved the 30 questions and the scorer spec in chat; added `eval/score.py` (recall@5/10/30 over answerable questions, MRR, citation correctness with quote verification, numeric exact match, not-found a and b, per-question diff, SHA-256 integrity gate), `eval/make_fixtures.py` and `eval/test_scorer.py`. All 30 checks pass: perfect 30/30, empty 4/30, partial 15/30 with exactly q016-q030 flagged as regressions, a run citing `data/raw/` rejected (exit 3), and a tampered gold hash rejected (exit 3) with no scores written. Also added `eval/build_review.py`, a static side-by-side review page used to approve the questions, and recorded the approval in `APPROVALS.md`.
 - 2026-11-13: Owner added 4 PDFs; corpus is now 5 documents (all hardlinked, hashes pinned). Extended the eval set to the full 30-question composition with 6 verified table questions from Das Tables 1-3 (the owner's table requirement is now covered), split 20 dev / 10 held-out. `eval/build_questions.py` checks every quote and every file hash before writing.
 - 2026-11-13: Step 1 started. Corpus set up (Marahatta PDF hardlinked into `data/corpus/`, SHA-256 `1b42e67f…`, 5 physical pages = printed 44-48). Built the Stage A eval draft: 24 questions with gold answers, page numbers and quotes, every quote verified against the PDF text by `eval/build_questions.py`; split 16 dev / 8 held-out; `eval/SCORER.md` written. Blocked on owner approval of the questions and the table-type gap (proposal 8).
 - 2026-11-13: venv collision with `aider-chat` (installed from a VS Code terminal) resolved the way the owner chose: aider's environment moved to `tools\aider-venv`, project `.venv` rebuilt clean (install exit 0, `pip check` clean, 77 packages, all imports OK, numpy pinned to 2.5.4). Intermediate install logs removed; `artifacts/step0/pip-clean.log` keeps the evidence.

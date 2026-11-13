@@ -44,11 +44,13 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-13 | approval | step 01 | owner
 2026-11-13 | approval | docs | owner
 2026-11-13 | start | step 00 | owner
 2026-11-13 | completion | step 00 | owner
 2026-11-13 | start | step 01 | owner
 
-(2026-11-13: the four lines above were typed by the coding agent on the owner's explicit
-instruction in chat, not written by hand by the owner. Recorded here rather than omitted so
-the log matches what happened; see "Proposals for owner" in `STATUS.md`.)
+(2026-11-13: the five lines above were typed by the coding agent on the owner's explicit
+instruction in chat, not written by hand by the owner. The step 01 approval records the
+owner's chat approval of the 30 questions and the scorer spec. Recorded here rather than
+omitted so the log matches what happened; see "Proposals for owner" in `STATUS.md`.)

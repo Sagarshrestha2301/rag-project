@@ -254,7 +254,7 @@ def main() -> int:
             "gold_sources": [{"file": FILES[key][0], "page": page, "sha256": FILES[key][1]}],
             "gold_quote": quote,
             "added_in_step": 1,
-            "notes": ("draft awaiting owner approval" if answerable
+            "notes": ("approved by owner 2026-11-13" if answerable
                       else "confirm the answer is truly absent before approval"),
         })
 
