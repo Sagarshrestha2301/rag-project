@@ -7,14 +7,18 @@ owner can approve or reject each question against the actual source.
 This is a review aid for Step 1, not the Step 7 web UI: no server, no framework,
 one generated HTML file.
 
+Page images are embedded as base64 data URIs, so the single HTML file works on
+its own (a sibling image folder is not served by a single-file preview).
+
 Usage:
     .venv\\Scripts\\python.exe eval\\build_review.py
 Output:
-    eval/review.html  and  eval/review_pages/<doc>-p<page>.png  (both gitignored)
+    eval/review.html  (gitignored)
 """
 
 from __future__ import annotations
 
+import base64
 import html
 import json
 import pathlib
@@ -23,7 +27,6 @@ import pymupdf
 
 QUESTIONS = pathlib.Path("eval/questions.jsonl")
 OUT_HTML = pathlib.Path("eval/review.html")
-PAGES_DIR = pathlib.Path("eval/review_pages")
 
 CSS = """
 :root { --ink:#1f2933; --muted:#6b7785; --line:#d9e2ec; --bg:#f7f9fb; --accent:#2b6cb0; }
@@ -98,28 +101,20 @@ JS = """
 """
 
 
-def slug(path: str, page: int) -> str:
-    return f"{pathlib.Path(path).stem[:28].replace(' ', '_')}-p{page}.png"
-
-
 def main() -> int:
     rows = [json.loads(line) for line in QUESTIONS.read_text(encoding="utf-8").splitlines() if line.strip()]
-    PAGES_DIR.mkdir(parents=True, exist_ok=True)
 
-    rendered: dict[tuple[str, int], str] = {}
+    images: dict[str, str] = {}
     cards = []
     for r in rows:
         src = r["gold_sources"][0]
-        key = (src["file"], src["page"])
-        if key not in rendered:
+        key = f"{pathlib.Path(src['file']).stem[:24]}-p{src['page']}".replace(" ", "_")
+        if key not in images:
             doc = pymupdf.open(src["file"])
-            page = doc[src["page"] - 1]
-            pix = page.get_pixmap(matrix=pymupdf.Matrix(2, 2))
-            name = slug(*key)
-            pix.save(PAGES_DIR / name)
+            pix = doc[src["page"] - 1].get_pixmap(matrix=pymupdf.Matrix(2, 2))
             doc.close()
-            rendered[key] = name
-        img = rendered[key]
+            images[key] = "data:image/png;base64," + base64.b64encode(pix.tobytes("png")).decode("ascii")
+        img = key
 
         split_cls = "dev" if r["split"] == "dev" else "heldout"
         nf = "" if r["answerable"] else '<span class="question__badge question__badge--notfound">not found</span>'
@@ -144,7 +139,7 @@ def main() -> int:
         </div>
         <div class="question__source">
           <div class="question__source-label">page {src['page']} of {html.escape(pathlib.Path(src['file']).name[:46])}</div>
-          <div class="question__page"><img src="review_pages/{img}" alt="page {src['page']}"></div>
+          <div class="question__page"><img data-page="{img}" alt="page {src['page']}"></div>
         </div>
       </article>""")
 
@@ -174,12 +169,15 @@ def main() -> int:
     <span class="review__count"></span>
     <button class="review__button">Copy approved ids</button>
   </footer>
+  <script>const PAGE_IMAGES = {json.dumps(images)};
+document.querySelectorAll('img[data-page]').forEach(img => {{ img.src = PAGE_IMAGES[img.dataset.page]; }});</script>
   <script>{JS}</script>
 </body>
 </html>
 """, encoding="utf-8")
 
-    print(f"wrote {OUT_HTML} with {len(rows)} questions and {len(rendered)} page images in {PAGES_DIR}")
+    size_mb = OUT_HTML.stat().st_size / 1e6
+    print(f"wrote {OUT_HTML} with {len(rows)} questions and {len(images)} unique embedded page images ({size_mb:.1f} MB)")
     return 0
 
 
