@@ -1,8 +1,8 @@
 # Tracker — where this project stands and what is yours to decide
 
-One page, checked against the repository on **2026-11-14**: `git log` (23 commits),
-`git tag` (none), `APPROVALS.md`, `STATUS.md`, `DECISIONS.md` and the DoD boxes in
-`steps/`. If this page and those files disagree, the files win — this is a summary.
+One page, checked against the repository on **2026-11-14**: `git log`, `git tag` (none),
+`APPROVALS.md`, `STATUS.md`, `DECISIONS.md` and the DoD boxes in `steps/`. If this page
+and those files disagree, the files win - this is a summary.
 
 Approvals live **only** in `APPROVALS.md` plus your `step-NN-approved` tags.
 Nothing in this file is an approval.
@@ -15,8 +15,8 @@ Nothing in this file is an approval.
 step 00  environment      DONE   (10/10 DoD ticked, no tag yet)
 step 01  eval set         DONE   (6/6 ticked, 30 questions approved, no tag yet)
 step 02  LLM benchmark    DONE 5/5 - awaiting your approval + tag (3 models measured; qwen3.5 4B wins at 23/30)
-step 03  parsing          IN PROGRESS, smoke scope (3/7 boxes; pipeline runs, needs your page check)
-step 04  chunk + embed    IN PROGRESS - structure, text and table chunkers built and tested (16 + 11 + 14 cases); meta/embedders next
+step 03  parsing          IN PROGRESS - corpus now 97 PDFs / 169 tables from your Drive sample; parser survives truncated files; 97-doc rebuild running; 50-doc and 20-table boxes are now reachable
+step 04  chunk + embed    IN PROGRESS - structure, text and table chunkers, path metadata and chunk export built and tested (16+12+15+11+9 cases), 2,258 chunks; document contexts and embedders next
 step 05  hybrid retrieval NOT STARTED
 step 06  generation       NOT STARTED
 step 07  web UI           NOT STARTED as a step (a working UI exists outside the steps)
@@ -37,7 +37,7 @@ You can run it and get grounded answers right now:
 # then open http://127.0.0.1:8000
 ```
 
-- Answers are searched from the 42 corpus pages before the model sees the question.
+- Answers are searched from the 97-PDF corpus before the model sees the question.
 - Every answer cites `[A]`-`[D]`; clicking a citation opens that PDF page.
 - **Save chat** exports the conversation as Markdown, including sources.
 - `NOT FOUND` when the pages don't cover the question — checked on a real not-found question.
@@ -46,12 +46,14 @@ Measured, not claimed:
 
 | Thing | Number |
 |---|---|
+| Corpus | **97 PDFs** (was 5); 37 fetched from your Drive folder, 1 duplicate skipped, no duplicate names |
+| Parsed (60-doc run) | 557 pages, 169 tables, 58 OCR pages, 17 unreadable, 33.5 pages/min |
+| Table numbers | 2,463 of 2,466 match the page's own words |
+| Chunks (58 docs with text) | **2,258** (2,081 text + 177 table); 1,919 carry a year, 889 a publisher, 512 a section path |
 | `qwen2.5` 7B through Ollama | 499.1 tok/s prompt, 9.43 tok/s generation |
 | Oracle test (gold page as context, 30 questions) | **17/30**; citation 14/26 strict; numeric 22/24; not-found 4/4 |
 | Eval scorer self-tests | 30/30 checks pass |
-| Parsing speed | 0.64 s/page (`pymupdf4llm`) |
-| Unreadable pages | **0 of 42** — the scan is now OCR'd (was 4 of 42) |
-| NARAYAN OCR | 0 → 7,020 characters, ~20 s once, cached in `index/ui-pages.json` |
+| Unreadable pages | 0 of 42 in the old 5-document set - the scan is OCR'd (was 4 of 42) |
 
 ## 3. Open decisions only you can sign
 
@@ -69,10 +71,9 @@ All are `PROPOSED` in `DECISIONS.md` except where noted. None blocks the UI.
 
 ## 4. Things that are genuinely blocked
 
-1. **Step 3 cannot meet its own definition of done with 5 documents.** Its DoD says
-   "50 docs parsed" and "20 tables checked cell by cell". The corpus holds 5 PDFs with
-   11 tables. You already chose to run it as a **5-document smoke test** — that choice
-   needs one line in the step file, which only you may edit, or the boxes stay unticked.
+1. **Step 3's Word-file box cannot be met.** Its DoD asks for LibreOffice conversion of five
+   `.docx` files, and the corpus holds PDFs only. The 50-document and 20-table boxes are
+   **reachable now** (97 PDFs, 169 tables); the page-number check is still yours.
 2. ~~Step 2's 5th DoD box will never be filled.~~ **Resolved 2026-11-14**: both remaining
    models were downloaded and measured, so the three-model table exists (D-047). The ticked
    box in `steps/02-llm-benchmark.md` still carries the old "one model measured only" note —
@@ -81,7 +82,9 @@ All are `PROPOSED` in `DECISIONS.md` except where noted. None blocks the UI.
    scanned pages are OCR'd at index build and are now citable, marked `· OCR`. Caveat:
    OCR drops hyphens in numeric ranges (`5-10 %` → `510 %`), so numbers from that paper
    should be checked against the PDF.
-4. **Steps 3-9 have no start approval.** `APPROVALS.md` stops at step 01.
+4. **Two of the 97 PDFs are broken** (truncated Choudhary file, 0-page Komori file). They
+   contribute no text and are reported, not replaced — `data/raw/` is yours.
+5. **Steps 3-9 have no start approval.** `APPROVALS.md` stops at step 01.
 
 ## 5. What to do, in this order
 
@@ -100,23 +103,18 @@ Then add to `APPROVALS.md`, with an `OWNER:` commit:
 2026-11-14 | completion | step 01 | owner
 2026-11-14 | completion | step 02 | owner
 2026-11-14 | start | step 03 | owner
+2026-11-14 | start | step 04 | owner
 ```
 
-and `git tag step-02-approved` if you accept the one-model deviation in D-040.
-
-**Then decide (no code needed):** D-038, D-040, D-042, D-043, D-044 as "approved" or
+Then decide (no code needed): D-038, D-040, D-042, D-043, D-044 as "approved" or
 "rejected" — append a line to each in `DECISIONS.md` and commit with `OWNER:`.
 D-039 can be closed as superseded.
 
-**Then choose Step 3's scope explicitly**, because the step text and the corpus disagree:
+**Then approve the Step 4 embedder downloads** (Decision C in `STEP4-PLAN.md`): three
+small models, about 690 MB in total, so the embedder is chosen by our own eval rather than
+by reputation. Nothing is downloaded until you say so, and `models/` is still empty.
 
-- **(a) 5-document smoke test** — parse all 5 PDFs, check the 11 real tables, verify page
-  numbers, record pages/min and the 9.5% unreadable share. Fast, honest, and the DoD boxes
-  are marked "smoke-tested". *Recommended.*
-- **(b) Wait for Stage B (30-50 documents)** so Step 3's 50-doc DoD is met literally.
-  Nothing else gets built until then.
-
-**Then approve Step 3 to start**, and parsing code gets written.
+**Then mark the Step 3 Word-file box**, which the corpus cannot satisfy (PDFs only).
 
 ## 6. Honest risks, in the order they will bite
 
@@ -131,8 +129,14 @@ D-039 can be closed as superseded.
 4. **Nothing here is offline-proven end to end.** Step 0 proved a firewall-blocked answer;
    the full app (Ollama + server + UI) has not been run with the network off. That proof
    is due at Step 5/6/8 anyway, but do not assume it.
-5. **`data/corpus` is read-only and the index is derived.** Delete `index/ui-pages.json`
-   after changing the corpus, or you will search stale text.
+5. **`data/corpus` is read-only and the index is derived.** `index/ui-pages.json` carries a
+   corpus signature, so a changed corpus rebuilds it automatically; the first rebuild OCRs
+   the scans and takes minutes. Two of the 97 PDFs are broken (see §4) and will stay
+   textless until you replace them.
+6. **Document contexts and the embedder choice are not measured yet.** Ollama was not
+   running when the chunk export was built, so `index/chunks.jsonl` has no 2-line contexts;
+   the embedder benchmark needs your download approval. Treat every chunk-level number
+   above as the current state, not as a final baseline.
 
 ---
 
