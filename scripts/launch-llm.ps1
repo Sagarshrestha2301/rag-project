@@ -33,7 +33,9 @@ if (-not $ollama) {
     throw "ollama not found on PATH. Install it, then run: ollama pull $Model"
 }
 
-$installed = (& ollama list) 2>&1
+# Join first: -notmatch against an array returns every line that does NOT match,
+# so the header row alone would make this throw even when the model is present.
+$installed = ((& ollama list) 2>&1) -join "`n"
 if ($installed -notmatch [regex]::Escape($Model)) {
     throw "Model '$Model' is not in the local Ollama store. Run: ollama pull $Model"
 }
@@ -43,7 +45,16 @@ Write-Host "model        : $Model"
 Write-Host "listen       : http://127.0.0.1:$Port"
 
 # Load the model now so the first question does not pay the load time.
-& ollama run $Model --keepalive $KeepAlive "" | Out-Null
+# Uses the HTTP API, not `ollama run`: an empty prompt there drops into an
+# interactive REPL that waits for input forever.
+$warm = @{ model = $Model; prompt = ""; keep_alive = $KeepAlive } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/generate" -Method Post `
+    -Body $warm -ContentType "application/json" -TimeoutSec 300 | Out-Null
+
+$ps = ((& ollama ps) 2>&1) -join "`n"
+Write-Host "loaded       :"
+$ps -split "`n" | Where-Object { $_ -match [regex]::Escape($Model) -or $_ -match "^NAME" } | ForEach-Object { Write-Host "  $_" }
 
 Write-Host "ready        : POST http://127.0.0.1:$Port/api/chat"
 Write-Host "               POST http://127.0.0.1:$Port/v1/chat/completions (OpenAI-compatible)"
+Write-Host "stop         : ollama stop $Model"
