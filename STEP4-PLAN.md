@@ -179,12 +179,15 @@ class Chunk:
    `section_path_source: "none"` so a later reviewer can tell a real section
    path from a missing one. This is expected, not a bug: a paper with no section
    numbering has no sections to respect.
-4. **Sizes.** Target 700-1,000 characters, hard cap 1,500, 15% overlap *within*
-   a section only. Justification, measured: pages average 2,441 characters, so a
-   1,000-character chunk is roughly a third of a page and four of them fit the
-   4,096-token context with room for the question. The 105-chunk naive estimate
-   (1,000 characters per page chunk) is the ceiling; real chunking will be
-   slightly higher because headings cut pages into more pieces.
+4. **Sizes — built and measured (2026-11-14).** Target 1,000 characters when
+   packing several paragraphs, hard cap 1,500, 15% overlap in whole sentences
+   *within* a section only. **A paragraph is never split unless it alone exceeds
+   the cap**, which is why the corpus median came out at **1,267 characters**
+   rather than 1,000: pages here are made of ~1,200-1,400 character paragraphs and
+   cutting one mid-way buys nothing. Measured result over the real corpus: 202
+   chunks, mean 1,099, max 1,496, **0 over cap**. The cap wins over the overlap:
+   the first implementation let a 1,469-character body carry a 148-character tail
+   into 1,617, and the carry is now shortened to fit or dropped.
 5. **Prefix.** Every chunk's embedded text starts with
    `"{year} {publisher} | {doc_type} | {section_path} | p{pages}"`. This is task
    1's "prefix every chunk with its section path", and it is what lets a chunk

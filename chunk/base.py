@@ -60,3 +60,65 @@ class Section:
     def text(self) -> str:
         """The section's body, paragraphs separated by a blank line."""
         return "\n\n".join(block.text for block in self.blocks)
+
+
+@dataclass
+class DocMeta:
+    """Programmatic document metadata, filled by `chunk.meta`.
+
+    Every field is optional on purpose: a missing publisher must degrade to a
+    shorter prefix, never crash a build.
+    """
+
+    file: str
+    year: int | None = None
+    publisher: str = ""
+    doc_type: str = ""
+    doc_context: str = ""
+
+
+@dataclass
+class Chunk:
+    """One embeddable unit, with everything needed to cite it."""
+
+    chunk_id: str
+    file: str
+    page_start: int
+    page_end: int
+    section_path: list[str]
+    text: str                      # what gets embedded, prefix included
+    type: str = "text"             # "text" | "table"
+    section_path_source: str = "heading"   # "heading" | "none"
+    block_indices: list[int] = field(default_factory=list)
+    caption: str = ""
+    units: str = ""
+    footnotes: list[str] = field(default_factory=list)
+    year: int | None = None
+    publisher: str = ""
+    doc_type: str = ""
+    doc_context: str = ""
+    ocr: bool = False
+    chunker_version: str = "step4-v1"
+
+    def as_dict(self) -> dict:
+        return dict(self.__dict__)
+
+
+CHUNKERS: dict[str, type] = {}
+
+
+def register_chunker(name: str):
+    """Class decorator: register a chunker under `name` (Code rule 2).
+
+    Usage:
+        @register_chunker("text")
+        class TextChunker: ...
+        CHUNKERS["text"]
+    """
+
+    def wrap(cls):
+        cls.name = name
+        CHUNKERS[name] = cls
+        return cls
+
+    return wrap
