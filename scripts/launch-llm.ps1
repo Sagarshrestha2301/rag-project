@@ -1,8 +1,12 @@
 # Start the local model server through Ollama (offline, localhost only).
 #
 # Usage:
-#   .\scripts\launch-llm.ps1                    # qwen2.5 on 127.0.0.1:11434
+#   .\scripts\launch-llm.ps1                    # qwen3.5:4b on 127.0.0.1:11434
 #   .\scripts\launch-llm.ps1 -Model qwen2.5 -KeepAlive 30m
+#
+# The default model is qwen3.5:4b, which won the Step 2 comparison (D-047) at
+# 23/30 oracle against 18/30 for the 7B, and is faster on every latency measure.
+# Thinking is sent as false: with it on, qwen3.5 returns empty answers.
 #
 # Ollama replaced the pinned llama.cpp build on 2026-11-13 (owner's decision).
 # It was measured faster on the same weights: 499 tok/s prompt and 9.43 tok/s
@@ -13,9 +17,10 @@
 # network: Ollama serves from its local model store and binds to localhost.
 
 param(
-    [string]$Model     = "qwen2.5",
+    [string]$Model     = "qwen3.5:4b",
     [int]   $Port      = 11434,
-    [string]$KeepAlive = "30m"
+    [string]$KeepAlive = "30m",
+    [switch]$Think
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,13 +46,13 @@ if ($installed -notmatch [regex]::Escape($Model)) {
 }
 
 Write-Host "offline mode : HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1"
-Write-Host "model        : $Model"
+Write-Host "model        : $Model (thinking $(if ($Think) { 'ON' } else { 'off' }))"
 Write-Host "listen       : http://127.0.0.1:$Port"
 
 # Load the model now so the first question does not pay the load time.
 # Uses the HTTP API, not `ollama run`: an empty prompt there drops into an
 # interactive REPL that waits for input forever.
-$warm = @{ model = $Model; prompt = ""; keep_alive = $KeepAlive } | ConvertTo-Json
+$warm = @{ model = $Model; prompt = ""; keep_alive = $KeepAlive; think = [bool]$Think } | ConvertTo-Json
 Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/generate" -Method Post `
     -Body $warm -ContentType "application/json" -TimeoutSec 300 | Out-Null
 
