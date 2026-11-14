@@ -14,7 +14,7 @@ Nothing in this file is an approval.
 ```
 step 00  environment      DONE   (10/10 DoD ticked, no tag yet)
 step 01  eval set         DONE   (6/6 ticked, 30 questions approved, no tag yet)
-step 02  LLM benchmark    NEARLY DONE (4/5 ticked; the 5th can never be filled - see 4)
+step 02  LLM benchmark    AWAITING YOUR APPROVAL (4/5; oracle 18/30 under Ollama, TTFT 4.8 s, VRAM 3,505 MiB)
 step 03  parsing          NOT STARTED (0/7) - needs your approval to begin
 step 04  chunk + embed    NOT STARTED
 step 05  hybrid retrieval NOT STARTED

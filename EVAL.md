@@ -69,4 +69,4 @@ Report every metric as a count as well as a percentage (for example 17/20).
 ## Results (fill in)
 | Date | Label | Step | Split | N | recall@5 | recall@10 | recall@30 | MRR | Citation | Numeric | Not-found (a / b) | p50 s | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | | | | |
+| 2026-11-14 | oracle `qwen2.5` 7B, Ollama 0.40.16, gold page as context | 2 | dev+heldout | 30 | 26/26 | 26/26 | 26/26 | 1.00 | 15/30 | 22/24 | 3/3 / 26/26 | 5.4 | 18/30 passed (dev 13/20, heldout 5/10), temp 0, num_ctx 4096. Citation denominator is all 30 questions (4 are not-found, where no citation is expected). Retrieval is perfect by construction, so recall@k here measures nothing and is listed only to show the run format. |
