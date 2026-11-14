@@ -36,11 +36,15 @@ class Table:
 class PageResult:
     doc: str                # file name inside data/corpus/
     pdf_page: int           # 1-based PDF index; eval gold_sources use this
-    text: str               # plain text for embedding / BM25
+    text: str               # plain text for embedding / BM25 (flattened)
     parser: str
     chars: int = 0
     ocr: bool = False
     printed_label: str = ""  # number as printed on the page, "" when not found
+    # Line-preserving blocks, in reading order, for Step 4's chunker. `text` is a
+    # single flattened string and cannot express headings or paragraphs; this can.
+    # Empty on OCR pages, where no line structure exists to preserve.
+    blocks: list[str] = field(default_factory=list)
     tables: list[Table] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
@@ -53,6 +57,7 @@ class PageResult:
                 "parser": self.parser, "ocr": self.ocr,
                 "printed_label": self.printed_label,
                 "text": self.text,
+                "blocks": self.blocks,
                 "tables": [t.as_dict() for t in self.tables],
                 "notes": self.notes}
 

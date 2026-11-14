@@ -1,7 +1,7 @@
 """Build the parsed corpus: pages, tables and a per-document manifest.
 
 Outputs (all regenerable, none committed):
-    index/parsed/pages.jsonl    one PageResult per line
+    index/parsed/pages.jsonl    one PageResult per line (text + line-preserving blocks)
     index/parsed/tables.jsonl   one table per line, with its parser
     index/parsed/manifest.json  per-document summary + timings
 
@@ -96,6 +96,8 @@ def build(out_dir: pathlib.Path = pathlib.Path("index/parsed"),
 
     for path in corpus_files():
         pages, summary = parse_document(path)
+        # Document-scoped, because "repeats on most pages" needs every page.
+        summary["furniture_lines"] = text.strip_furniture(pages)
         all_pages.extend(pages)
         docs.append(summary)
         print(f"  {path.name[:52]:54s} {summary['pages']:>2}p "

@@ -3,6 +3,9 @@
 One page in, one `PageResult` out. `pymupdf4llm` is asked per page so a table
 page can be handed to the table tier without re-parsing the whole document.
 
+Two text fields come back on purpose: `text` is flattened for BM25, `blocks`
+keeps the block and line structure Step 4's chunker needs to find headings.
+
 Usage:
     from ingest.text import TextParser
     TextParser().parse(page, doc="x.pdf", pdf_page=3)
@@ -29,7 +32,86 @@ class TextParser:
     def parse(self, page, *, doc: str, pdf_page: int) -> base.PageResult:
         text = _page_markdown(page)
         return base.PageResult(doc=doc, pdf_page=pdf_page, text=text,
-                               parser=self.name, printed_label=printed_label(page))
+                               parser=self.name, printed_label=printed_label(page),
+                               blocks=page_blocks(page))
+
+
+def page_blocks(page) -> list[str]:
+    """Line-preserving text blocks in reading order, for chunking.
+
+    `PageResult.text` is flattened to one line for BM25, which erases headings
+    and paragraphs. This keeps one string per block, lines inside a block intact.
+
+    Usage:
+        from ingest.text import page_blocks
+        page_blocks(page)[:2]
+        # ['December 2010', 'M. N. Ahasan, Md. A.M. Chowdhary & D. A. Quadir']
+    """
+    found: list[tuple[float, float, str]] = []
+    for block in page.get_text("blocks"):
+        x0, y0, raw = block[0], block[1], block[4]
+        kind = block[6] if len(block) > 6 else 0
+        if kind != 0:                      # 1 is an image block: no text to keep
+            continue
+        lines = [re.sub(r"\s+", " ", line).strip()
+                 for line in (raw or "").splitlines()]
+        kept = [line for line in lines if line]
+        if kept:
+            found.append((round(y0, 1), round(x0, 1), "\n".join(kept)))
+    found.sort(key=lambda item: (item[0], item[1]))
+    return [block for _, _, block in found]
+
+
+def strip_furniture(pages, share: float = 0.6, longest: int = 200) -> int:
+    """Remove running headers/footers from `blocks`; never touches `text`.
+
+    Matching is per *line*, not per block: a header's lines are grouped into a
+    different block on each page, so block-level comparison misses them (measured:
+    Ahasan's header survived on every page that way). Digits are normalised first,
+    because the header carries the page number and so differs page to page.
+
+    Only the first and last block of a page can *become* furniture, because that is
+    where headers and footers live. Matching against every line instead cost
+    Watanabe 201 lines on 7 pages: repeated figure axis labels mid-page look like
+    furniture by frequency alone.
+
+    Usage:
+        from ingest.text import strip_furniture
+        strip_furniture(pages)   # 25 header/footer lines removed
+    """
+    if len(pages) < 3:                     # too few pages to call anything a repeat
+        return 0
+
+    seen: dict[str, set[int]] = {}
+    for page in pages:
+        edges = page.blocks[:1] + page.blocks[-1:] if page.blocks else []
+        lines = {line for block in edges for line in block.splitlines()}
+        for line in lines:
+            if len(line) <= longest:
+                seen.setdefault(_signature(line), set()).add(page.pdf_page)
+
+    limit = max(2, int(share * len(pages)))
+    repeated = {sig for sig, pages_seen in seen.items() if len(pages_seen) >= limit}
+    if not repeated:
+        return 0
+
+    removed = 0
+    for page in pages:
+        kept_blocks = []
+        for block in page.blocks:
+            lines = block.splitlines()
+            surviving = [line for line in lines if _signature(line) not in repeated]
+            removed += len(lines) - len(surviving)
+            kept = "\n".join(surviving).strip()
+            if kept:
+                kept_blocks.append(kept)
+        page.blocks = kept_blocks
+    return removed
+
+
+def _signature(line: str) -> str:
+    """A line's identity with page numbers blanked out."""
+    return re.sub(r"\d+", "#", line.lower()).strip()
 
 
 def _page_markdown(page) -> str:

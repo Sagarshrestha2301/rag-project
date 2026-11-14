@@ -36,7 +36,9 @@ Three facts decide the design, and the first one is a gap I have to own:
    away. There are 215 matches for a section-numbering pattern in the flattened
    text, and the samples show why a regex cannot recover it: `2015 April
    earthquake provided`, `2 Department of Physics`, `2 December` and
-   `1. INtrODUCtION` all score the same. See §1 for the two ways out.
+   `1. INtrODUCtION` all score the same. See §1 for the two ways out — **and
+   note that Option A has since been implemented, so heading structure now
+   exists in `PageResult.blocks` while `text` still has none.**
 2. **Tables are structured but caption-less.** The cells are correct (393/393
    numeric tokens verified), and each table carries a `bbox`. What is missing is
    what makes a table retrievable: caption, units, footnotes. They do exist in
@@ -49,6 +51,16 @@ Three facts decide the design, and the first one is a gap I have to own:
    header: `1970_…`, `Banko Janakari, Vol. 15, No. 2`, `Seppyo, 1976`.
 
 ## 1. The structure gap, and the two ways out
+
+**Update, 2026-11-14: Option A is done and verified.** `PageResult.blocks` now
+carries line-preserving blocks (38 of 42 pages, median 10 per page; the 4 empty
+pages are the OCR ones), running headers/footers are stripped by line from each
+page's edge blocks, and the flattened `text` is byte-identical to before. So §3
+to §5 below are buildable as written, with three measured corrections: headings
+arrive in **two shapes** (numbered title on one line: 22 blocks; or `"2."` alone
+followed by the title in the next block: Ahasan), only **5 of 9 table captions**
+are recoverable from blocks (Das p3 and the three p9 tables have none), and the
+furniture rule must stay limited to edge blocks or it eats figure axis labels.
 
 **Option A — fix it while Step 3 is still open (recommended).** Step 3 has not
 been approved complete: four of its boxes are still open. Its `text` field was
@@ -168,8 +180,12 @@ Rules, in order:
 1. **Caption.** Lines whose `y1` sits within 60 pt *above* the table `bbox` and
    whose text matches `(?i)^table[\s\-–]?\d+` are the caption. Measured need:
    the actual string is `table-1:` — lowercase with a hyphen — so the regex must
-   be case-insensitive and accept `-`/`–`/space. If nothing matches, `caption`
-   stays `""` and `notes` gets `"no caption found above bbox"`. A caption is
+   be case-insensitive and accept `-`/`–`/space; the other styles present are
+   `Table 2 Level of beliefs…` (no colon) and `Table-3: Correlation
+   coefficients…`. Measured now: **5 of 9** captions are found this way, so four
+   tables (Das p3 and the three on p9) get `caption: ""` and are still chunked.
+   If nothing matches, `caption` stays `""` and `notes` gets `"no caption
+   found above bbox"`. A caption is
    never invented and never taken from the neighbouring figure.
 2. **Units.** Taken from the header cells first (`(%)`, `(mm)`, `('000)`, or a
    `Unit`/`Units` cell), then from the caption. Recorded as a string; `""` when
