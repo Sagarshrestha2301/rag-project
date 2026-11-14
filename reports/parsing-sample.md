@@ -1,10 +1,10 @@
 # Step 3 report (generated)
 
 - Documents: **5**, pages: **42**, tables: **9**, OCR pages: **4**, unreadable: **0**
-- Parse time: **48.8 s** for 42 pages = **51.6 pages/min**
-- Table detection costs **17.6 s** over 38 pages (463 ms/page, run on every page); text extraction without it: 73.1 pages/min
-- OCR: 4 pages, 4.4 s/page
-- Extrapolation at the measured whole-run rate: **32.3 h for 100k pages**
+- Parse time: **61.3 s** for 42 pages = **41.1 pages/min**
+- Table detection costs **22.5 s** over 38 pages (592 ms/page, run on every page); text extraction without it: 58.8 pages/min
+- OCR: 4 pages, 5.6 s/page
+- Extrapolation at the measured whole-run rate: **40.5 h for 100k pages**
 
 ## Table cell check
 
