@@ -134,10 +134,24 @@ Then open **http://127.0.0.1:8000**.
 Streaming answers, conversations kept in the browser, stop mid-answer, copy,
 regenerate, light/dark theme, and live tokens/second under each reply.
 
-It talks to Ollama through the same local server, so the browser never contacts
-anything else. **There is no retrieval yet** — no index exists until Steps 4-6 —
-so answers come from the model alone and are not grounded in `data/corpus/`.
-The UI says so on its empty screen.
+**Answers are grounded in the corpus.** Before the model sees a question,
+`ui/retrieval.py` scores all 42 pages with BM25 and passes the four best to
+qwen2.5, which cites them by letter. Each reply ends with **Sources** chips
+(document and page); click a chip or an inline citation like [A] to open that PDF
+page in a new tab. The model is told to answer `NOT FOUND` when the passages do
+not contain the answer, so a miss looks like a miss instead of a guess.
+
+**Save chat** downloads the current conversation as Markdown, including the
+sources used for each answer.
+
+The page index is cached in `index/ui-pages.json` (regenerated, not committed).
+After changing the corpus, delete that file and restart the server above.
+
+Two honest limits. This is *page-level* retrieval — a prototype for the chunking
+and hybrid search of Steps 4-5, not those steps finished — so it can rank a page
+but not part of one. And the OCR'd NARAYAN scan has four pages with no text layer,
+which therefore can never be retrieved; `/api/health` lists them under
+`unreadable`.
 
 Options, if you want a different port or model:
 

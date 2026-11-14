@@ -145,6 +145,7 @@
     const body = el2("div", "message__body");
     if (msg.role === "assistant") {
       body.innerHTML = markdown(msg.content || "");
+      linkCitations(body, msg.sources, index);
       if (msg.pending) body.append(el2("span", "cursor"));
       if (!msg.content && msg.pending) {
         const typing = el2("span", "typing");
@@ -157,6 +158,9 @@
     wrap.append(body);
 
     if (msg.error) wrap.append(el2("div", "message__error", msg.error));
+    if (msg.role === "assistant" && msg.sources && msg.sources.length) {
+      wrap.append(sourcesNode(msg.sources));
+    }
 
     if (msg.role === "assistant" && !msg.pending) {
       const actions = el2("div", "message__actions");
@@ -172,6 +176,85 @@
       wrap.append(actions);
     }
     return wrap;
+  };
+
+  const sourcesNode = (sources) => {
+    const wrap = el2("div", "sources");
+    wrap.append(el2("span", "sources__label", "Sources"));
+    for (const s of sources) {
+      const chip = el2("button", "source");
+      chip.dataset.action = "open-source";
+      chip.dataset.doc = s.doc;
+      chip.dataset.page = String(s.page);
+      chip.title = s.snippet || "";
+      chip.append(el2("span", "source__n", s.key || String(s.n)));
+      chip.append(el2("span", "source__label", `${s.label} · p${s.page}`));
+      wrap.append(chip);
+    }
+    return wrap;
+  };
+
+  /* Turn [1] markers into buttons, skipping code blocks. */
+  const linkCitations = (container, sources, index) => {
+    if (!sources || !sources.length) return;
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if (node.parentElement && node.parentElement.closest("pre, code")) continue;
+            if (/\[[A-H]\]/.test(node.nodeValue)) nodes.push(node);
+    }
+    for (const node of nodes) {
+      const text = node.nodeValue;
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      for (const match of text.matchAll(/\[([A-H])\]/g)) {
+        frag.append(document.createTextNode(text.slice(last, match.index)));
+        const btn = el2("button", "cite", match[1]);
+        btn.dataset.action = "open-source";
+        btn.dataset.index = String(index);
+        btn.dataset.key = match[1];
+        btn.title = "Open the cited page";
+        frag.append(btn);
+        last = match.index + match[0].length;
+      }
+      frag.append(document.createTextNode(text.slice(last)));
+      node.replaceWith(frag);
+    }
+  };
+
+  /* A real anchor beats window.open here: browsers treat it as a normal
+     navigation, so no popup blocker gets in the way. */
+  const openSource = (doc, page) => {
+    if (!doc) return;
+    const link = document.createElement("a");
+    link.href = `/pdf/${encodeURIComponent(doc)}#page=${page}`;
+    link.target = "_blank";
+    link.rel = "noopener";
+    document.body.append(link);
+    link.click();
+    link.remove();
+  };
+
+  const exportChat = () => {
+    const convo = active();
+    const lines = [`# ${convo.title}`, "", `_Exported ${new Date().toLocaleString()}_`, ""];
+    for (const msg of convo.messages) {
+      lines.push(`## ${msg.role === "user" ? "You" : "Assistant"}`, "", msg.content, "");
+      if (msg.sources && msg.sources.length) {
+        lines.push("**Sources**", "");
+        for (const s of msg.sources) {
+          lines.push(`- [${s.key || s.n}] ${s.label}, page ${s.page} (${s.doc}) — ${s.snippet}`);
+        }
+        lines.push("");
+      }
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${(convo.title || "chat").replace(/[^\w\- ]+/g, "").slice(0, 40) || "chat"}.md`;
+    link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   const renderThread = () => {
@@ -278,6 +361,7 @@
               tokensPerSecond: genSeconds > 0 ? (chunk.eval_count || 0) / genSeconds : null,
               promptTokens: chunk.prompt_eval_count || null,
             };
+            assistantMsg.sources = Array.isArray(chunk.sources) ? chunk.sources : [];
           }
         }
       }
@@ -385,6 +469,18 @@
       });
     } else if (action === "regenerate") {
       regenerate();
+    } else if (action === "export-chat") {
+      exportChat();
+    } else if (action === "open-source") {
+      if (target.dataset.doc) {
+        openSource(target.dataset.doc, target.dataset.page);
+      } else {
+        const msg = active().messages[Number(target.dataset.index)];
+        const src = (msg.sources || []).find(
+          (s) => (s.key || String(s.n)) === target.dataset.key
+        );
+        if (src) openSource(src.doc, src.page);
+      }
     }
   });
 

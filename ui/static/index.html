@@ -32,13 +32,14 @@
       <button class="chat__icon chat__icon--menu" data-action="toggle-sidebar" aria-label="Show sidebar">&#9776;</button>
       <div class="chat__title" id="chat-title">New chat</div>
       <div class="chat__status" id="chat-status"></div>
+      <button class="chat__save" data-action="export-chat" title="Download this conversation as Markdown">Save chat</button>
     </header>
 
     <div class="chat__scroll" id="chat-scroll">
       <div class="chat__thread" id="thread">
         <section class="empty" id="empty-state">
           <h1 class="empty__title">Ask about the corpus</h1>
-          <p class="empty__sub">Chatting directly with <strong>qwen2.5</strong> on this machine. Retrieval is not connected yet, so answers are ungrounded &mdash; verify anything that matters.</p>
+          <p class="empty__sub">Answers are searched from <strong>5 documents in data/corpus</strong> and cite the page they came from. Click a citation to open that PDF page.</p>
           <div class="empty__grid" id="suggestions">
             <button class="empty__card" data-action="suggest">What was the 24-hour rainfall at Tistung in July 1993?</button>
             <button class="empty__card" data-action="suggest">How much did bamboo taboos affect planting in the Terai?</button>

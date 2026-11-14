@@ -20,3 +20,6 @@ __pycache__/
 
 # Local dev logs
 /logs/
+
+# Derived retrieval cache (rebuilds from data/corpus)
+/index/

@@ -1,17 +1,14 @@
-"""Local chat UI server (localhost only, offline).
+"""Local chat UI server: retrieval + Ollama, localhost only, offline.
 
-Serves the single-page UI and proxies chat requests to Ollama, so the browser
-never talks to a third party and CORS stays out of the picture.
-
-This is a working chat surface, not yet the Step 7 product UI: there is no
-retrieval, because no index exists until Steps 4-6. Answers come from the model
-alone, so they can be wrong — they are not grounded in data/corpus/.
+Every answer is built from pages of `data/corpus/` found by `ui/retrieval.py`
+and comes back with the pages it used, so a citation can be checked by opening
+the PDF at that page. This is page-level retrieval, a prototype for the chunking
+and hybrid search of Steps 4-5, not a substitute for them.
 
 Usage:
     .venv\\Scripts\\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8000
 
-Point it at a different model or server:
-    $env:CHAT_MODEL = "qwen2.5"; $env:OLLAMA_URL = "http://127.0.0.1:11434"
+Environment: OLLAMA_URL, CHAT_MODEL, CHAT_NUM_CTX, CHAT_TOP_K, CHAT_KEEP_ALIVE.
 """
 
 from __future__ import annotations
@@ -26,14 +23,33 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from ui import retrieval
+
 STATIC = pathlib.Path(__file__).parent / "static"
+CORPUS = pathlib.Path("data/corpus").resolve()
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 MODEL = os.environ.get("CHAT_MODEL", "qwen2.5")
 KEEP_ALIVE = os.environ.get("CHAT_KEEP_ALIVE", "30m")
 NUM_CTX = int(os.environ.get("CHAT_NUM_CTX", "4096"))
+TOP_K = int(os.environ.get("CHAT_TOP_K", "4"))
+
+# Instructions sit after the passages on purpose: the model follows a rule that
+# follows the text more reliably, and repeating the reminder next to each passage
+# stops it miscounting which passage a sentence came from.
+SYSTEM_RULES = (
+    "Answer using only the passages above, in at most four sentences.\n"
+    "After every factual sentence, put the letter of the passage it came from in"
+    " square brackets, copying the letter shown next to that passage — for example"
+    " [A] or [C]. Do not count passages and do not renumber them.\n"
+    "Never use outside knowledge. Never invent a number, name or date.\n"
+    "If the passages do not contain the answer, reply exactly NOT FOUND and then,\n"
+    "on the next line, name what is missing in one short sentence."
+)
 
 app = FastAPI(title="RAG project chat", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+INDEX = retrieval.build()
 
 
 class Message(BaseModel):
@@ -46,14 +62,43 @@ class ChatRequest(BaseModel):
     temperature: float = 0.0
 
 
+# Numbers were mis-copied by the model (it answered with [2] for text that only
+# passage 1 contained), so passages carry a letter and the letter maps back to a
+# page here, not in the model's head.
+LETTERS = "ABCDEFGH"
+
+
+def key_for(position: int) -> str:
+    return LETTERS[position - 1] if 0 < position <= len(LETTERS) else str(position)
+
+
+def build_system(hits: list[dict]) -> str:
+    if not hits:
+        return "No passage matched this question.\n\n" + SYSTEM_RULES
+    blocks = []
+    for i, hit in enumerate(hits, start=1):
+        key = key_for(i)
+        blocks.append(
+            f"PASSAGE [{key}] — {hit['label']}, page {hit['page']}\n"
+            f"{hit['context']}\n"
+            f"(End of passage [{key}]: anything taken from here is cited as [{key}].)"
+        )
+    return "\n\n".join(blocks) + "\n\n" + SYSTEM_RULES
+
+
+def public_sources(hits: list[dict]) -> list[dict]:
+    return [{"n": i, "key": key_for(i), "doc": h["doc"], "page": h["page"],
+             "label": h["label"], "score": h["score"], "snippet": h["snippet"]}
+            for i, h in enumerate(hits, start=1)]
+
+
 @app.get("/")
-def index() -> FileResponse:
+def index_page() -> FileResponse:
     return FileResponse(STATIC / "index.html")
 
 
 @app.get("/api/health")
 def health() -> dict:
-    """Report whether Ollama is reachable and which model answers."""
     try:
         with httpx.Client(timeout=5) as client:
             tags = client.get(f"{OLLAMA_URL}/api/tags").json()
@@ -66,22 +111,48 @@ def health() -> dict:
     return {
         "ok": any(n.startswith(MODEL) for n in names),
         "model": MODEL,
-        "installed": names,
         "loaded": bool(loaded),
         "context": NUM_CTX,
+        "pages": len(INDEX["pages"]),
+        "documents": len(INDEX["docs"]),
+        "unreadable": {k: v for k, v in INDEX["unreadable"].items()},
     }
+
+
+@app.get("/api/docs")
+def docs() -> dict:
+    return {"docs": INDEX["docs"], "unreadable": INDEX["unreadable"]}
+
+
+@app.get("/pdf/{name}")
+def pdf(name: str) -> FileResponse:
+    """Serve a corpus PDF so a citation can open at its page (#page=N)."""
+    known = {d["doc"] for d in INDEX["docs"]}
+    if name not in known:
+        raise HTTPException(status_code=404, detail="not a corpus document")
+    path = (CORPUS / name).resolve()
+    if CORPUS not in path.parents or not path.exists():
+        raise HTTPException(status_code=404, detail="document missing")
+    return FileResponse(path, media_type="application/pdf",
+                        headers={"Content-Disposition": f'inline; filename="{name}"'})
 
 
 @app.post("/api/chat")
 async def chat(payload: ChatRequest, request: Request) -> StreamingResponse:
-    """Stream Ollama's NDJSON straight through, one JSON object per line."""
+    question = next((m.content for m in reversed(payload.messages) if m.role == "user"), "")
+    hits = retrieval.search(INDEX, question, k=TOP_K)
+
+    history = [m.model_dump() for m in payload.messages][-6:]
+    messages = [{"role": "system", "content": build_system(hits)}] + history
+
     body = {
         "model": MODEL,
-        "messages": [m.model_dump() for m in payload.messages],
+        "messages": messages,
         "stream": True,
         "keep_alive": KEEP_ALIVE,
         "options": {"temperature": payload.temperature, "num_ctx": NUM_CTX},
     }
+    sources = public_sources(hits)
 
     async def relay():
         timeout = httpx.Timeout(connect=5, read=600, write=30, pool=5)
@@ -95,8 +166,15 @@ async def chat(payload: ChatRequest, request: Request) -> StreamingResponse:
                     async for line in upstream.aiter_lines():
                         if await request.is_disconnected():
                             return
-                        if line.strip():
-                            yield line + "\n"
+                        if not line.strip():
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if chunk.get("done"):
+                            chunk["sources"] = sources
+                        yield json.dumps(chunk) + "\n"
             except httpx.HTTPError as exc:
                 yield json.dumps({"error": f"{exc.__class__.__name__}: {exc}"}) + "\n"
 
@@ -106,8 +184,8 @@ async def chat(payload: ChatRequest, request: Request) -> StreamingResponse:
 
 @app.get("/api/config")
 def config() -> dict:
-    """Small, non-secret runtime facts for the UI footer."""
-    return {"model": MODEL, "context": NUM_CTX, "endpoint": OLLAMA_URL}
+    return {"model": MODEL, "context": NUM_CTX, "top_k": TOP_K, "endpoint": OLLAMA_URL,
+            "pages": len(INDEX["pages"])}
 
 
 if __name__ == "__main__":
