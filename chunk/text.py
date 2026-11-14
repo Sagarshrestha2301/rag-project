@@ -131,20 +131,40 @@ def _pack(items: list[tuple[Block, str]]) -> list[tuple[list[Block], str]]:
 
 
 def _split_oversized(text: str) -> list[str]:
-    """A paragraph longer than the cap, cut at sentence boundaries."""
+    """A paragraph longer than the cap, cut at sentence boundaries first.
+
+    OCR pages carry no sentence punctuation at all: the Shrestha scan arrives as
+    a single 1,533-character run, which sentence splitting cannot cut. A unit
+    that is still over the cap is therefore cut at the last space that fits, and
+    only a single word longer than the cap is cut at the cap itself.
+    """
     if len(text) <= CAP_CHARS:
         return [text]
     pieces: list[str] = []
     current = ""
-    for sentence in _sentences(text):
-        if current and len(current) + len(sentence) + 1 > CAP_CHARS:
+    for unit in _units(text):
+        if current and len(current) + len(unit) + 1 > CAP_CHARS:
             pieces.append(current)
-            current = sentence
+            current = unit
         else:
-            current = f"{current} {sentence}".strip()
+            current = f"{current} {unit}".strip()
     if current:
         pieces.append(current)
     return pieces
+
+
+def _units(text: str) -> list[str]:
+    """Sentences, any one of them cut down to the cap when it must be."""
+    units: list[str] = []
+    for sentence in _sentences(text):
+        while len(sentence) > CAP_CHARS:
+            cut = sentence.rfind(" ", 0, CAP_CHARS)
+            cut = cut if cut > 0 else CAP_CHARS
+            units.append(sentence[:cut].strip())
+            sentence = sentence[cut:].strip()
+        if sentence:
+            units.append(sentence)
+    return units
 
 
 def _tail(text: str, budget: int | None = None) -> str:

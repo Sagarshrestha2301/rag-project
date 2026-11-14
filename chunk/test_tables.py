@@ -158,41 +158,69 @@ def real_corpus_no_table_is_embedded_twice():
             f"{doc}: {len(table_blocks & text_blocks)} block(s) used by both chunkers")
 
 
-def real_corpus_has_all_nine_tables_once():
-    total = 0
+def real_corpus_has_every_detected_table():
+    """Every detected table is rendered, with a caption or a note saying none was found.
+
+    The grown corpus detects 169 tables; the Step 3 sample had 9. Four long
+    tables split into row groups, so chunks can outnumber tables.
+    """
+    detected = 0
+    rendered = 0
     captions = 0
     for doc, pages in _corpus().items():
-        chunks = [c for c in build.chunks_for_document(pages, DocMeta(file=doc))
-                  if c.type == "table"]
-        total += len(chunks)
-        captions += sum(1 for chunk in chunks if chunk.caption)
+        chunks = [chunk for chunk in build.chunks_for_document(pages, DocMeta(file=doc))
+                  if chunk.type == "table"]
+        expected = {(page.pdf_page, number) for page in pages
+                    for number in range(1, len(page.tables) + 1)}
+        got: dict[tuple[int, int], list] = {}
         for chunk in chunks:
-            assert chunk.block_indices, f"{doc}: table chunk without source blocks"
-    assert total == 9, f"{total} table chunks, expected 9"
-    assert captions == 5, f"{captions} captions recovered, expected 5"
+            match = re.match(r"Table (\d+)", chunk.text.splitlines()[0])
+            assert match, f"{doc}: {chunk.chunk_id} does not start with a table number"
+            got.setdefault((chunk.page_start, int(match.group(1))), []).append(chunk)
+            assert chunk.caption or "no caption found" in " ".join(chunk.notes), (
+                f"{doc} {chunk.chunk_id}: no caption and no note")
+        assert set(got) == expected, (
+            f"{doc}: missing {sorted(set(expected) - set(got))}, "
+            f"unexpected {sorted(set(got) - set(expected))}")
+        detected += len(expected)
+        rendered += len(chunks)
+        captions += sum(1 for chunk in chunks if chunk.caption)
+    assert detected >= 160, f"only {detected} tables detected in the grown corpus"
+    assert rendered >= detected, (rendered, detected)
 
 
-def real_corpus_each_table_rendered_once():
-    """Every detected table becomes exactly one table chunk, and no cell text
-    is also emitted as prose.
-
-    Deliberately not a "this number appears once" test: Ahasan's prose quotes its
-    own correlation values (`36.69` in five paragraphs) and `69.85` occurs in two
-    different Das tables, so both would fail for correct reasons. The duplication
-    that matters is a *block* feeding both chunkers, and that is asserted
-    separately by `real_corpus_no_table_is_embedded_twice`.
-    """
+def real_corpus_split_tables_repeat_the_header():
+    """A long table may split into row groups, but the header row and the row
+    range are repeated in every part, and the parts tile the table exactly once."""
+    splits = 0
     for doc, pages in _corpus().items():
-        detected = sum(len(page.tables) for page in pages)
-        chunks = build.chunks_for_document(pages, DocMeta(file=doc))
-        rendered = [chunk for chunk in chunks if chunk.type == "table"]
-        assert len(rendered) == detected, (
-            f"{doc}: {len(rendered)} table chunks for {detected} detected tables")
-        assert len({chunk.chunk_id for chunk in rendered}) == len(rendered)
-        for chunk in rendered:
-            body_lines = chunk.text.splitlines()
-            assert body_lines[0].startswith("Table "), body_lines[0]
-            assert any(line.startswith("|") for line in body_lines), chunk.chunk_id
+        chunks = [chunk for chunk in build.chunks_for_document(pages, DocMeta(file=doc))
+                  if chunk.type == "table"]
+        groups: dict[tuple[int, int], list] = {}
+        for chunk in chunks:
+            match = re.match(r"Table (\d+)", chunk.text.splitlines()[0])
+            groups.setdefault((chunk.page_start, int(match.group(1))), []).append(chunk)
+        for (page, number), group in groups.items():
+            assert len({chunk.chunk_id for chunk in group}) == len(group), group
+            if len(group) == 1:
+                continue
+            splits += 1
+            ranges = []
+            headers = set()
+            for chunk in group:
+                head = chunk.text.splitlines()[0]
+                match = re.search(r"\(rows (\d+)-(\d+) of (\d+)\)", head)
+                assert match, f"{doc} p{page} t{number}: no row label in {head!r}"
+                ranges.append(tuple(int(value) for value in match.groups()))
+                headers.add(next(line for line in chunk.text.splitlines()
+                                 if line.startswith("|")))
+                assert "|" in chunk.text, chunk.chunk_id
+            total = ranges[0][2]
+            assert ranges[0][0] == 1 and ranges[-1][1] == total, ranges
+            assert all(later[0] == earlier[1] + 1
+                       for earlier, later in zip(ranges, ranges[1:])), ranges
+            assert len(headers) == 1, f"{doc} p{page} t{number}: header row changed"
+    assert splits >= 1, "no split table found, so the row-group rule is unproven"
 
 
 def real_corpus_ids_unique_and_ordered():
@@ -243,10 +271,10 @@ def main() -> int:
                       prose_quoting_one_number_is_not_excluded),
                      ("real corpus: no block used by both chunkers",
                       real_corpus_no_table_is_embedded_twice),
-                     ("real corpus: all 9 tables, 5 captions",
-                      real_corpus_has_all_nine_tables_once),
-                     ("real corpus: each table is rendered exactly once",
-                      real_corpus_each_table_rendered_once),
+                     ("real corpus: every detected table is rendered",
+                      real_corpus_has_every_detected_table),
+                     ("real corpus: split tables repeat the header and tile the rows",
+                      real_corpus_split_tables_repeat_the_header),
                      ("real corpus: ids unique and in page order",
                       real_corpus_ids_unique_and_ordered)]:
         check(name, fn)

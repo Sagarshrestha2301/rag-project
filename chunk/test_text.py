@@ -90,6 +90,21 @@ def oversized_paragraph_splits_at_sentences():
         assert body(chunk).strip().endswith("."), body(chunk)[-40:]
 
 
+def run_on_ocr_text_is_cut_at_spaces():
+    # Measured shape: the Shrestha scan is one 1,533-character run with no
+    # sentence end for the sentence splitter to use.
+    words = [f"word{index}" for index in range(700)]
+    pages = [Page(1, [], text=" ".join(words))]
+    chunks = text.chunks_for_document(pages, META)
+    assert len(chunks) > 1, len(chunks)
+    rebuilt = []
+    for chunk in chunks:
+        text_body = body(chunk).strip()
+        assert len(text_body) <= text.CAP_CHARS, len(text_body)
+        rebuilt.append(text_body)
+    assert " ".join(rebuilt).split() == words, "a hard cut dropped or split a word"
+
+
 # --- prefix --------------------------------------------------------------
 
 def prefix_names_year_section_and_pages():
@@ -144,7 +159,15 @@ def _corpus() -> dict[str, list]:
 
 def real_corpus_chunks_stay_in_one_section():
     docs = _corpus()
+    empty = []
     for doc, pages in docs.items():
+        if not any(page.text.strip() or any(block.strip() for block in page.blocks)
+                   for page in pages):
+            # 2005_Choudhary (truncated download) and 2006_Komori (0 pages) have
+            # no text at all; a chunker cannot invent any. They stay visible here
+            # and in the parser report instead of becoming silent no-chunk docs.
+            empty.append(doc)
+            continue
         sections = structure.split_sections(pages)
         blocks = {block.index: block for block in structure.document_blocks(pages)}
         chunks = text.chunks_for_document(pages, DocMeta(file=doc))
@@ -155,6 +178,7 @@ def real_corpus_chunks_stay_in_one_section():
                 [blocks[index] for index in chunk.block_indices], sections)
             assert len(body(chunk)) <= text.CAP_CHARS, (
                 f"{doc} {chunk.chunk_id}: body {len(body(chunk))} over the cap")
+    assert len(empty) <= 3, f"{len(empty)} documents have no text: {empty}"
 
 
 def real_corpus_sections_do_not_mix():
@@ -177,7 +201,8 @@ def main() -> int:
     for name, fn in [("a short section is one chunk", small_section_is_one_chunk),
                      ("a long section respects target and cap", long_section_respects_target_and_cap),
                      ("overlap carries whole sentences", overlap_carries_whole_sentences),
-                     ("an oversized paragraph splits at sentences", oversized_paragraph_splits_at_sentences)]:
+                     ("an oversized paragraph splits at sentences", oversized_paragraph_splits_at_sentences),
+                     ("a run-on OCR page is cut at spaces", run_on_ocr_text_is_cut_at_spaces)]:
         check(name, fn)
 
     print("prefix")
