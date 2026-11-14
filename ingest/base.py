@@ -99,5 +99,27 @@ def corpus_files(corpus: pathlib.Path = pathlib.Path("data/corpus")) -> list[pat
 
     D-030 mirrors `data/raw`'s relative folders inside `data/corpus`, so a flat
     glob would silently ignore everything the Drive sample added.
+
+    Page, table and citation records identify a document by its file name, so two
+    documents with the same name would be indistinguishable downstream. That is
+    a corpus mistake, not something to paper over at read time.
     """
-    return sorted(corpus.rglob("*.pdf"))
+    files = sorted(corpus.rglob("*.pdf"))
+    seen: dict[str, pathlib.Path] = {}
+    for path in files:
+        if path.name in seen:
+            raise RuntimeError(
+                f"duplicate corpus file name {path.name!r}: {seen[path.name]} and {path}"
+            )
+        seen[path.name] = path
+    return files
+
+
+def corpus_path(doc: str, corpus: pathlib.Path = pathlib.Path("data/corpus")) -> pathlib.Path:
+    """The file behind a name recorded in `PageResult.doc`."""
+    matches = [p for p in corpus.rglob(doc)]
+    if not matches:
+        raise FileNotFoundError(f"no corpus file named {doc!r} under {corpus}")
+    if len(matches) > 1:
+        raise RuntimeError(f"corpus file name {doc!r} is ambiguous: {[str(m) for m in matches]}")
+    return matches[0]

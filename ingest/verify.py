@@ -17,6 +17,7 @@ import random
 import pymupdf
 
 from ingest import tables
+from ingest.base import corpus_path
 
 OUT = pathlib.Path("artifacts/step3")
 PARSED = pathlib.Path("index/parsed")
@@ -32,7 +33,7 @@ def load() -> tuple[list[dict], list[dict], dict]:
 
 
 def _page_words(doc: str, page_no: int) -> set[str]:
-    with pymupdf.open(pathlib.Path("data/corpus") / doc) as pdf:
+    with pymupdf.open(corpus_path(doc)) as pdf:
         return {w[4] for w in pdf[page_no - 1].get_text("words")}
 
 
@@ -182,6 +183,23 @@ def write_report(tables_report: dict, speed: dict, manifest: dict) -> pathlib.Pa
               "| Document | Tables | Numeric tokens | Matched |", "|---|---|---|---|"]
     for doc, stats in tables_report["per_doc"].items():
         lines.append(f"| {doc[:44]} | {stats['tables']} | {stats['numeric']} | {stats['matched']} |")
+
+    failed = [d for d in manifest["docs"] if d.get("errors")]
+    if failed:
+        lines += ["", "## Documents with parser errors", "",
+                  "A document whose only error is `pdfplumber could not open` still yields its "
+                  "text pages, but its tables are skipped; one with 0 pages is unusable and is "
+                  "kept only so the gap is visible (replace it only with the owner's approval).", ""]
+        for doc in failed:
+            lines.append(f"- `{doc['doc']}` ({doc['sha256'][:12]}…, {doc['pages']} pages): "
+                         f"{'; '.join(doc['errors'])}")
+
+    partial = [d for d in manifest["docs"] if d["unreadable_pages"]]
+    if partial:
+        lines += ["", "## Pages with no text layer and no OCR", ""]
+        for doc in partial:
+            pages = ", ".join(str(p) for p in doc["unreadable_pages"])
+            lines.append(f"- `{doc['doc']}`: {pages} ({len(doc['unreadable_pages'])} of {doc['pages']})")
 
     path = OUT / "report.md"
     body = "\n".join(lines) + "\n"

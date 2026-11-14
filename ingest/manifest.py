@@ -41,7 +41,27 @@ def parse_document(path: pathlib.Path) -> tuple[list[PageResult], dict]:
     ocr_text: dict[int, str] | None = None
     table_seconds = 0.0
 
-    with pdfplumber.open(str(path)) as plumber, pymupdf.open(path) as doc:
+    try:
+        doc = pymupdf.open(path)
+    except Exception as exc:  # noqa: BLE001 - one broken file must not stop a 60-doc build
+        return [], _failed_summary(path, started, f"pymupdf: {exc.__class__.__name__}: {exc}")
+
+    if doc.page_count == 0:
+        # A truncated PDF can open without raising and still contain no pages.
+        doc.close()
+        return [], _failed_summary(path, started, "pymupdf found 0 pages")
+
+    # pdfplumber parses the whole document when opened and raises on a truncated
+    # one (`PdfminerException: Unexpected EOF`). That must cost this document its
+    # table tier, not the entire run: it aborted a 60-document build at file 11.
+    try:
+        plumber_doc = pdfplumber.open(str(path))
+    except Exception as exc:  # noqa: BLE001
+        plumber_doc = None
+        print(f"  ! {path.name[:40]}: pdfplumber could not open ({exc.__class__.__name__}); tables skipped")
+
+    plumber_ctx = plumber_doc if plumber_doc is not None else _NullPlumber()
+    with plumber_ctx as plumber, doc:
         for number, page in enumerate(doc, start=1):
             raw = page.get_text()
             if len(raw.strip()) < MIN_TEXT_CHARS:
@@ -82,8 +102,33 @@ def parse_document(path: pathlib.Path) -> tuple[list[PageResult], dict]:
         "printed_labels": {str(p.pdf_page): p.printed_label for p in pages if p.printed_label},
         "seconds": round(time.perf_counter() - started, 1),
         "table_seconds": round(table_seconds, 1),
+        "errors": [] if plumber_doc is not None else ["pdfplumber could not open; tables skipped"],
     }
     return pages, summary
+
+
+class _NullPlumber:
+    """Stands in for a pdfplumber document that could not be opened."""
+
+    pages: list = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> bool:
+        return False
+
+
+def _failed_summary(path: pathlib.Path, started: float, error: str) -> dict:
+    """A document PyMuPDF cannot open at all: reported, not fatal."""
+    print(f"  ! {path.name[:40]}: {error}")
+    return {
+        "doc": path.name, "sha256": sha256(path), "pages": 0, "text_pages": 0,
+        "ocr_pages": 0, "table_pages": [], "tables": 0, "unreadable_pages": [],
+        "parser_pages": {"pymupdf4llm": 0, "pymupdf-grid+words": 0, "rapidocr": 0},
+        "printed_labels": {}, "seconds": round(time.perf_counter() - started, 1),
+        "table_seconds": 0.0, "errors": [error],
+    }
 
 
 def build(out_dir: pathlib.Path = pathlib.Path("index/parsed"),
