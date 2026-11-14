@@ -59,6 +59,16 @@ Format: ID, date, decision, reason, alternatives rejected. Never delete entries;
 
 ## PROPOSED by agent, pending owner (2026-11-13)
 - **Note on OD-5 (needs an owner edit, not made by the agent).** The machine has no `D:` volume, so OD-5 cannot be followed as written. The owner confirmed in chat on 2026-11-13 that the project runs in `C:\Users\sagar\Downloads\project\rag-project`. The agent did not change OD-5, because existing decision entries are owner-only.
+- **PROPOSED D-049 Parser choice per page type, and why the table grid is filled from words.** Measured on the real corpus (2026-11-14):
+
+  | Page type | Pages | Parser | Evidence |
+  |---|---|---|---|
+  | Text, no table | 31 | `pymupdf4llm` (no OCR) | 73.1 pages/min without table detection |
+  | Table detected by PyMuPDF | 7 | PyMuPDF cell grid + the page's own word list | fixes `69.85` → `6985\n.`, `2.51` → `251\n.`, `14.07` → `1407\n.`; **393/393 numeric tokens now match the page's words** |
+  | Table only pdfplumber sees | 0 in this corpus | pdfplumber cells | kept as fallback |
+  | No text layer | 4 (NARAYAN) | RapidOCR through `pymupdf4llm`, 4.4 s/page | 0 unreadable pages remain |
+
+  Reasons: PyMuPDF has the better *grid* (pdfplumber misses Das p2, p3 and p6) but the worse *text* (it joins a cell's words with newlines and splits decimals), while the text layer itself is clean — Das p2's words contain `69.85` as one token. Filling PyMuPDF's grid from words therefore keeps both strengths. Consequences: (a) **table detection runs on every page** (461 ms/page, 17.5 s of a 48.7 s run) because there is no cheaper reliable signal for an unruled table — this is the first thing to optimise at 100k pages; (b) Das page 9's three sub-columns (Count, % of row, % of column) stay merged in one cell by **both** libraries, with the values intact in reading order — Step 4 must split them if strict columns matter; (c) Docling remains uninstalled because no numeric token failed; the fallback is unused, not disproven; (d) declared confidence: the whole-run rate extrapolates to **32.2 h for 100k pages**, and table detection dominates.
 - **PROPOSED D-047 The three-model comparison exists: every candidate measured (fills the blank rows in D-046).** Owner's instruction 2026-11-14: benchmark the other two properly. All three are Q4_K_M through Ollama 0.40.16, `num_ctx` 4096, temperature 0, same prompts, same machine.
 
   | model | quant | context | VRAM GB (peak) | prompt tok/s | generation tok/s | time to first token | citation format ok | numeric exact | oracle passed |

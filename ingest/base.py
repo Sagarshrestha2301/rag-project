@@ -1,0 +1,88 @@
+"""Shared shapes and the parser registry for Step 3.
+
+Every parser returns `PageResult` so Steps 4-6 never care which tier produced a
+page, and adding Docling later is one module plus one `register()` call.
+
+Usage:
+    from ingest import base
+    @base.register("pymupdf4llm")
+    class TextParser: ...
+    base.get("pymupdf4llm")
+"""
+
+from __future__ import annotations
+
+import pathlib
+from dataclasses import dataclass, field
+from typing import Protocol
+
+
+@dataclass
+class Table:
+    """One table on one page, cells exactly as they appear in the PDF."""
+
+    rows: list[list[str]]
+    bbox: tuple[float, float, float, float]
+    parser: str                       # which tier assembled the cells
+    headers_from: str = "cells"       # "cells" | "none"
+    notes: list[str] = field(default_factory=list)
+
+    def as_dict(self) -> dict:
+        return {"rows": self.rows, "bbox": list(self.bbox), "parser": self.parser,
+                "headers_from": self.headers_from, "notes": self.notes}
+
+
+@dataclass
+class PageResult:
+    doc: str                # file name inside data/corpus/
+    pdf_page: int           # 1-based PDF index; eval gold_sources use this
+    text: str               # plain text for embedding / BM25
+    parser: str
+    chars: int = 0
+    ocr: bool = False
+    printed_label: str = ""  # number as printed on the page, "" when not found
+    tables: list[Table] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if not self.chars:
+            self.chars = len(self.text)
+
+    def as_dict(self) -> dict:
+        return {"doc": self.doc, "pdf_page": self.pdf_page, "chars": self.chars,
+                "parser": self.parser, "ocr": self.ocr,
+                "printed_label": self.printed_label,
+                "text": self.text,
+                "tables": [t.as_dict() for t in self.tables],
+                "notes": self.notes}
+
+
+class Parser(Protocol):
+    name: str
+
+    def handles(self, page) -> bool: ...
+    def parse(self, page, *, doc: str, pdf_page: int) -> PageResult: ...
+
+
+REGISTRY: dict[str, type] = {}
+
+
+def register(name: str):
+    """Class decorator: register a parser under `name`."""
+
+    def wrap(cls):
+        cls.name = name
+        REGISTRY[name] = cls
+        return cls
+
+    return wrap
+
+
+def get(name: str):
+    if name not in REGISTRY:
+        raise KeyError(f"unknown parser {name!r}; registered: {sorted(REGISTRY)}")
+    return REGISTRY[name]
+
+
+def corpus_files(corpus: pathlib.Path = pathlib.Path("data/corpus")) -> list[pathlib.Path]:
+    return sorted(corpus.glob("*.pdf"))

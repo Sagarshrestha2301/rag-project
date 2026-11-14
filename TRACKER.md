@@ -15,7 +15,7 @@ Nothing in this file is an approval.
 step 00  environment      DONE   (10/10 DoD ticked, no tag yet)
 step 01  eval set         DONE   (6/6 ticked, 30 questions approved, no tag yet)
 step 02  LLM benchmark    DONE 5/5 - awaiting your approval + tag (3 models measured; qwen3.5 4B wins at 23/30)
-step 03  parsing          NOT STARTED (0/7) - needs your approval to begin
+step 03  parsing          IN PROGRESS, smoke scope (3/7 boxes; pipeline runs, needs your page check)
 step 04  chunk + embed    NOT STARTED
 step 05  hybrid retrieval NOT STARTED
 step 06  generation       NOT STARTED

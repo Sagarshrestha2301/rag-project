@@ -17,9 +17,9 @@
 - [ ] Page numbers verified against the PDF viewer on at least 20 random pages (100% match)
 - [ ] At least 20 tables checked cell by cell against the source; numeric cell accuracy reported
 - [ ] LibreOffice conversion tested on at least 5 real Word files; page counts recorded; owner confirms the converted PDFs look right
-- [ ] Flagged no-text pages counted and listed per file; share of unreadable pages reported against the 1-2% threshold (below: keep flagging; above: propose a separate OCR step to the owner)
-- [ ] Pages per minute per tier measured; full-corpus time estimate written in `STATUS.md`
-- [ ] Parser choice per case recorded in `DECISIONS.md`
+- [x] Flagged no-text pages counted and listed per file; share of unreadable pages reported against the 1-2% threshold (below: keep flagging; above: propose a separate OCR step to the owner)
+- [x] Pages per minute per tier measured; full-corpus time estimate written in `STATUS.md`
+- [x] Parser choice per case recorded in `DECISIONS.md`
 
 ## Context to read
 This file, `ARCHITECTURE.md` (ingestion flow), `DECISIONS.md` (D-005, D-019, D-020, D-023, D-030), `eval/source_documents.md`, `STATUS.md` (pinned versions).

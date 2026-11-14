@@ -23,3 +23,6 @@ __pycache__/
 
 # Derived retrieval cache (rebuilds from data/corpus)
 /index/
+
+# Verification outputs
+/artifacts/
