@@ -47,7 +47,8 @@ Owner approved the 30 questions and the scorer spec in chat; the scorer was then
 - VRAM with that model at 4k context: **1622 MiB** of 4096 (2343 MiB free).
 - Offline proof: firewall-blocked run answered at 74.2 tok/s, VRAM 1594 MiB, `offline run: PASS`.
 - Python stack: Python 3.12.10 venv; torch **2.15.0+cpu** (`torch.cuda.is_available() = False` by design, D-010), lancedb 0.41.0, pymupdf 2.1, sentence-transformers 6.3.0, transformers 5.22.2, fastapi 0.162.5. All imports succeed with offline env vars set.
-- Generator measured so far: **`qwen2.5` Q4_K_M, 7.62B, 4.36 GiB** (the owner's existing Ollama model, `ollama 0.40.16`), served by the pinned `llama-server.exe` from a hardlink (`links=2`, no extra disk). SHA-256 `2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730`, which is exactly the digest Ollama stores the blob under.
+- **Runtime is Ollama 0.40.16 (2026-11-13), not llama.cpp.** Measured on the same weights through `POST /api/generate`, 3394-token prompt: **499.1 tok/s prompt**, **9.43 tok/s generation** — faster than `llama-server`'s 293.1 and 7.46 on identical input. Projected standard RAG question: 6.8 s prompt + ~13 s for a 120-token answer ≈ **20 s**, so the target is now borderline-feasible rather than missed. `tools/llama.cpp/` (1.9 GB) and the `models/*.gguf` files were deleted; the Ollama blob is untouched.
+- Generator measured so far: **`qwen2.5` Q4_K_M, 7.62B, 4.36 GiB** (the owner's existing Ollama model, `ollama 0.40.16`), served by the pinned `llama-server.exe` from a hardlink (`links=2`, no extra disk). The numbers in the three bullets below were taken this way and are kept for comparison; the Ollama figures above supersede them. SHA-256 `2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730`, which is exactly the digest Ollama stores the blob under.
   - `llama-bench` (auto layer split): pp512 **347.8 tok/s**, pp2048 **293.3**, pp4096 **261.0**; tg128 **8.38 tok/s**.
   - 4096 ctx, f16 KV cache: VRAM **3800 MiB of 4096** loaded; 3389-token prompt evaluated in **11.56 s (293 tok/s)**, generation **7.46 tok/s**; answer correct ("540 mm") for a 17-token reply, 13.9 s total.
   - 6144 ctx, `q8_0` KV cache: VRAM **3835 MiB of 4096**; 5397-token prompt in **24.0 s (225 tok/s)**, generation **5.77 tok/s**; answer correct ("about 100 years").
@@ -160,23 +161,26 @@ Pinned tool versions (D-018):
 | pip | 25.0.1 (in `.venv`) |
 | Git | 2.56.0.windows.2 |
 | LibreOffice | 26.8.2.2 |
-| llama.cpp | b12340 (prebuilt win-cuda-12.4-x64 + cudart 12.4) |
+| llama.cpp | **removed 2026-11-13 (owner's decision)**; the runtime is Ollama now |
+| Ollama | **0.40.16** (serves the model on 127.0.0.1:11434) |
 | NVIDIA driver | 566.07 (CUDA 12.7) |
 
 Downloaded files (name, source, version, SHA-256, path):
 
 | Name | Source | Version | SHA-256 | Path |
 |---|---|---|---|---|
-| `llama-b12340-bin-win-cuda-12.4-x64.zip` | github.com/ggml-org/llama.cpp releases | b12340 | `72c3654c1495c7b08444ac8edf5e1c658943e9721a70787074612e3480286f9e` | `tools/llama.cpp/` |
-| `cudart-llama-bin-win-cuda-12.4-x64.zip` | github.com/ggml-org/llama.cpp releases | b12340 | `8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6` | `tools/llama.cpp/` |
+| `llama-b12340-bin-win-cuda-12.4-x64.zip` | github.com/ggml-org/llama.cpp releases | b12340 | `72c3654c1495c7b08444ac8edf5e1c658943e9721a70787074612e3480286f9e` | **deleted 2026-11-13**, was `tools/llama.cpp/` |
+| `cudart-llama-bin-win-cuda-12.4-x64.zip` | github.com/ggml-org/llama.cpp releases | b12340 | `8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6` | **deleted 2026-11-13**, was `tools/llama.cpp/` |
 | `qwen2.5-1.5b-instruct-q4_k_m.gguf` | huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF | main | `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` | `models/` |
 | `python-3.12.10-amd64.exe` | python.org/ftp/python/3.12.10 | 3.12.10 | `67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb` | `tools/installers/` |
 | Python wheel set (76 packages) | PyPI | see `requirements.lock.txt` | not recorded per wheel (version-pinned only) | `.venv/Lib/site-packages` |
-| `qwen2.5-7b-instruct-q4_k_m.gguf` | owner's existing Ollama store (`ollama pull qwen2.5`) | Q4_K_M, 7.62B | `2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730` | `models/` (hardlink to `~/.ollama/models/blobs/sha256-2bada8a7…3730`) |
+| `qwen2.5-7b-instruct-q4_k_m.gguf` | owner's existing Ollama store (`ollama pull qwen2.5`) | Q4_K_M, 7.62B | `2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730` | Ollama store; the `models/` hardlink was **removed 2026-11-13**, the blob itself is untouched |
+| `rapidocr==3.10.0` (+ 9 transitive packages) | PyPI | 3.10.0 | not recorded per wheel (version-pinned) | `.venv/Lib/site-packages` |
 
 All three hashes were compared with the digest published on the release page (GitHub) and in the Hugging Face API, and match.
 
 ## Session log (newest first)
+- 2026-11-13: Runtime switched from llama.cpp to **Ollama** on the owner's instruction; `tools/llama.cpp` (1.9 GB) and `models/*.gguf` removed. Re-measured the same model through Ollama: 499.1 tok/s prompt and 9.43 tok/s generation versus 293.1 and 7.46, so the switch is a speed gain as well as a simplification. Added `scripts/launch-llm.ps1` as an Ollama launcher and a single `RUNNING.md` covering start, query, scoring, the oracle benchmark and parsing. Also installed `rapidocr==3.10.0` (owner-approved) and OCR'd the NARAYAN scan: 0 characters before, **7,020 characters in 26.6 s** after, readable text. `pip check` clean, numpy 2.5.4 and lancedb unaffected.
 - 2026-11-13: Step 3 planning only (no start approval, nothing installed). Profiled all five corpus documents with the pinned parsers: 42 pages, `pymupdf4llm` at 0.64 s/page (18 h extrapolated to 100k pages). Found that PyMuPDF detects the Das tables pdfplumber misses but corrupts their cells while pdfplumber is clean only where it detects them, and that pdfplumber's text strategy returns the journal running head instead of the table — so the plan proposes pdfplumber plus a word-position assembler instead of installing Docling. NARAYAN confirms 4 pages with 0 characters and one image each, which puts the unreadable share at 9.5%, above D-020's 1-2% rule, so the owner must choose OCR or exclusion. The 50-doc sample versus a 5-doc corpus is the second open decision. Written up as proposal 13.
 - 2026-11-13: Owner chose `qwen2.5` 7B as the generator (no download). Ran the oracle test (task 4): the gold page text as context, temperature 0, all 30 questions, 3.5-8.8 s each. Scored **17/30** (dev 12/20, held-out 5/10), not-found (a) 3/3 and (b) 26/26, numeric 22/24, citation 14/26 strict / 19/26 ignoring quote marks and a PDF hyphen break, with 7 quotes genuinely paraphrased. Recorded the generator and fallback, ctx 4096 with f16 KV, and the D-002 exception as PROPOSED D-040; the citation-normalisation question is proposal 12 and PROPOSED D-041, deliberately not applied.
 - 2026-11-13: Step 2 started with the owner's existing `qwen2.5` (7.62B Q4_K_M) instead of downloads. Hardlinked the Ollama blob into `models/` (no extra disk); its SHA-256 equals Ollama's blob digest. Measured with the pinned build: pp512/2048/4096 = 347.8/293.3/261.0 tok/s, tg128 8.38 tok/s; 4096 ctx uses 3800 MiB VRAM and answers a 3389-token prompt in 11.56 s at 7.46 tok/s; 6144 ctx with q8_0 KV uses 3835 MiB and takes 24.0 s for 5397 tokens at 5.77 tok/s. Both answers were correct. A 4226-token prompt is rejected at 4096 ctx. The 7B misses the 20 s target for standard RAG prompts (~28 s projected) and is outside D-002, so proposal 11 asks the owner to choose: accept 7B, or approve one 3-4B download for comparison.

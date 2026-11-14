@@ -9,8 +9,11 @@ The model is asked for a short answer plus one verbatim sentence, so the
 citation check in the scorer verifies a real quote rather than a page number the
 harness supplied.
 
-Usage (server must already be running):
-    .venv\\Scripts\\python.exe benchmarks/llm/oracle_run.py --port 8099 --out benchmarks/llm/oracle-qwen2.5-7b.jsonl
+The server is Ollama (default port 11434), which exposes an OpenAI-compatible
+endpoint, so the request shape is unchanged since the llama.cpp era.
+
+Usage (Ollama must already be running):
+    .venv\\Scripts\\python.exe benchmarks/llm/oracle_run.py --out benchmarks/llm/oracle-qwen2.5-7b.jsonl
 """
 
 from __future__ import annotations
@@ -75,7 +78,7 @@ def parse(reply: str) -> tuple[str, str | None]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8099)
+    ap.add_argument("--port", type=int, default=11434)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 

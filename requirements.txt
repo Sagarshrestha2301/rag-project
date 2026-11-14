@@ -40,4 +40,9 @@ fastapi==0.162.5
 uvicorn==0.54.0
 httpx==0.28.1
 
+# --- OCR for scanned pages (owner approved 2026-11-13) ---
+# pymupdf4llm picks this up automatically; it is what turns the NARAYAN scan
+# from 0 characters into readable text. Pin it: OCR output must not drift.
+rapidocr==3.10.0
+
 # TODO(step-03): decide Docling vs pdfplumber for table pages (D-005) and pin it.
