@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG project chat</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__header">
+      <span class="sidebar__brand">Local RAG</span>
+      <button class="sidebar__icon" data-action="toggle-sidebar" title="Hide sidebar" aria-label="Hide sidebar">&#10094;</button>
+    </div>
+
+    <button class="sidebar__new" data-action="new-chat">
+      <span class="sidebar__plus">+</span> New chat
+    </button>
+
+    <nav class="sidebar__list" id="conversation-list" aria-label="Conversations"></nav>
+
+    <div class="sidebar__footer">
+      <span class="sidebar__model" id="model-badge">qwen2.5</span>
+      <button class="sidebar__icon" data-action="toggle-theme" title="Switch theme" aria-label="Switch theme">&#9681;</button>
+    </div>
+  </aside>
+
+  <main class="chat">
+    <header class="chat__header">
+      <button class="chat__icon chat__icon--menu" data-action="toggle-sidebar" aria-label="Show sidebar">&#9776;</button>
+      <div class="chat__title" id="chat-title">New chat</div>
+      <div class="chat__status" id="chat-status"></div>
+    </header>
+
+    <div class="chat__scroll" id="chat-scroll">
+      <div class="chat__thread" id="thread">
+        <section class="empty" id="empty-state">
+          <h1 class="empty__title">Ask about the corpus</h1>
+          <p class="empty__sub">Chatting directly with <strong>qwen2.5</strong> on this machine. Retrieval is not connected yet, so answers are ungrounded &mdash; verify anything that matters.</p>
+          <div class="empty__grid" id="suggestions">
+            <button class="empty__card" data-action="suggest">What was the 24-hour rainfall at Tistung in July 1993?</button>
+            <button class="empty__card" data-action="suggest">How much did bamboo taboos affect planting in the Terai?</button>
+            <button class="empty__card" data-action="suggest">Explain soil liquefaction in Kathmandu Valley.</button>
+            <button class="empty__card" data-action="suggest">Compare the Bagmati and East-Rapti peak floods.</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="composer">
+      <form class="composer__form" id="composer-form">
+        <textarea class="composer__input" id="composer-input" rows="1"
+                  placeholder="Ask anything&hellip;  (Enter to send, Shift+Enter for a new line)"
+                  autocomplete="off" spellcheck="true"></textarea>
+        <button class="composer__send" id="send-button" type="submit" aria-label="Send">
+          <span class="composer__send-icon">&#8593;</span>
+        </button>
+      </form>
+      <div class="composer__hint" id="composer-hint">Local model &middot; 4k context &middot; nothing leaves this machine</div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

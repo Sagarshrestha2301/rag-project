@@ -17,3 +17,6 @@ __pycache__/
 /eval/review.html
 /eval/review_pages/
 /eval/fixtures/
+
+# Local dev logs
+/logs/

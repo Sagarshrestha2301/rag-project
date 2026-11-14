@@ -123,7 +123,32 @@ the corpus, `0_NARAYAN_...pdf`, yields 0 characters by plain extraction and abou
 7,000 characters per run through OCR. Throughput is 0.64 s/page for text pages;
 OCR is far slower.
 
-## 6. Check the environment
+## 6. Open the chat UI
+
+```powershell
+.venv\Scripts\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8000
+```
+
+Then open **http://127.0.0.1:8000**.
+
+Streaming answers, conversations kept in the browser, stop mid-answer, copy,
+regenerate, light/dark theme, and live tokens/second under each reply.
+
+It talks to Ollama through the same local server, so the browser never contacts
+anything else. **There is no retrieval yet** — no index exists until Steps 4-6 —
+so answers come from the model alone and are not grounded in `data/corpus/`.
+The UI says so on its empty screen.
+
+Options, if you want a different port or model:
+
+```powershell
+$env:CHAT_MODEL = "qwen2.5"
+.venv\Scripts\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8001
+```
+
+Stop it with `Ctrl+C` in that terminal (or stop the python process on that port).
+
+## 7. Check the environment
 
 ```powershell
 .venv\Scripts\python.exe -m pip check
