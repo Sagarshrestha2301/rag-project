@@ -33,10 +33,15 @@ ollama run qwen2.5
 
 ## 2. Ask the model
 
-Native endpoint:
+> **Write `curl.exe`, not `curl`.** In Windows PowerShell 5.1, `curl` is an alias
+> for `Invoke-WebRequest`, which sends a **GET** — Ollama answers `405 method not
+> allowed` for a GET on `/api/chat`, `/api/generate` and `/v1/chat/completions`.
+> `curl.exe` is the real program and works.
+
+Native endpoint (`curl.exe`):
 
 ```powershell
-curl -s http://127.0.0.1:11434/api/chat -H "Content-Type: application/json" -d '{
+curl.exe -s -X POST http://127.0.0.1:11434/api/chat -H "Content-Type: application/json" -d '{
   "model": "qwen2.5",
   "stream": false,
   "options": { "temperature": 0 },
@@ -44,10 +49,24 @@ curl -s http://127.0.0.1:11434/api/chat -H "Content-Type: application/json" -d '
 }'
 ```
 
+The same thing without any quoting pain, using PowerShell natively:
+
+```powershell
+$body = @{
+  model   = "qwen2.5"
+  stream  = $false
+  options = @{ temperature = 0 }
+  messages = @(@{ role = "user"; content = "What was the 24-hour rainfall at Tistung in 1993?" })
+} | ConvertTo-Json -Depth 5
+
+(Invoke-RestMethod -Uri "http://127.0.0.1:11434/api/chat" -Method Post `
+  -Body $body -ContentType "application/json").message.content
+```
+
 OpenAI-compatible endpoint, which is what the project's own scripts use:
 
 ```powershell
-curl -s http://127.0.0.1:11434/v1/chat/completions -H "Content-Type: application/json" -d '{
+curl.exe -s -X POST http://127.0.0.1:11434/v1/chat/completions -H "Content-Type: application/json" -d '{
   "model": "qwen2.5",
   "temperature": 0,
   "messages": [ { "role": "user", "content": "Say OK" } ]
@@ -111,6 +130,17 @@ OCR is far slower.
 nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader
 git status
 ```
+
+## If something fails
+
+| Symptom | Cause and fix |
+|---|---|
+| `405 method not allowed` | You used `curl` in Windows PowerShell 5.1, which is `Invoke-WebRequest` and sends GET. Use `curl.exe`, or `Invoke-RestMethod -Method Post`. `GET http://127.0.0.1:11434/` returning 200 only proves the server is up, not that the request was right. |
+| Connection refused on 11434 | Ollama is not running, or `OLLAMA_HOST` points elsewhere. Start it with `ollama serve`, or just `ollama list` to check the model file is present. |
+| `model 'qwen2.5' not found` | `ollama pull qwen2.5`. The store is content-addressed; the digest for our copy is `2bada8a7…3730`. |
+| First answer takes ~10 s longer | The model was unloaded. `ollama ps` shows `UNTIL`; the launcher sets 30 minutes. |
+| Answers crawl | `ollama ps` shows the CPU/GPU split. Our 7.6B model runs at 55%/45% on 4 GB VRAM; close other GPU apps (`ollama stop`, browsers with hardware acceleration). |
+| Prompt rejected as too long | Context is 4096 tokens. Retrieved chunks plus history must stay under roughly 3.5k. |
 
 ## Notes and limits
 
