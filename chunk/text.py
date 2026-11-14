@@ -16,9 +16,10 @@ The rules are D-050's, and every number has a reason:
   which paper and which section it belongs to. The prefix is metadata, not body,
   and does not count against the cap.
 
-TODO(step-04): table cell blocks are still packed as text here. Once
-`chunk.tables` exists it must exclude the blocks inside a table's bbox, or every
-table is embedded twice (once as prose, once as a table chunk).
+Table cell blocks are never packed as text: `chunk.build` passes the block
+indices that sit inside a table's bbox as `skip`, so each table is embedded once,
+by `chunk.tables`. A section that consists only of a table yields no text chunk,
+which is correct — the table chunk carries it.
 
 Usage:
     from chunk.base import DocMeta
@@ -48,8 +49,10 @@ class TextChunker:
 
     name = "text"
 
-    def chunks(self, section: Section, meta: DocMeta, *, start_seq: int = 0) -> list[Chunk]:
-        pieces = _pack([(block, block.text) for block in section.blocks])
+    def chunks(self, section: Section, meta: DocMeta, *, start_seq: int = 0,
+               skip: frozenset[int] = frozenset()) -> list[Chunk]:
+        kept = [block for block in section.blocks if block.index not in skip]
+        pieces = _pack([(block, block.text) for block in kept])
         chunks: list[Chunk] = []
         for offset, (blocks, body) in enumerate(pieces):
             pages = [block.pdf_page for block in blocks] or [section.page_start]
@@ -70,7 +73,8 @@ class TextChunker:
         return chunks
 
 
-def chunks_for_document(pages, meta: DocMeta) -> list[Chunk]:
+def chunks_for_document(pages, meta: DocMeta,
+                        skip: frozenset[int] = frozenset()) -> list[Chunk]:
     """Every text chunk of one document, in reading order.
 
     Usage:
@@ -81,7 +85,8 @@ def chunks_for_document(pages, meta: DocMeta) -> list[Chunk]:
     chunker = TextChunker()
     chunks: list[Chunk] = []
     for section in structure.split_sections(pages):
-        chunks.extend(chunker.chunks(section, meta, start_seq=len(chunks)))
+        chunks.extend(chunker.chunks(section, meta, start_seq=len(chunks),
+                                      skip=skip))
     return chunks
 
 

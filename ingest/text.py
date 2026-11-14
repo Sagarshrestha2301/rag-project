@@ -31,9 +31,11 @@ class TextParser:
 
     def parse(self, page, *, doc: str, pdf_page: int) -> base.PageResult:
         text = _page_markdown(page)
+        geometry = block_geometry(page)
         return base.PageResult(doc=doc, pdf_page=pdf_page, text=text,
                                parser=self.name, printed_label=printed_label(page),
-                               blocks=page_blocks(page))
+                               blocks=[block for block, _ in geometry],
+                               block_rects=[rect for _, rect in geometry])
 
 
 def page_blocks(page) -> list[str]:
@@ -47,9 +49,22 @@ def page_blocks(page) -> list[str]:
         page_blocks(page)[:2]
         # ['December 2010', 'M. N. Ahasan, Md. A.M. Chowdhary & D. A. Quadir']
     """
-    found: list[tuple[float, float, str]] = []
+    return [block for block, _ in block_geometry(page)]
+
+
+def block_geometry(page) -> list[tuple[str, tuple[float, float, float, float]]]:
+    """(text, (x0, y0, x1, y1)) per text block, in reading order.
+
+    Step 4 uses the rectangles to tell which blocks sit inside a table's bbox.
+
+    Usage:
+        from ingest.text import block_geometry
+        block_geometry(page)[0]
+        # ('December 2010', (36.0, 30.1, 240.2, 41.5))
+    """
+    found: list[tuple[float, float, str, tuple[float, float, float, float]]] = []
     for block in page.get_text("blocks"):
-        x0, y0, raw = block[0], block[1], block[4]
+        x0, y0, x1, y1, raw = block[0], block[1], block[2], block[3], block[4]
         kind = block[6] if len(block) > 6 else 0
         if kind != 0:                      # 1 is an image block: no text to keep
             continue
@@ -57,9 +72,10 @@ def page_blocks(page) -> list[str]:
                  for line in (raw or "").splitlines()]
         kept = [line for line in lines if line]
         if kept:
-            found.append((round(y0, 1), round(x0, 1), "\n".join(kept)))
+            rect = (round(x0, 1), round(y0, 1), round(x1, 1), round(y1, 1))
+            found.append((round(y0, 1), round(x0, 1), "\n".join(kept), rect))
     found.sort(key=lambda item: (item[0], item[1]))
-    return [block for _, _, block in found]
+    return [(text, rect) for _, _, text, rect in found]
 
 
 def strip_furniture(pages, share: float = 0.6, longest: int = 200) -> int:
@@ -98,14 +114,22 @@ def strip_furniture(pages, share: float = 0.6, longest: int = 200) -> int:
     removed = 0
     for page in pages:
         kept_blocks = []
-        for block in page.blocks:
+        kept_rects = []
+        for position, block in enumerate(page.blocks):
             lines = block.splitlines()
             surviving = [line for line in lines if _signature(line) not in repeated]
             removed += len(lines) - len(surviving)
             kept = "\n".join(surviving).strip()
             if kept:
                 kept_blocks.append(kept)
+                # Keep rects index-aligned with blocks: a dropped block drops its
+                # rectangle too, or Step 4 would match the wrong geometry.
+                rects = getattr(page, "block_rects", [])
+                if position < len(rects):
+                    kept_rects.append(rects[position])
         page.blocks = kept_blocks
+        if getattr(page, "block_rects", []):
+            page.block_rects = kept_rects
     return removed
 
 

@@ -201,6 +201,15 @@ class Chunk:
 
 ## 4. How tables get chunked (the part worth reviewing closely)
 
+**Update, 2026-11-14: built as specified, with four corrections the corpus
+forced.** `chunk/tables.py` produces 9 table chunks (199 chunks total with 190
+text), 5 captions recovered. Bbox exclusion alone was **not enough**: the detected
+bbox misses table text on Das p2/p9, a Chi-Square statistics row below table 1 is
+table content with only 7% cell words, that row is really a footnote, and blocks
+were tracked page-locally while the text chunker filters document-locally. Each is
+now a test. Caption search also has to accept `Table 2 Level of beliefs…` (no
+colon) and `Table-3: …` (hyphen), not just the colon form assumed below.
+
 **One table is one chunk.** All nine tables fit (largest 1,087 characters), and
 a table split across chunks answers nothing — half a table is a wrong answer.
 Table chunks do **not** get overlapping text chunks over the same region; the

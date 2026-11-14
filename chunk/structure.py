@@ -55,14 +55,17 @@ def document_blocks(pages) -> list[Block]:
     blocks: list[Block] = []
     for page in pages:
         texts = [text for text in page.blocks if text.strip()]
+        had_blocks = bool(texts)
         if not texts and getattr(page, "text", "").strip():
             # OCR pages have no line structure at all: `blocks` is empty by
             # design. Keeping their flattened text as one block stops four pages
             # of this corpus (the whole NARAYAN scan) from silently disappearing
             # from chunking, which is the D-020 problem coming back one step later.
             texts = [page.text.strip()]
-        for text in texts:
-            blocks.append(Block(pdf_page=page.pdf_page, text=text, index=len(blocks)))
+        for position, text in enumerate(texts):
+            blocks.append(Block(pdf_page=page.pdf_page, text=text,
+                                index=len(blocks),
+                                page_block=position if had_blocks else -1))
     return blocks
 
 

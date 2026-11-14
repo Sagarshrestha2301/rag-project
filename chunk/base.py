@@ -21,6 +21,7 @@ class Block:
     pdf_page: int
     text: str
     index: int          # 0-based position across the whole document
+    page_block: int = -1   # position within its page; matches PageResult.block_rects
 
 
 @dataclass
@@ -93,6 +94,7 @@ class Chunk:
     caption: str = ""
     units: str = ""
     footnotes: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)   # e.g. "no caption found above bbox"
     year: int | None = None
     publisher: str = ""
     doc_type: str = ""

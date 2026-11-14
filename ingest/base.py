@@ -45,6 +45,10 @@ class PageResult:
     # single flattened string and cannot express headings or paragraphs; this can.
     # Empty on OCR pages, where no line structure exists to preserve.
     blocks: list[str] = field(default_factory=list)
+    # One (x0, y0, x1, y1) per entry in `blocks`, same order. Step 4 needs the
+    # geometry to drop table blocks from text chunks, so no table is embedded
+    # twice; without it the bbox in tables.jsonl cannot be matched to a block.
+    block_rects: list[tuple[float, float, float, float]] = field(default_factory=list)
     tables: list[Table] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
@@ -58,6 +62,7 @@ class PageResult:
                 "printed_label": self.printed_label,
                 "text": self.text,
                 "blocks": self.blocks,
+                "block_rects": [list(rect) for rect in self.block_rects],
                 "tables": [t.as_dict() for t in self.tables],
                 "notes": self.notes}
 
