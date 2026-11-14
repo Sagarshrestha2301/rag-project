@@ -26,7 +26,8 @@ import pymupdf
 
 CORPUS = pathlib.Path("data/corpus")
 CACHE = pathlib.Path("index/ui-pages.json")
-MIN_PAGE_CHARS = 40          # shorter than this counts as unreadable (no text layer)
+MIN_PAGE_CHARS = 40          # shorter than this means no text layer -> try OCR
+OCR_DPI = 200                # render resolution for OCR; 150 is pymupdf4llm's default
 MAX_PAGE_CHARS = 6000        # keep the cached index small; matches Step 1 practice
 HEAD_CHARS = 700             # page opening, so the model sees what the page is
 WINDOW_CHARS = 1200          # the passage where the question's terms actually appear
@@ -45,12 +46,56 @@ def label_for(filename: str) -> str:
     return filename[:24]
 
 
+def corpus_signature() -> list[dict]:
+    """Name, size and mtime of every corpus PDF.
+
+    Stored in the cache so a changed or replaced document rebuilds the index
+    instead of silently searching the old text.
+    """
+    return [
+        {"doc": pdf.name, "size": pdf.stat().st_size, "mtime": pdf.stat().st_mtime_ns}
+        for pdf in sorted(CORPUS.glob("*.pdf"))
+    ]
+
+
+def ocr_document(pdf: pathlib.Path) -> dict[int, str]:
+    """OCR a PDF with the pinned parser; {page_number(1-based): text}.
+
+    Only called for documents that contain at least one page without a text
+    layer, so ordinary PDFs never pay the ~5 s/page OCR cost.
+    """
+    import pymupdf4llm  # imported lazily: pulls in RapidOCR and its ONNX models
+
+    try:
+        chunks = pymupdf4llm.to_markdown(
+            str(pdf), page_chunks=True, use_ocr=True, ocr_dpi=OCR_DPI
+        )
+    except Exception as exc:  # noqa: BLE001 - a failed OCR must not kill the index
+        print(f"[retrieval] OCR failed for {pdf.name}: {exc.__class__.__name__}: {exc}")
+        return {}
+
+    out: dict[int, str] = {}
+    for position, chunk in enumerate(chunks):
+        # pymupdf4llm 2.1 returns one chunk per page in page order but leaves
+        # `metadata["page"]` unset, so the position is the page number.
+        page = (chunk.get("metadata") or {}).get("page")
+        number = (int(page) + 1) if page is not None else position + 1
+        text = re.sub(r"[|#*_`]+", " ", chunk.get("text") or "")
+        out[number] = re.sub(r"\s+", " ", text).strip()
+    return out
+
+
 def build(force: bool = False) -> dict:
-    """Read every corpus PDF and return {pages, unreadable, docs}."""
+    """Read every corpus PDF and return {pages, unreadable, docs, signature}.
+
+    Pages without a text layer are OCR'd, so a scanned paper becomes searchable
+    and citable instead of reporting an empty page.
+    """
+    signature = corpus_signature()
     if CACHE.exists() and not force:
         try:
             cached = json.loads(CACHE.read_text(encoding="utf-8"))
-            if cached.get("pages"):
+            if cached.get("pages") and cached.get("signature") == signature:
                 return cached
         except (json.JSONDecodeError, OSError):
             pass
@@ -58,25 +103,38 @@ def build(force: bool = False) -> dict:
     pages: list[dict] = []
     unreadable: dict[str, list[int]] = {}
     docs: list[dict] = []
+    ocr_pages = 0
 
     for pdf in sorted(CORPUS.glob("*.pdf")):
         bad: list[int] = []
         with pymupdf.open(pdf) as doc:
-            for number, page in enumerate(doc, start=1):
-                text = re.sub(r"\s+", " ", page.get_text()).strip()
-                if len(text) < MIN_PAGE_CHARS:
-                    bad.append(number)
-                pages.append({
-                    "doc": pdf.name,
-                    "page": number,
-                    "label": label_for(pdf.name),
-                    "text": text[:MAX_PAGE_CHARS],
-                })
-            docs.append({"doc": pdf.name, "label": label_for(pdf.name), "pages": doc.page_count})
+            texts = [re.sub(r"\s+", " ", page.get_text()).strip() for page in doc]
+            page_count = doc.page_count
+
+        ocr_text: dict[int, str] = {}
+        if any(len(t) < MIN_PAGE_CHARS for t in texts):
+            ocr_text = ocr_document(pdf)
+
+        for number, text in enumerate(texts, start=1):
+            source = "text"
+            if len(text) < MIN_PAGE_CHARS and ocr_text.get(number):
+                text, source = ocr_text[number], "ocr"
+                ocr_pages += 1
+            if len(text) < MIN_PAGE_CHARS:
+                bad.append(number)
+            pages.append({
+                "doc": pdf.name,
+                "page": number,
+                "label": label_for(pdf.name),
+                "text": text[:MAX_PAGE_CHARS],
+                "source": source,
+            })
+        docs.append({"doc": pdf.name, "label": label_for(pdf.name), "pages": page_count})
         if bad:
             unreadable[pdf.name] = bad
 
-    index = {"pages": pages, "unreadable": unreadable, "docs": docs}
+    index = {"pages": pages, "unreadable": unreadable, "docs": docs,
+             "signature": signature, "ocr_pages": ocr_pages}
     CACHE.parent.mkdir(parents=True, exist_ok=True)
     CACHE.write_text(json.dumps(index), encoding="utf-8")
     return index
@@ -191,6 +249,7 @@ def search(index: dict, query: str, k: int = 4) -> list[dict]:
             "doc": page["doc"],
             "page": page["page"],
             "label": page["label"],
+            "ocr": page.get("source") == "ocr",
             "score": round(score, 3),
             "context": context_for(page["text"], terms),
             "snippet": snippet(page["text"], terms),

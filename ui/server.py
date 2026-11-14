@@ -88,7 +88,8 @@ def build_system(hits: list[dict]) -> str:
 
 def public_sources(hits: list[dict]) -> list[dict]:
     return [{"n": i, "key": key_for(i), "doc": h["doc"], "page": h["page"],
-             "label": h["label"], "score": h["score"], "snippet": h["snippet"]}
+             "label": h["label"], "score": h["score"], "snippet": h["snippet"],
+             "ocr": bool(h.get("ocr"))}
             for i, h in enumerate(hits, start=1)]
 
 
@@ -115,6 +116,7 @@ def health() -> dict:
         "context": NUM_CTX,
         "pages": len(INDEX["pages"]),
         "documents": len(INDEX["docs"]),
+        "ocr_pages": INDEX.get("ocr_pages", 0),
         "unreadable": {k: v for k, v in INDEX["unreadable"].items()},
     }
 

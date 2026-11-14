@@ -50,8 +50,8 @@ Measured, not claimed:
 | Oracle test (gold page as context, 30 questions) | **17/30**; citation 14/26 strict; numeric 22/24; not-found 4/4 |
 | Eval scorer self-tests | 30/30 checks pass |
 | Parsing speed | 0.64 s/page (`pymupdf4llm`) |
-| Unreadable pages | 4 of 42 (9.5%) — the NARAYAN scan |
-| NARAYAN OCR (approved, installed) | 0 → 7,020 characters in 26.6 s |
+| Unreadable pages | **0 of 42** — the scan is now OCR'd (was 4 of 42) |
+| NARAYAN OCR | 0 → 7,020 characters, ~20 s once, cached in `index/ui-pages.json` |
 
 ## 3. Open decisions only you can sign
 
@@ -76,9 +76,10 @@ All are `PROPOSED` in `DECISIONS.md` except where noted. None blocks the UI.
 2. **Step 2's 5th DoD box will never be filled.** It wants a comparison table for three
    models; you declined the other two downloads. It is recorded as a stated deviation
    (D-040), not silently ticked. That is the honest end state, not a gap to close.
-3. **The NARAYAN scan is invisible to search.** OCR now works, but those 7,020 characters
-   are not yet parsed into the corpus, so the 4 pages can never be cited. Either that
-   text gets indexed in Step 3, or "not found" answers about liquefaction are misleading.
+3. ~~The NARAYAN scan is invisible to search.~~ **Resolved 2026-11-14**: the four
+   scanned pages are OCR'd at index build and are now citable, marked `· OCR`. Caveat:
+   OCR drops hyphens in numeric ranges (`5-10 %` → `510 %`), so numbers from that paper
+   should be checked against the PDF.
 4. **Steps 3-9 have no start approval.** `APPROVALS.md` stops at step 01.
 
 ## 5. What to do, in this order

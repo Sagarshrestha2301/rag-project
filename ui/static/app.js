@@ -188,7 +188,7 @@
       chip.dataset.page = String(s.page);
       chip.title = s.snippet || "";
       chip.append(el2("span", "source__n", s.key || String(s.n)));
-      chip.append(el2("span", "source__label", `${s.label} · p${s.page}`));
+      chip.append(el2("span", "source__label", `${s.label} · p${s.page}${s.ocr ? " · OCR" : ""}`));
       wrap.append(chip);
     }
     return wrap;

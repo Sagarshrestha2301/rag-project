@@ -147,11 +147,16 @@ sources used for each answer.
 The page index is cached in `index/ui-pages.json` (regenerated, not committed).
 After changing the corpus, delete that file and restart the server above.
 
+**The scanned NARAYAN paper is searchable too.** Its four pages have no text layer,
+so the index runs OCR on them once through the pinned parser (about 20 s, RapidOCR)
+and stores the text with the page. Source chips from those pages are marked `· OCR`,
+and `/api/health` reports `ocr_pages` and an empty `unreadable`.
+
 Two honest limits. This is *page-level* retrieval — a prototype for the chunking
 and hybrid search of Steps 4-5, not those steps finished — so it can rank a page
-but not part of one. And the OCR'd NARAYAN scan has four pages with no text layer,
-which therefore can never be retrieved; `/api/health` lists them under
-`unreadable`.
+but not part of one. And OCR occasionally loses a hyphen inside a numeric range:
+the paper's `calcite (5-10 %)` comes back as `(510 %)`. Treat numbers from
+scanned pages as needing a glance at the PDF, which the citation link makes easy.
 
 Options, if you want a different port or model:
 
