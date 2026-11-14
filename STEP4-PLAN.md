@@ -56,11 +56,13 @@ Three facts decide the design, and the first one is a gap I have to own:
 carries line-preserving blocks (38 of 42 pages, median 10 per page; the 4 empty
 pages are the OCR ones), running headers/footers are stripped by line from each
 page's edge blocks, and the flattened `text` is byte-identical to before. So §3
-to §5 below are buildable as written, with three measured corrections: headings
-arrive in **two shapes** (numbered title on one line: 22 blocks; or `"2."` alone
-followed by the title in the next block: Ahasan), only **5 of 9 table captions**
-are recoverable from blocks (Das p3 and the three p9 tables have none), and the
-furniture rule must stay limited to edge blocks or it eats figure axis labels.
+to §5 below are buildable as written, with three measured corrections: headings arrive in **two
+shapes** (8 blocks put the number and title on one line, 34 put the number alone
+on the first line with the title beneath it, and most of those 34 are decimal
+table cells rather than headings), only **5 of 9 table captions** are recoverable
+from blocks (Das p3 and the three p9 tables have none), and the furniture rule
+must stay limited to edge blocks or it eats figure axis labels. §3 item 2 has the
+numbers and the rule they imply.
 
 **Option A — fix it while Step 3 is still open (recommended).** Step 3 has not
 been approved complete: four of its boxes are still open. Its `text` field was
@@ -111,6 +113,7 @@ class Chunk:
     page_start: int        # PDF index, never the printed label
     page_end: int
     section_path: list[str]  # ["2. Data used and methodology", "Table 1"]
+    section_path_source: str = "heading"  # "heading" | "none" (§3 item 3)
     type: str              # "text" | "table"
     text: str              # what gets embedded, prefix included
     caption: str = ""
@@ -126,21 +129,56 @@ class Chunk:
 
 ## 3. Section and paragraph rules (tasks 1-2)
 
-1. **Furniture first.** A line that equals or starts with the document's
-   `printed_label`, or repeats on ≥60% of the document's pages, is a running
-   header/footer and is dropped before anything else. Measured need: Ahasan's
-   `M. N. Ahasan, Md. A.M. Chowdhary & D. A. Quadir` appears on 17 of 17 pages.
-2. **Headings.** A heading is a block that is short (≤ 12 words), has no terminal
-   period, and either matches `^\d+(\.\d+)*\.?\s+[A-Z]` or is set in a larger
-   font than the modal body size (available from `get_text("dict")` spans).
-   Measured caution: title-case damage from the PDF (`DAtA USED AND
-   MEtHODOLOGY`, `rESULtS AND DISCUSSION`) means heading detection must not
-   depend on capitalisation.
+1. **Furniture is already gone (done in Step 3).** `ingest.text.strip_furniture()`
+   removes header/footer lines from `blocks` before Step 4 sees them: a line that
+   recurs on ≥60% of a document's pages, with digits normalised so the page number
+   does not break the match. Measured effect: 137 lines off Ahasan, 172 off Das,
+   38 off Marahatta, 50 off Watanabe, 0 off the scan — Ahasan's `M. N. Ahasan,
+   Md. A.M. Chowdhary & D. A. Quadir` alone appeared on 17 of 17 pages.
+
+   Two limits to respect rather than rediscover: only lines in a page's **first or
+   last block** may become furniture — matching every line deleted **201** lines
+   from Watanabe's 7 figure-heavy pages, because repeated axis labels are
+   frequent but are content. And matching is exact after digit-normalisation, so
+   a header that reflows differently on each page can survive: Watanabe p4 still
+   opens with `Seppyo, / Watanabe`. Step 4 must not trust the first block to be
+   clean.
+2. **Headings come in two shapes, and the rule must handle both.** Measured on
+   the real blocks (2026-11-14):
+   - **Shape A — number and title on one line: 8 blocks.** Five are real
+     (`1. BACKGROUND`, `2. STUDY AREA`, `3. RAINFALL DATA`, `4. ANALYSIS AND
+     RESULTS`, `5. CONCLUSION`, all Marahatta); three are the affiliation trap on
+     Ahasan page 1 (`1 SAARC Meteorological Research Centre (SMRC), Agargaon,
+     Dhaka, Bangladesh`), which looks exactly like a heading to a regex.
+   - **Shape B — the number alone on the first line, title beneath: 34 blocks,
+     of which only 15 are headings.** All 15 are Ahasan's 14 (`1.`+
+     `INTRODUCTION` … `3.9`+`Wet (active) and dry`) plus one Marahatta block whose
+     title line is a private-use glyph (`\uf8fa\uf8fb`). The other 19 are decimal
+     table cells that the naive pattern reads as numbers: `21.84`/`31.67` on
+     Das p9, `0.48`/`0.48` on p3, `54.27`/`50.00` on p2.
+
+   So the rule is: a heading needs an **integer** section number (1-2 digits,
+   optional `.`-separated parts — decimals are rejected outright), a title of
+   ≤ 12 words, and no terminal period. A shape-B title becomes part of the same
+   heading, so `"2."` is never emitted as a section on its own. Reject a title
+   that contains a comma or parenthesis *and* sits on page 1 of the document:
+   that is the affiliation pattern, the only false positive shape A produced.
+   Capitalisation is not a signal at all — the PDF damages it (`DAtA USED AND
+   MEtHODOLOGY`, `rESULtS AND DISCUSSION`, `INtrODUCtION`), so a rule that
+   requires capitals would silently lose most headings in this corpus.
 3. **Sections** are the span between headings; `section_path` accumulates the
    numbered levels (`["2. Data used and methodology", "2.1 Sources"]`). A chunk
    is built from paragraphs of one section only. **No chunk crosses a heading**
    — that box is checked mechanically in `bench.py` by asserting every chunk's
    paragraphs share one `section_path`.
+
+   **Two of the five documents have no headings at all** once the decimal table
+   cells are excluded: Das (only table captions and numbered list items) and
+   Watanabe (figure labels), plus the four OCR pages. Those chunk by paragraph
+   runs with `section_path: []`, and their chunks are labelled
+   `section_path_source: "none"` so a later reviewer can tell a real section
+   path from a missing one. This is expected, not a bug: a paper with no section
+   numbering has no sections to respect.
 4. **Sizes.** Target 700-1,000 characters, hard cap 1,500, 15% overlap *within*
    a section only. Justification, measured: pages average 2,441 characters, so a
    1,000-character chunk is roughly a third of a page and four of them fit the
