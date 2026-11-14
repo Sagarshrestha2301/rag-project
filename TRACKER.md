@@ -16,7 +16,7 @@ step 00  environment      DONE   (10/10 DoD ticked, no tag yet)
 step 01  eval set         DONE   (6/6 ticked, 30 questions approved, no tag yet)
 step 02  LLM benchmark    DONE 5/5 - awaiting your approval + tag (3 models measured; qwen3.5 4B wins at 23/30)
 step 03  parsing          IN PROGRESS, smoke scope (3/7 boxes; pipeline runs, needs your page check)
-step 04  chunk + embed    NOT STARTED
+step 04  chunk + embed    IN PROGRESS - structure module built and tested (16 cases); text/tables/embedders next
 step 05  hybrid retrieval NOT STARTED
 step 06  generation       NOT STARTED
 step 07  web UI           NOT STARTED as a step (a working UI exists outside the steps)
