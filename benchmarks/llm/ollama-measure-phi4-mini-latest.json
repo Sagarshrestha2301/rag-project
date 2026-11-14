@@ -1,0 +1,25 @@
+{
+  "model": "phi4-mini:latest",
+  "num_ctx": 4096,
+  "runtime": "ollama",
+  "short": {
+    "prompt_tokens": 18,
+    "generated_tokens": 20,
+    "ttft_s": 7.78,
+    "total_s": 8.45,
+    "prompt_tok_s": 88.7,
+    "gen_tok_s": 29.8,
+    "vram_peak_mib": 3392,
+    "answer": "The authors conclude that extreme rainfall in Nepal is becoming more frequent and severe due to climate change."
+  },
+  "rag": {
+    "prompt_tokens": 2190,
+    "generated_tokens": 125,
+    "ttft_s": 2.32,
+    "total_s": 7.96,
+    "prompt_tok_s": 976.5,
+    "gen_tok_s": 22.1,
+    "vram_peak_mib": 3184,
+    "answer": "The excerpts provided do not contain specific information about the relationship between extreme rainfall and flooding. However, based on the context given in the excerpts, we can infer that extreme rainfall is likely to contribute to flooding, as it is mentioned that the summer monsoon is characterized by the occurrence of severe floods due to heavy rainfall. This implies that extreme rainfall du"
+  }
+}

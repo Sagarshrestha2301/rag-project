@@ -43,16 +43,34 @@ def page_text(path: str, page: int) -> str:
         return doc[page - 1].get_text()[:MAX_PAGE_CHARS]
 
 
-def ask(port: int, question: str, context: str) -> tuple[str, dict]:
-    payload = {
-        "model": "qwen2.5",
-        "temperature": 0,
-        "max_tokens": 220,
-        "messages": [
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
-        ],
-    }
+def ask(port: int, question: str, context: str, model: str = "qwen2.5",
+        no_think: bool = False) -> tuple[str, dict]:
+    messages = [
+        {"role": "system", "content": SYSTEM},
+        {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
+    ]
+    if no_think:
+        # Thinking models spend the answer budget on hidden reasoning: qwen3.5
+        # burned 400 tokens and returned an empty string, which the scorer reads
+        # as NOT FOUND. Disable it so the model is judged on its answers, and
+        # record the flag with the result.
+        payload = {"model": model, "stream": False, "think": False,
+                   "options": {"temperature": 0, "num_predict": 220},
+                   "messages": messages}
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/chat",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        started = time.perf_counter()
+        with urllib.request.urlopen(req, timeout=600) as resp:
+            body = json.load(resp)
+        usage = {"prompt_tokens": body.get("prompt_eval_count"),
+                 "completion_tokens": body.get("eval_count")}
+        return (body.get("message") or {}).get("content", ""), {
+            "seconds": round(time.perf_counter() - started, 2), "usage": usage}
+
+    payload = {"model": model, "temperature": 0, "max_tokens": 220, "messages": messages}
     req = urllib.request.Request(
         f"http://127.0.0.1:{port}/v1/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
@@ -79,6 +97,9 @@ def parse(reply: str) -> tuple[str, str | None]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=11434)
+    ap.add_argument("--model", default="qwen2.5")
+    ap.add_argument("--no-think", action="store_true",
+                    help="disable reasoning for thinking models (native /api/chat)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -90,7 +111,7 @@ def main() -> int:
         for i, q in enumerate(questions, start=1):
             src = q["gold_sources"][0]
             context = page_text(src["file"], src["page"])
-            reply, timing = ask(args.port, q["question"], context)
+            reply, timing = ask(args.port, q["question"], context, args.model, args.no_think)
             answer, quote = parse(reply)
 
             said_not_found = not answer.strip() or "NOT FOUND" in answer.upper()

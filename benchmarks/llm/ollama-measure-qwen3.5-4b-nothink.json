@@ -1,0 +1,26 @@
+{
+  "model": "qwen3.5:4b",
+  "num_ctx": 4096,
+  "runtime": "ollama",
+  "think": false,
+  "short": {
+    "prompt_tokens": 27,
+    "generated_tokens": 34,
+    "ttft_s": 0.82,
+    "total_s": 3.09,
+    "prompt_tok_s": 38.1,
+    "gen_tok_s": 15.0,
+    "vram_peak_mib": 3675,
+    "answer": "The authors conclude that extreme rainfall events in Nepal are becoming more frequent and intense due to climate change, posing a growing threat to infrastructure, agriculture, and human safety."
+  },
+  "rag": {
+    "prompt_tokens": 2323,
+    "generated_tokens": 230,
+    "ttft_s": 3.64,
+    "total_s": 25.46,
+    "prompt_tok_s": 650.1,
+    "gen_tok_s": 10.5,
+    "vram_peak_mib": 3689,
+    "answer": "Based on the provided text excerpts, here is the summary of how extreme rainfall relates to flooding:\n\n*   **Causal Relationship:** Extreme rainfall during the monsoon season causes severe floods due to heavy precipitation. This relationship is described as a defining characteristic of the monsoon season in Bangladesh. (**[1970_Ahasan_Variability_ p2]**)\n*   **Consequences:** These floods cause ex"
+  }
+}

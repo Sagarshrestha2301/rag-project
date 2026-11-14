@@ -16,6 +16,7 @@ No network access beyond 127.0.0.1.
 
 from __future__ import annotations
 
+import argparse
 import json
 import pathlib
 import statistics
@@ -27,7 +28,6 @@ import urllib.request
 import pymupdf
 
 OLLAMA = "http://127.0.0.1:11434"
-MODEL = "qwen2.5"
 NUM_CTX = 4096
 OUT = pathlib.Path("benchmarks/llm/ollama-measure.json")
 CORPUS = pathlib.Path("data/corpus")
@@ -76,13 +76,19 @@ class VramSampler(threading.Thread):
         return self.peak
 
 
-def chat(prompt: str) -> dict:
+def chat(prompt: str, model: str, no_think: bool = False) -> dict:
     payload = {
-        "model": MODEL,
+        "model": model,
         "stream": True,
-        "options": {"temperature": 0, "num_ctx": NUM_CTX},
+        # num_predict caps the answer so a chatty or thinking model cannot
+        # monopolise the measurement; all rows use the same cap.
+        "options": {"temperature": 0, "num_ctx": NUM_CTX, "num_predict": 250},
         "messages": [{"role": "user", "content": prompt}],
     }
+    if no_think:
+        # See oracle_run.py: a thinking model otherwise spends the budget on
+        # hidden reasoning and emits no answer at all.
+        payload["think"] = False
     request = urllib.request.Request(
         f"{OLLAMA}/api/chat",
         data=json.dumps(payload).encode("utf-8"),
@@ -125,19 +131,28 @@ def chat(prompt: str) -> dict:
 
 
 def main() -> int:
-    results = {"model": MODEL, "num_ctx": NUM_CTX, "runtime": "ollama",
-               "short": chat(SHORT), "rag": chat(five_chunk_prompt())}
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(results, indent=2), encoding="utf-8")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", default="qwen2.5")
+    ap.add_argument("--no-think", action="store_true")
+    ap.add_argument("--out", default=str(OUT))
+    args = ap.parse_args()
+
+    results = {"model": args.model, "num_ctx": NUM_CTX, "runtime": "ollama",
+               "think": not args.no_think,
+               "short": chat(SHORT, args.model, args.no_think),
+               "rag": chat(five_chunk_prompt(), args.model, args.no_think)}
+    out_path = pathlib.Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
 
     short, rag = results["short"], results["rag"]
-    print(f"model      {MODEL} via Ollama, num_ctx {NUM_CTX}")
+    print(f"model      {args.model} via Ollama, num_ctx {NUM_CTX}")
     print(f"short      prompt {short['prompt_tokens']:>4} tok  TTFT {short['ttft_s']}s  "
           f"gen {short['gen_tok_s']} tok/s  VRAM {short['vram_peak_mib']} MiB")
     print(f"5-chunk    prompt {rag['prompt_tokens']:>4} tok  TTFT {rag['ttft_s']}s  "
           f"total {rag['total_s']}s  prompt {rag['prompt_tok_s']} tok/s  gen {rag['gen_tok_s']} tok/s  "
           f"VRAM {rag['vram_peak_mib']} MiB")
-    print(f"wrote {OUT}")
+    print(f"wrote {out_path}")
     return 0
 
 

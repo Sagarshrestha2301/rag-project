@@ -1,0 +1,25 @@
+{
+  "model": "qwen3.5:4b",
+  "num_ctx": 4096,
+  "runtime": "ollama",
+  "short": {
+    "prompt_tokens": 25,
+    "generated_tokens": 250,
+    "ttft_s": null,
+    "total_s": 18.18,
+    "prompt_tok_s": 75.1,
+    "gen_tok_s": 14.1,
+    "vram_peak_mib": 3537,
+    "answer": ""
+  },
+  "rag": {
+    "prompt_tokens": 2321,
+    "generated_tokens": 250,
+    "ttft_s": null,
+    "total_s": 31.8,
+    "prompt_tok_s": 648.9,
+    "gen_tok_s": 13.2,
+    "vram_peak_mib": 3649,
+    "answer": ""
+  }
+}

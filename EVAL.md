@@ -70,4 +70,6 @@ Report every metric as a count as well as a percentage (for example 17/20).
 | Date | Label | Step | Split | N | recall@5 | recall@10 | recall@30 | MRR | Citation | Numeric | Not-found (a / b) | p50 s | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | | | | | | | | | | | | | | |
+| 2026-11-14 | oracle `qwen3.5` 4B, Ollama 0.40.16, thinking disabled, gold page as context | 2 | dev+heldout | 30 | 26/26 | 26/26 | 26/26 | 1.00 | 20/30 | 23/24 | 3/3 / 26/26 | 4.9 | 23/30 passed (dev 17/20, heldout 6/10), temp 0, num_ctx 4096, `think: false`. With thinking left on it returned empty answers on all 30 (4/30); see D-047. |
+| 2026-11-14 | oracle `phi4-mini` 3.8B, Ollama 0.40.16, gold page as context | 2 | dev+heldout | 30 | 26/26 | 26/26 | 26/26 | 1.00 | 14/30 | 23/24 | 3/3 / 26/26 | 2.2 | 16/30 passed (dev 12/20, heldout 4/10), temp 0, num_ctx 4096. Fastest of the three on TTFT (2.32 s) but weakest on citations. |
 | 2026-11-14 | oracle `qwen2.5` 7B, Ollama 0.40.16, gold page as context | 2 | dev+heldout | 30 | 26/26 | 26/26 | 26/26 | 1.00 | 15/30 | 22/24 | 3/3 / 26/26 | 5.4 | 18/30 passed (dev 13/20, heldout 5/10), temp 0, num_ctx 4096. Citation denominator is all 30 questions (4 are not-found, where no citation is expected). Retrieval is perfect by construction, so recall@k here measures nothing and is listed only to show the run format. |

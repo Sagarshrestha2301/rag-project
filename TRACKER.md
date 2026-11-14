@@ -14,7 +14,7 @@ Nothing in this file is an approval.
 ```
 step 00  environment      DONE   (10/10 DoD ticked, no tag yet)
 step 01  eval set         DONE   (6/6 ticked, 30 questions approved, no tag yet)
-step 02  LLM benchmark    AWAITING YOUR APPROVAL (4/5; oracle 18/30 under Ollama, TTFT 4.8 s, VRAM 3,505 MiB)
+step 02  LLM benchmark    DONE 5/5 - awaiting your approval + tag (3 models measured; qwen3.5 4B wins at 23/30)
 step 03  parsing          NOT STARTED (0/7) - needs your approval to begin
 step 04  chunk + embed    NOT STARTED
 step 05  hybrid retrieval NOT STARTED
@@ -73,9 +73,10 @@ All are `PROPOSED` in `DECISIONS.md` except where noted. None blocks the UI.
    "50 docs parsed" and "20 tables checked cell by cell". The corpus holds 5 PDFs with
    11 tables. You already chose to run it as a **5-document smoke test** — that choice
    needs one line in the step file, which only you may edit, or the boxes stay unticked.
-2. **Step 2's 5th DoD box will never be filled.** It wants a comparison table for three
-   models; you declined the other two downloads. It is recorded as a stated deviation
-   (D-040), not silently ticked. That is the honest end state, not a gap to close.
+2. ~~Step 2's 5th DoD box will never be filled.~~ **Resolved 2026-11-14**: both remaining
+   models were downloaded and measured, so the three-model table exists (D-047). The ticked
+   box in `steps/02-llm-benchmark.md` still carries the old "one model measured only" note —
+   only you may edit that text.
 3. ~~The NARAYAN scan is invisible to search.~~ **Resolved 2026-11-14**: the four
    scanned pages are OCR'd at index build and are now citable, marked `· OCR`. Caveat:
    OCR drops hyphens in numeric ranges (`5-10 %` → `510 %`), so numbers from that paper
