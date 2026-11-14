@@ -54,7 +54,7 @@ def corpus_signature() -> list[dict]:
     """
     return [
         {"doc": pdf.name, "size": pdf.stat().st_size, "mtime": pdf.stat().st_mtime_ns}
-        for pdf in sorted(CORPUS.glob("*.pdf"))
+        for pdf in sorted(CORPUS.rglob("*.pdf"))
     ]
 
 
@@ -105,7 +105,7 @@ def build(force: bool = False) -> dict:
     docs: list[dict] = []
     ocr_pages = 0
 
-    for pdf in sorted(CORPUS.glob("*.pdf")):
+    for pdf in sorted(CORPUS.rglob("*.pdf")):
         bad: list[int] = []
         with pymupdf.open(pdf) as doc:
             texts = [re.sub(r"\s+", " ", page.get_text()).strip() for page in doc]

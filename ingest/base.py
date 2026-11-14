@@ -95,4 +95,9 @@ def get(name: str):
 
 
 def corpus_files(corpus: pathlib.Path = pathlib.Path("data/corpus")) -> list[pathlib.Path]:
-    return sorted(corpus.glob("*.pdf"))
+    """Every corpus PDF, recursively: new documents keep their source folder.
+
+    D-030 mirrors `data/raw`'s relative folders inside `data/corpus`, so a flat
+    glob would silently ignore everything the Drive sample added.
+    """
+    return sorted(corpus.rglob("*.pdf"))
