@@ -14,6 +14,15 @@
 #   NOT READY  model=qwen3.5:4b loaded  ui=down  index=unverified  (2187 ms)
 #   REASONS  ui=unreachable(127.0.0.1:8099)  index=unverified(ui down)
 #
+# Every run also appends one line to logs\health.log, ready or not, with a local
+# timestamp. Failures alone would show a drop but never its recovery, so both are
+# written and a gap in time is visible as a gap in timestamps. -NoLog skips the
+# file; -LogPath writes somewhere else. The file rotates to health.log.1 at 1 MB,
+# so an all-day polling loop cannot grow without bound.
+#
+#  2026-11-15T10:52:31+05:45  READY      model=qwen3.5:4b loaded  ui=127.0.0.1:8000 ok  index=97 docs/851 pages
+#  2026-11-15T10:57:04+05:45  NOT READY  model=qwen3.5:4b loaded  ui=down  index=unverified  REASONS ui=unreachable(127.0.0.1:8000)
+#
 # Reasons are space-separated `part=reason(detail)` tokens on a single line, so
 # `... | Select-String '^REASONS'` captures the whole list.
 #
@@ -32,7 +41,10 @@
 param(
     [int]    $UiPort = 8000,
     [int]    $OllamaPort = 11434,
-    [string] $Model = "qwen3.5:4b"
+    [string] $Model = "qwen3.5:4b",
+    [switch] $NoLog,
+    [string] $LogPath = "logs\health.log",
+    [int]    $MaxLogBytes = 1MB
 )
 
 $ErrorActionPreference = "Stop"
@@ -96,10 +108,33 @@ if (-not (Test-Path $indexFile)) {
 
 $watch.Stop()
 $verdict = if ($problems -eq 0) { "READY" } else { "NOT READY" }
-Write-Host ("{0}  model={1}  ui={2}  index={3}  ({4} ms)" -f `
-    $verdict, $modelText, $uiText, $indexText, $watch.ElapsedMilliseconds)
+$summary = "model={0}  ui={1}  index={2}" -f $modelText, $uiText, $indexText
+Write-Host ("{0}  {1}  ({2} ms)" -f $verdict, $summary, $watch.ElapsedMilliseconds)
 if ($problems -gt 0) {
     Write-Host ("REASONS  {0}" -f ($reasons -join "  "))
+}
+
+# --- log line ---
+if (-not $NoLog) {
+    try {
+        $logFile = if ([System.IO.Path]::IsPathRooted($LogPath)) { $LogPath } else { Join-Path $root $LogPath }
+        $logDir = Split-Path -Parent $logFile
+        if ($logDir) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
+        if ((Test-Path $logFile) -and (Get-Item $logFile).Length -ge $MaxLogBytes) {
+            Move-Item -Path $logFile -Destination "$logFile.1" -Force
+        }
+        $stamp = (Get-Date).ToString("yyyy-MM-dd'T'HH:mm:sszzz")
+        $line = "{0}  {1}  {2}" -f $stamp, $verdict.PadRight(9), $summary
+        if ($problems -gt 0) { $line += "  REASONS " + ($reasons -join "  ") }
+        # .NET append with an explicit BOM-less UTF-8 encoding: PowerShell 5.1's
+        # Add-Content -Encoding UTF8 writes a BOM, which then sits in front of the
+        # first timestamp and breaks grep/awk on the first line of the file.
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::AppendAllText($logFile, $line + "`r`n", $utf8)
+    } catch {
+        # A health check must still report on stdout if the log cannot be written.
+        Write-Host "WARN  health log not written: $($_.Exception.Message)"
+    }
 }
 
 exit $(if ($problems -eq 0) { 0 } else { 1 })
