@@ -82,7 +82,77 @@ def missing_caption_is_recorded_not_invented():
     page.block_rects = [(50, 130, 500, 290), (50, 305, 500, 317)]
     chunks, _ = tables.chunks_for_document([page], META)
     assert chunks[0].caption == "", chunks[0].caption
-    assert "no caption found above bbox" in chunks[0].notes, chunks[0].notes
+    assert "no caption found within 160 pt of bbox" in chunks[0].notes, chunks[0].notes
+
+
+def caption_below_the_table():
+    page = Page(
+        number=1,
+        blocks=["Some prose about the study area.", "1 2\n3 4", "Table 3 – Yield by year"],
+        rects=[(50, 60, 500, 100), (50, 130, 500, 290), (50, 305, 500, 340)],
+        tables_=[{"rows": [["A"], ["1"]], "bbox": [50, 120, 500, 300],
+                  "parser": "pymupdf-grid+words", "headers_from": "cells", "notes": []}],
+    )
+    chunks, _ = tables.chunks_for_document([page], META)
+    assert chunks[0].caption == "Table 3 – Yield by year", chunks[0].caption
+    assert "caption printed below the table" in chunks[0].notes, chunks[0].notes
+
+
+def caption_style_table_no():
+    page = table_page([["A"], ["1"]])
+    page.blocks[0] = "Table No. 2: HDI of rural and urban regions"
+    chunks, _ = tables.chunks_for_document([page], META)
+    assert chunks[0].caption == "Table No. 2: HDI of rural and urban regions", chunks[0].caption
+
+
+def far_caption_only_when_nothing_between():
+    far = Page(
+        number=1,
+        blocks=["Table 2. Source of digital data.", "1 2", "x"],
+        rects=[(50, 40, 500, 52), (50, 210, 500, 290), (50, 305, 500, 317)],
+        tables_=[{"rows": [["A"], ["1"]], "bbox": [50, 200, 500, 300],
+                  "parser": "pymupdf-grid+words", "headers_from": "cells", "notes": []}],
+    )
+    chunks, _ = tables.chunks_for_document([far], META)
+    assert chunks[0].caption == "Table 2. Source of digital data.", chunks[0].caption
+
+    blocked = Page(
+        number=1,
+        blocks=["Table 2. Source of digital data.", "Prose sits between them.", "1 2"],
+        rects=[(50, 40, 500, 52), (50, 150, 500, 180), (50, 210, 500, 290)],
+        tables_=[{"rows": [["A"], ["1"]], "bbox": [50, 200, 500, 300],
+                  "parser": "pymupdf-grid+words", "headers_from": "cells", "notes": []}],
+    )
+    chunks, _ = tables.chunks_for_document([blocked], META)
+    assert chunks[0].caption == "", f"stole a caption across prose: {chunks[0].caption!r}"
+
+
+def units_collects_several_columns():
+    chunks, _ = tables.chunks_for_document(
+        [table_page([["Area (ha.)", "Share (%)"], ["1", "2"]])], META)
+    assert "ha." in chunks[0].units and "%" in chunks[0].units, chunks[0].units
+
+
+def units_ignore_non_units():
+    chunks, _ = tables.chunks_for_document(
+        [table_page([["Year (1996 and 2005)", "N"], ["1", "2"]])], META)
+    assert "1996 and 2005" not in chunks[0].units, chunks[0].units
+
+
+def note_further_below_is_kept():
+    page = table_page([["A"], ["1"]])
+    page.blocks.append("Notes: values are percentages of households")
+    page.block_rects.append((50, 380, 500, 392))   # 80 pt below the bbox bottom (300)
+    chunks, _ = tables.chunks_for_document([page], META)
+    assert any("Notes:" in note for note in chunks[0].footnotes), chunks[0].footnotes
+
+
+def short_prose_is_not_a_note():
+    page = table_page([["A"], ["1"]])
+    page.blocks.append("Values are taken from the district profile")
+    page.block_rects.append((50, 305, 500, 317))
+    chunks, _ = tables.chunks_for_document([page], META)
+    assert chunks[0].footnotes == ["Key: HH =household"], chunks[0].footnotes
 
 
 def cells_are_verbatim():
@@ -251,6 +321,17 @@ def main() -> int:
                      ("footnote below the bbox is kept", footnote_below_bbox),
                      ("a missing caption is recorded, not invented",
                       missing_caption_is_recorded_not_invented),
+                     ("a caption printed below the table is used",
+                      caption_below_the_table),
+                     ("Table No. 2 style is recognised", caption_style_table_no),
+                     ("a far caption is used only when nothing sits between",
+                      far_caption_only_when_nothing_between),
+                     ("units are collected from several header cells",
+                      units_collects_several_columns),
+                     ("parentheticals that are not units are ignored",
+                      units_ignore_non_units),
+                     ("a note 80 pt below is still kept", note_further_below_is_kept),
+                     ("short prose is not a table note", short_prose_is_not_a_note),
                      ("cells are emitted verbatim", cells_are_verbatim)]:
         check(name, fn)
 

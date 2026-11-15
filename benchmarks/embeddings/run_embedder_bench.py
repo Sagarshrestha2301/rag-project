@@ -126,13 +126,44 @@ def bench(folder: str, repo: str, chunks: list[dict], questions: list[dict],
     return summary
 
 
+def all_results(fresh: list[dict]) -> list[dict]:
+    """Every measured model, not only the ones this run encoded.
+
+    `--only bge-small-en-v1.5` rewrote a three-row report as a one-row report and
+    silently dropped the other two models' numbers, because the writer only saw
+    this process's results. The artifacts in `OUT` are the record, so the report is
+    rebuilt from them, with this run's numbers winning where the same model ran.
+    """
+    by_model: dict[str, dict] = {}
+    for path in sorted(OUT.glob("*.json")):
+        try:
+            by_model[path.stem] = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+    for result in fresh:
+        by_model[result["model"]] = result
+    # Weights on disk as they are now: pruning removed the ONNX/OpenVINO copies
+    # after these runs, so a stored byte count would show 401 MB for bge beside
+    # 2,279 MB for e5, sizes of folders that no longer exist.
+    for model, result in by_model.items():
+        folder = MODELS / model
+        if folder.is_dir():
+            result["model_bytes"] = sum(
+                path.stat().st_size for path in folder.rglob("*") if path.is_file())
+    order = [folder for folder, _ in CANDIDATES]
+    return sorted(by_model.values(),
+                  key=lambda r: (order.index(r["model"]) if r["model"] in order
+                                 else len(order), r["model"]))
+
+
 def write_report(results: list[dict]) -> str:
     lines = ["# Embedder comparison (Step 4 task 5)", "",
              "Measured on the same 3,226 chunks from `index/chunks.jsonl` and the same",
              "30 questions (26 answerable). Chunk hits are mapped back to pages and",
              "deduplicated, so these numbers are comparable with the page-level BM25",
              "row in `EVAL.md`. Embeddings run on **CPU**; throughput is chunks per",
-             "minute for the encode pass only (model load included).", "",
+             "minute for the encode pass only (model load included). Model size is the",
+             "folder on disk after pruning (ONNX/OpenVINO copies removed).", "",
              "| Model | Recall@5 | Recall@10 | Recall@30 | MRR | Chunks/min (CPU) | Model size | Dim |",
              "|---|---|---|---|---|---|---|---|"]
     for result in results:
@@ -181,7 +212,7 @@ def main(argv: list[str]) -> int:
 
     if results:
         REPORT.parent.mkdir(parents=True, exist_ok=True)
-        REPORT.write_text(write_report(results), encoding="utf-8")
+        REPORT.write_text(write_report(all_results(results)), encoding="utf-8")
         print(f"\nwrote {REPORT}")
     return 0
 

@@ -4,19 +4,26 @@ A table split across two chunks answers nothing — half a table is a wrong answ
 so a table is one chunk unless it is genuinely long, and then it splits by row
 groups with the header repeated.
 
-What has to be recovered from the page, because Step 3 stores cells but not
-these (measured: caption present for 5 of 9 tables):
+What has to be recovered from the page, because Step 3 stores cells but not these
+(measured on all 242 tables; counts are table chunks out of 268):
 
-* **caption** — the nearest block *above* the table's bbox, within 60 pt, whose
-  first line matches `(?i)^table[\\s\\-–]?\\d+`. Three styles occur here:
-  `Table-1: List of the El Nino…`, `Table 2 Level of beliefs…`,
-  `Table-3: Correlation coefficients…`. No caption is ever invented: when nothing
-  matches, `caption` stays empty and `notes` says so.
-* **units** — from a parenthetical in the header cells (`(%)`, `(mm)`) or from
-  the caption. Recorded as a string, `""` when absent, because Das's tables mix
-  a count with two percentages.
-* **footnotes** — blocks below the bbox within 60 pt starting with `*`, `†`,
-  `‡`, `Note`, `Source` or `Key` (Das p3 really does have `Key: HH =household`).
+* **caption** — the nearest label block above the bbox within 60 pt, else a label
+  *below* it within 60 pt, else a label further above (up to 160 pt) but only when
+  nothing at all sits between it and the table, so a caption is never stolen from
+  the table above. The label line matches
+  `(?i)^(?:table|tabel)\\s*[-–:.]?\\s*(?:no\\.?\\s*)?[a-z]?\\d[\\d.]*`, which
+  covers the styles this corpus prints: `Table-1: List of the El Nino…`,
+  `Table 2 Level of beliefs…`, `Table No. 2: HDI of rural…`, `TABLE 3. Errors…`.
+  No caption is ever invented: when nothing matches, `caption` stays empty and
+  `notes` says so. Measured 32 → 37. The ceiling is the corpus, not the rule:
+  210 of the 242 tables carry no printed caption within 160 pt.
+* **units** — parentheticals from the first two header rows and the caption,
+  kept when the word is a real unit (`ha.`, `%`, `mm`, `days`, `person`) and
+  several are joined when a table mixes a count with two percentages. Measured
+  37 → 52.
+* **footnotes** — blocks below the bbox within 90 pt starting with `*`, `†`,
+  `‡`, `Note`, `Notes`, `Source` or `Key`, or carrying a statistics note (Das p3
+  really does have `Key: HH =household`). Measured 10, unchanged.
 
 Cells are emitted exactly as Step 3 verified them against the page's words. The
 chunker never reformats a number, never parses a cell, and never guesses a split
@@ -37,18 +44,40 @@ import re
 from chunk import structure
 from chunk.base import Block, Chunk, DocMeta, register_chunker
 
-CAPTION = re.compile(r"(?i)^table[\s\-–]?\d+")
-NOTE_LINE = re.compile(r"(?i)^(\*|†|‡|note|source|key)\b")
+# Measured on 242 tables: three numbering styles occur (`Table-1:`, `Table 2`,
+# `TABLE 3.`) plus `Table No. 2:` and section-style numbers (`Table 2.1`). The
+# label must carry a number - a bare `Table` heading was only ever a prose line
+# saying "given in table no 2" once the number wasmoved to the middle.
+CAPTION = re.compile(r"(?i)^(?:table|tabel)\s*[-–:.]?\s*(?:no\.?\s*)?[a-z]?\d[\d.]*")
+# Only real note prefixes. A short prose line beginning "Values are ..." or
+# "Mean within ..." would otherwise be captured as a table note, which is worse
+# than missing one: a note is presented to the model as part of the table.
+NOTE_LINE = re.compile(r"(?i)^(\*|†|‡|notes?|sources?|key)\b")
 # Das p9 puts `30.15 / 69.85 / Chi-Square = 5.071, DF = 1, P-Value = 0.024`
 # 3 pt below table 1's bbox: a statistics note, not a cell. Without this it became
 # its own text chunk and 69.85 was embedded twice.
 STATS_NOTE = re.compile(r"(?i)(chi[\s\-]?square|p[\s\-]?value|\bdf\s*=)")
 UNITS = re.compile(r"\(([^)]{1,12})\)")
+# Unit words, matched after stripping a trailing dot: `(ha.)`, `(%)`, `(mm)`.
+UNIT_WORD = re.compile(
+    r"(?i)^(?:%|per\s?cent|ha|hectares?|mm|cm|km|km2|m|m2|m3|kg|g|t|ton|tonnes?|"
+    r"days?|hrs?|hours?|minutes?|years?|nos?|number|count|index|ratio|usd|npr|rs|"
+    r"celsius|°c|people|households?|persons?|litres?|liters?)\.?$")
 
 MAX_ROWS = 25          # a table longer than this splits into row groups
 ROW_GROUP = 15
 MAX_CHARS = 1_500
-CAPTION_WINDOW = 60.0  # points above the bbox to look for the caption
+CAPTION_WINDOW = 60.0  # points above/below the bbox to look for the caption
+FAR_CAPTION_WINDOW = 160.0  # used only when nothing sits between the table and it
+NOTE_WINDOW = 90.0     # points below the bbox for notes (a note can wrap 2-3 lines)
+
+# TODO(step-04): 35 of the 242 detections have a bbox taller than 600 pt, i.e. the
+# detector is reporting a page layout (two-column text, a figure) as a table, and
+# each becomes a whole-page "table" chunk. Dropping them changes the table count,
+# so it needs a decision before Step 5 rather than a silent filter here.
+# TODO(step-04): 172 real tables carry no printed caption anywhere within 160 pt;
+# proximity cannot recover those, so a caption may have to come from the heading
+# above the table (or stay empty by design).
 
 
 @register_chunker("table")
@@ -67,13 +96,15 @@ class TableChunker:
             bbox = tuple(table["bbox"])
             inside = [position for position, _, rect in pairs if _inside(rect, bbox)]
             skip.update(inside)
-            caption = _caption(pairs, bbox)
+            caption, caption_where = _caption(pairs, bbox)
             units = _units(table["rows"], caption)
             footnotes, footnoted = _footnotes(pairs, bbox)
             skip.update(footnoted)      # a note belongs to the table, not to prose
             notes = list(table.get("notes") or [])
             if not caption:
-                notes.append("no caption found above bbox")
+                notes.append("no caption found within 160 pt of bbox")
+            elif caption_where == "below":
+                notes.append("caption printed below the table")
 
             for part, rows, label in _parts(table["rows"], table.get("headers_from")):
                 chunks.append(Chunk(
@@ -181,36 +212,100 @@ def _numbers(text: str) -> list[str]:
 
 # --- caption, units, footnotes -------------------------------------------
 
-def _caption(pairs, bbox) -> str:
-    best = None
+def _caption(pairs, bbox) -> tuple[str, str]:
+    """(caption text, where it was found: above, below, above-far or empty).
+
+    Measured on this corpus: 29 captions sit above within 60 pt; a few journals
+    print the caption *under* the table, and one USGS report leaves 60-160 pt of
+    white space between caption and table. Reaching further above is only safe
+    when nothing at all sits in between - otherwise a label would be stolen from
+    the table above this one.
+    """
+    above: list[tuple[float, str]] = []
+    below: list[tuple[float, str]] = []
     for _, text, rect in pairs:
-        if rect[3] > bbox[1] + 2 or bbox[1] - rect[3] > CAPTION_WINDOW:
-            continue
-        first = text.splitlines()[0].strip()
-        if CAPTION.match(first) and (best is None or rect[3] > best[0]):
-            best = (rect[3], text.strip())
-    return best[1].replace("\n", " ") if best else ""
+        label = _caption_in(text)
+        if rect[3] <= bbox[1] + 2:
+            gap = bbox[1] - rect[3]
+            if gap <= FAR_CAPTION_WINDOW:
+                above.append((gap, label or ""))
+        elif rect[1] >= bbox[3] - 2:
+            gap = rect[1] - bbox[3]
+            if gap <= CAPTION_WINDOW:
+                below.append((gap, label or ""))
+
+    near = [(gap, text) for gap, text in above if gap <= CAPTION_WINDOW and text]
+    if near:
+        return min(near)[1], "above"
+
+    under = [(gap, text) for gap, text in below if text]
+    if under:
+        return min(under)[1], "below"
+
+    if above:
+        nearest = min(gap for gap, _ in above)
+        labelled = [(gap, text) for gap, text in above
+                    if text and abs(gap - nearest) < 0.5]
+        if labelled:
+            return labelled[0][1], "above-far"
+    return "", ""
 
 
-def _units(rows, caption: str) -> str:
-    for row in rows[:1]:
-        for cell in row:
-            match = UNITS.search(cell)
-            if match and not match.group(1).strip().replace(".", "").isdigit():
-                return match.group(1).strip()
-    if caption:
-        match = UNITS.search(caption)
-        if match:
-            return match.group(1).strip()
+def _caption_in(text: str) -> str:
+    """The caption starting at a label line, or "".
+
+    A page block sometimes holds the caption below a header line, so the label is
+    not always the first line and the first three lines are searched. Only the
+    label line is returned: joining the rest of the block pulled a contents-page
+    list into a caption (`Table 1.1: ... 1983-2005 8 Table 1.2: ...`), and the
+    header words that follow a real caption belong to the table's own rows.
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    for line in lines[:3]:
+        if CAPTION.match(line):
+            return line
     return ""
 
 
+def _units(rows, caption: str) -> str:
+    """Header-row units, several if a table mixes counts and percentages.
+
+    A whitelist first: the header of a real table says `Area (ha.)`, `(%)`,
+    `(mm)`, and a naive parenthetical scan also picks up `(1996 and 2005)` or
+    `(N=199)`, which are not units. When no whitelisted token is present the old
+    behaviour stays: the first non-numeric parenthetical, because a partial unit
+    beats none.
+    """
+    found: list[str] = []
+    cell_text = [str(cell) for row in rows[:2] for cell in row]
+    for parenthetical in _parentheticals(cell_text + ([caption] if caption else [])):
+        if UNIT_WORD.match(parenthetical) and parenthetical not in found:
+            found.append(parenthetical)
+    if found:
+        return ", ".join(found)
+    for parenthetical in _parentheticals(cell_text + ([caption] if caption else [])):
+        return parenthetical
+    return ""
+
+
+def _parentheticals(texts) -> list[str]:
+    return [match.group(1).strip() for text in texts
+            for match in UNITS.finditer(text)
+            if match.group(1).strip() and not match.group(1).strip().replace(".", "").isdigit()]
+
+
 def _footnotes(pairs, bbox) -> tuple[list[str], set[int]]:
-    """(note lines below the table, block positions those notes came from)."""
+    """(note lines below the table, block positions those notes came from).
+
+    The window is 90 pt, not 60, because a note wrapped over two or three lines
+    starts further down. There is deliberately no length cap: Siwakoti p6 carries
+    a 397-character statistics note, and a cap put in to guard against prose also
+    threw that real note away (measured: 10 notes before the rule, 9 after).
+    """
     found: list[str] = []
     positions: set[int] = set()
     for position, text, rect in pairs:
-        if rect[1] < bbox[3] - 2 or rect[1] - bbox[3] > CAPTION_WINDOW:
+        if rect[1] < bbox[3] - 2 or rect[1] - bbox[3] > NOTE_WINDOW:
             continue
         stripped = text.strip()
         if NOTE_LINE.match(stripped) or STATS_NOTE.search(stripped):
