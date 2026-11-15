@@ -222,7 +222,34 @@ Downloaded files (name, source, version, SHA-256, path):
 
 All three hashes were compared with the digest published on the release page (GitHub) and in the Hugging Face API, and match.
 
+## Step 3 and 4 definition-of-done audit (2026-11-15)
+
+Measured this session, not carried over. Only the item marked ticked was changed in `steps/04-chunking-embeddings.md`.
+
+### Step 3 — three boxes stay open
+
+| DoD item | Status | Evidence |
+|---|---|---|
+| 50 docs parsed, eval sources included | **done** (ticked earlier) | 97 docs, 851 pages |
+| Page numbers verified on 20 random pages (100% match) | **open** | 20 random parsed pages compared with their PDF page and both neighbours: **18 confirmed on the same page**, 2 inconclusive — `2012_non_hasl…` p56 (legacy-font Preeti text, both sides gibberish) and `0_untitled_Deforestation…` p13 (`(cid:)`-encoded text, zero word overlap possible). Neither shows a neighbour matching meaningfully better, so there is no evidence of misalignment, but 100% is not demonstrated. |
+| ≥20 tables checked cell by cell, numeric accuracy reported | **open** | 20 random table chunks: **116/144 numeric cells (80.6%)** also appear on the cited page. All misses sit in one table — `2023_annual_conservation_action_plan_2080_2090…` p23, 4/32 — a Preeti-encoded page. 19 of 20 tables are at 100%. A cell-by-cell visual check by the owner is still the plan's stated verification. |
+| LibreOffice tested on ≥5 real Word files | **open, impossible** | `data/corpus` contains zero `.docx`/`.doc`; there are no Word files to convert. |
+| Unreadable pages counted and listed | **done** (ticked earlier) | 20 of 851 pages (2.4%) |
+| Pages per minute and corpus estimate | **done** (ticked earlier) | in `reports/parsing-sample.md` |
+| Parser choice per case in `DECISIONS.md` | **done** (ticked earlier) | D-005/D-019 family |
+
+### Step 4 — one box newly ticked, four open
+
+| DoD item | Status | Evidence |
+|---|---|---|
+| Chunker tested; no chunk crosses a heading; every table chunk keeps caption, units, footnotes | **open** | All five suites pass (`test_structure` 16 cases incl. the cross-heading assert, `test_text` 12, `test_tables` 15, `test_meta` 11, `test_cli` 9). But of 268 table chunks only **32 carry a caption, 37 units, 10 footnotes**; a 20-table sample found 2 pages with a `Table N` label not captured. So "keeps" holds where a caption was found, "every table chunk" does not. |
+| Every chunk has file, page range, section path and metadata | **open** | 3,226/3,226 have `file`, `page_start`, `page_end`, `type`, `text`, `doc_context`, `chunker_version`; `doc_type` 3,027 (94%), **`year` 2,381 (74%)**, **`publisher` 1,633 (51%)**, **`section_path` 946 (29%)**. The missing section paths are mostly documents with no detectable headings, whose prefix says `(no section headings)` by design (D-051), but the field itself is empty. |
+| Embedder comparison table (recall@k, MRR, speed, size) in `DECISIONS.md` | **DONE — ticked this session** | D-054 holds recall@5/10/30, MRR, chunks/min, weights and folder size for all three candidates. It is marked PROPOSED, which does not affect the table's existence. |
+| Embedder chosen; dense baseline in `EVAL.md` | **open** | Baseline recorded (3 dense rows appended). The **choice** needs the owner to accept D-054; rule 9 forbids the agent changing it. |
+| Index size per 1k pages measured, extrapolated to 100k | **open** | Not measured: no vector table exists yet, so there is nothing to size. |
+
 ## Session log (newest first)
+- 2026-11-15: Audited the Step 3 and 4 definition-of-done boxes against fresh measurements instead of memory. One box was ticked: the embedder comparison table exists in `DECISIONS.md` with recall, MRR, speed and size. Six remain open with numbers attached: pages 18/20 confirmed plus 2 text-unreadable (no misalignment shown), table cells 116/144 (80.6%) with every miss in one Preeti table, chunk metadata 74% year / 51% publisher / 29% section_path, table captions 32 of 268, embedder choice pending D-054, and the per-1k-page index size never measured. Word-file conversion is impossible: the corpus has no `.docx`.
 - 2026-11-15: Added `scripts/health-report.ps1`, which turns `logs/health.log` into per-part outage windows with start, end and duration. Reads `health.log.1` first so a window spanning a rotation still closes; marks a window `(gap)` when the checks around it are further apart than `-GapSeconds` (default 300), because the outage then only lies somewhere inside that interval; reports a trailing window as `still down at last check (length unknown)`. Measured: real log → `ui 1 window, 15 s` and `NOW READY`; synthetic 5-line log → model 2 min 30 s, ui 2 windows (one open) 1 min 30 s, 1 gap; a rotation split across `.1` and the current file → one 10 min window marked `(gap)`; missing log path → one-line message, exit 0.
 - 2026-11-15: Wrote `reports/knowledge-graph.md` and its machine-readable twin `reports/knowledge-graph.json` (29 nodes, 36 edges, every edge endpoint checked). Three views: the data pipeline with the measured counts on each node, this session's work as symptom→cause→fix→commit, and the step/approval chain. The graph makes four gaps explicit: chunks still have no vector index, D-054 is proposed not accepted, the page-BM25 path and the chunk path never meet until Step 5, and legacy-font Nepali reports are effectively absent from retrieval.
 - 2026-11-15: `scripts/health.ps1` appends every run to `logs/health.log` (gitignored) with a local ISO timestamp, so a drop and its recovery are both visible instead of only the failure. Ready lines write `READY` plus the model/ui/index summary; failures add `REASONS …`. Flags: `-NoLog`, `-LogPath`, `-MaxLogBytes` (default 1 MB, rotates to `health.log.1`). Measured: ready + failing run produced two lines, `-NoLog` added none; a 200-byte cap over three runs left 1 line in `health.log` and 2 in `health.log.1`; first bytes of the file are `32 30 32 36` (`2026`), so no BOM – PowerShell 5.1's `-Encoding UTF8` had added one.

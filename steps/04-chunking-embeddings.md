@@ -14,7 +14,7 @@
 ## Definition of done
 - [ ] Chunker tested: no chunk crosses a heading; every table chunk keeps caption, units, footnotes
 - [ ] Every chunk has file, page range, section path and metadata
-- [ ] Embedder comparison table (recall@k, MRR, speed, size) in `DECISIONS.md`
+- [x] Embedder comparison table (recall@k, MRR, speed, size) in `DECISIONS.md`
 - [ ] Embedder chosen; dense-only retrieval baseline recorded in `EVAL.md`
 - [ ] Index size per 1k pages measured and extrapolated to 100k pages
 
