@@ -1,0 +1,406 @@
+{
+  "generated": "2026-11-15",
+  "source": "reports/knowledge-graph.md",
+  "nodes": [
+    {
+      "id": "raw",
+      "kind": "data",
+      "label": "data/raw originals, read-only",
+      "meta": {
+        "files": 97
+      }
+    },
+    {
+      "id": "corpus",
+      "kind": "data",
+      "label": "data/corpus, folders mirror raw",
+      "meta": {
+        "documents": 97,
+        "pages": 851,
+        "tables": 242,
+        "ocr_pages": 86
+      }
+    },
+    {
+      "id": "parsed",
+      "kind": "data",
+      "label": "data/parsed pages and blocks",
+      "meta": {}
+    },
+    {
+      "id": "chunks",
+      "kind": "data",
+      "label": "index/chunks.jsonl",
+      "meta": {
+        "chunks": 3226,
+        "text": 2958,
+        "table": 268,
+        "documents": 95
+      }
+    },
+    {
+      "id": "ingest",
+      "kind": "module",
+      "label": "ingest/ parse + manifest + drive",
+      "meta": {}
+    },
+    {
+      "id": "structure",
+      "kind": "module",
+      "label": "chunk/structure.py heading detection",
+      "meta": {
+        "decision": "D-051"
+      }
+    },
+    {
+      "id": "text",
+      "kind": "module",
+      "label": "chunk/text.py text chunks",
+      "meta": {
+        "decision": "D-052"
+      }
+    },
+    {
+      "id": "tables",
+      "kind": "module",
+      "label": "chunk/tables.py one table per chunk",
+      "meta": {
+        "decision": "D-053"
+      }
+    },
+    {
+      "id": "meta",
+      "kind": "module",
+      "label": "chunk/meta.py provenance prefix",
+      "meta": {}
+    },
+    {
+      "id": "doc_context",
+      "kind": "module",
+      "label": "chunk/doc_context.py two-line doc context",
+      "meta": {
+        "model": "qwen3.5:4b",
+        "docs_with_context": 96
+      }
+    },
+    {
+      "id": "retrieval",
+      "kind": "module",
+      "label": "ui/retrieval.py page BM25 plus OCR",
+      "meta": {
+        "decisions": [
+          "D-044",
+          "D-045"
+        ]
+      }
+    },
+    {
+      "id": "server",
+      "kind": "module",
+      "label": "ui/server.py FastAPI streaming and /pdf",
+      "meta": {}
+    },
+    {
+      "id": "static_ui",
+      "kind": "module",
+      "label": "ui/static chat UI with A-D chips",
+      "meta": {}
+    },
+    {
+      "id": "bench",
+      "kind": "module",
+      "label": "benchmarks/embeddings/run_embedder_bench.py",
+      "meta": {
+        "chunks": 3226
+      }
+    },
+    {
+      "id": "evalrun",
+      "kind": "module",
+      "label": "eval/run_retrieval.py official baseline",
+      "meta": {
+        "recall5": "25/26",
+        "mrr": 0.885
+      }
+    },
+    {
+      "id": "launch",
+      "kind": "script",
+      "label": "scripts/launch-llm.ps1",
+      "meta": {}
+    },
+    {
+      "id": "openchat",
+      "kind": "script",
+      "label": "scripts/open-chat.ps1",
+      "meta": {}
+    },
+    {
+      "id": "health",
+      "kind": "script",
+      "label": "scripts/health.ps1",
+      "meta": {
+        "output": "status line plus REASONS on failure"
+      }
+    },
+    {
+      "id": "manual_sheet",
+      "kind": "artifact",
+      "label": "reports/manual-test-questions.md",
+      "meta": {
+        "categories": 7,
+        "answered_correctly": "7/7"
+      }
+    },
+    {
+      "id": "d030",
+      "kind": "decision",
+      "label": "corpus mirrors raw folders",
+      "meta": {}
+    },
+    {
+      "id": "d043",
+      "kind": "decision",
+      "label": "chat UI built before step 07",
+      "meta": {}
+    },
+    {
+      "id": "d044",
+      "kind": "decision",
+      "label": "page-level retrieval with lettered citations",
+      "meta": {}
+    },
+    {
+      "id": "d045",
+      "kind": "decision",
+      "label": "OCR scanned pages at index build",
+      "meta": {}
+    },
+    {
+      "id": "d051",
+      "kind": "decision",
+      "label": "heading detection reads two shapes",
+      "meta": {}
+    },
+    {
+      "id": "d052",
+      "kind": "decision",
+      "label": "paragraph-atomic text chunk sizing",
+      "meta": {}
+    },
+    {
+      "id": "d053",
+      "kind": "decision",
+      "label": "one table per chunk, excluded from text",
+      "meta": {}
+    },
+    {
+      "id": "d054",
+      "kind": "decision",
+      "label": "PROPOSED bge-small-en-v1.5 as chunk embedder",
+      "meta": {
+        "status": "proposed",
+        "recall5": "23/26",
+        "mrr": 0.702
+      }
+    },
+    {
+      "id": "step04",
+      "kind": "step",
+      "label": "chunking and embeddings",
+      "meta": {
+        "status": "in progress, awaiting D-054"
+      }
+    },
+    {
+      "id": "step05",
+      "kind": "step",
+      "label": "hybrid retrieval",
+      "meta": {
+        "status": "not started"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "raw",
+      "rel": "hardlinked_into",
+      "to": "corpus"
+    },
+    {
+      "from": "corpus",
+      "rel": "parsed_by",
+      "to": "ingest"
+    },
+    {
+      "from": "ingest",
+      "rel": "produces",
+      "to": "parsed"
+    },
+    {
+      "from": "parsed",
+      "rel": "sectioned_by",
+      "to": "structure"
+    },
+    {
+      "from": "structure",
+      "rel": "feeds",
+      "to": "text"
+    },
+    {
+      "from": "structure",
+      "rel": "feeds",
+      "to": "tables"
+    },
+    {
+      "from": "text",
+      "rel": "annotated_by",
+      "to": "meta"
+    },
+    {
+      "from": "tables",
+      "rel": "annotated_by",
+      "to": "meta"
+    },
+    {
+      "from": "meta",
+      "rel": "contextualised_by",
+      "to": "doc_context"
+    },
+    {
+      "from": "doc_context",
+      "rel": "writes",
+      "to": "chunks"
+    },
+    {
+      "from": "chunks",
+      "rel": "embedded_by",
+      "to": "bench"
+    },
+    {
+      "from": "bench",
+      "rel": "supports",
+      "to": "d054"
+    },
+    {
+      "from": "chunks",
+      "rel": "ranked_by",
+      "to": "evalrun"
+    },
+    {
+      "from": "corpus",
+      "rel": "indexed_by",
+      "to": "retrieval"
+    },
+    {
+      "from": "retrieval",
+      "rel": "serves",
+      "to": "server"
+    },
+    {
+      "from": "server",
+      "rel": "serves",
+      "to": "static_ui"
+    },
+    {
+      "from": "corpus",
+      "rel": "served_as_pdf_by",
+      "to": "server"
+    },
+    {
+      "from": "launch",
+      "rel": "prints_link_to",
+      "to": "server"
+    },
+    {
+      "from": "openchat",
+      "rel": "checks",
+      "to": "server"
+    },
+    {
+      "from": "health",
+      "rel": "checks",
+      "to": "server"
+    },
+    {
+      "from": "health",
+      "rel": "checks",
+      "to": "launch"
+    },
+    {
+      "from": "health",
+      "rel": "checks",
+      "to": "chunks"
+    },
+    {
+      "from": "d030",
+      "rel": "shapes",
+      "to": "corpus"
+    },
+    {
+      "from": "d043",
+      "rel": "shapes",
+      "to": "static_ui"
+    },
+    {
+      "from": "d044",
+      "rel": "shapes",
+      "to": "retrieval"
+    },
+    {
+      "from": "d044",
+      "rel": "shapes",
+      "to": "server"
+    },
+    {
+      "from": "d045",
+      "rel": "shapes",
+      "to": "retrieval"
+    },
+    {
+      "from": "d051",
+      "rel": "shapes",
+      "to": "structure"
+    },
+    {
+      "from": "d052",
+      "rel": "shapes",
+      "to": "text"
+    },
+    {
+      "from": "d053",
+      "rel": "shapes",
+      "to": "tables"
+    },
+    {
+      "from": "d054",
+      "rel": "would_shape",
+      "to": "bench"
+    },
+    {
+      "from": "d054",
+      "rel": "blocks",
+      "to": "step05"
+    },
+    {
+      "from": "chunks",
+      "rel": "feeds",
+      "to": "step05"
+    },
+    {
+      "from": "evalrun",
+      "rel": "feeds",
+      "to": "step05"
+    },
+    {
+      "from": "manual_sheet",
+      "rel": "documents",
+      "to": "corpus"
+    },
+    {
+      "from": "step04",
+      "rel": "precedes",
+      "to": "step05"
+    }
+  ]
+}
