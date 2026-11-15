@@ -180,15 +180,31 @@ def docs() -> dict:
     return {"docs": INDEX["docs"], "unreadable": INDEX["unreadable"]}
 
 
+def corpus_by_name() -> dict[str, pathlib.Path]:
+    """{file name: resolved path} for the whole corpus, subfolders included.
+
+    The corpus mirrors `data/raw`'s folders (D-030), so 92 of 97 PDFs sit one or
+    two levels down and `CORPUS / name` finds nothing for them — clicking a
+    citation on any of those papers returned 404 until this map existed.
+    """
+    found: dict[str, pathlib.Path] = {}
+    for path in sorted(CORPUS.rglob("*.pdf")):
+        if path.name in found:
+            print(f"[ui.server] duplicate corpus name, keeping the first: {path.name}")
+            continue
+        found[path.name] = path.resolve()
+    return found
+
+
+BY_NAME = corpus_by_name()
+
+
 @app.get("/pdf/{name}")
 def pdf(name: str) -> FileResponse:
     """Serve a corpus PDF so a citation can open at its page (#page=N)."""
-    known = {d["doc"] for d in INDEX["docs"]}
-    if name not in known:
+    path = BY_NAME.get(name)
+    if path is None or CORPUS not in path.parents or not path.exists():
         raise HTTPException(status_code=404, detail="not a corpus document")
-    path = (CORPUS / name).resolve()
-    if CORPUS not in path.parents or not path.exists():
-        raise HTTPException(status_code=404, detail="document missing")
     return FileResponse(path, media_type="application/pdf",
                         headers={"Content-Disposition": f'inline; filename="{name}"'})
 
