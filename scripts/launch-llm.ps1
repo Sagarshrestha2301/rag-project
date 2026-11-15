@@ -60,8 +60,15 @@ $ps = ((& ollama ps) 2>&1) -join "`n"
 Write-Host "loaded       :"
 $ps -split "`n" | Where-Object { $_ -match [regex]::Escape($Model) -or $_ -match "^NAME" } | ForEach-Object { Write-Host "  $_" }
 
-Write-Host "ready        : POST http://127.0.0.1:$Port/api/chat"
-Write-Host "               POST http://127.0.0.1:$Port/v1/chat/completions (OpenAI-compatible)"
+# These are API endpoints for programs, not pages. A browser always sends GET,
+# and Ollama answers GET on a POST-only route with 405 Method Not Allowed - so
+# printing a bare URL here invites someone to click it and report a fault. They
+# are labelled POST, and the one address that does answer GET is listed too.
+Write-Host "api          : POST http://127.0.0.1:$Port/api/chat"
+Write-Host "               POST http://127.0.0.1:$Port/v1/chat/completions"
+Write-Host "               POST only - opening these in a browser sends GET and shows"
+Write-Host "               405 Method Not Allowed. That is correct behaviour, not a fault."
+Write-Host "status       : http://127.0.0.1:$Port   (this one answers GET: 'Ollama is running')"
 
 # --- chat UI link ---
 # The model server and the chat UI are separate processes. This prints the URL
