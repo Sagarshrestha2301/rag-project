@@ -16,7 +16,7 @@ step 00  environment      DONE   (10/10 DoD ticked, no tag yet)
 step 01  eval set         DONE   (6/6 ticked, 30 questions approved, no tag yet)
 step 02  LLM benchmark    DONE 5/5 - awaiting your approval + tag (3 models measured; qwen3.5 4B wins at 23/30)
 step 03  parsing          97 DOCS PARSED (851 pages, 242 tables) - awaiting your page + table check; Word-file box unreachable
-step 04  chunk + embed    IN PROGRESS - structure, text and table chunkers, metadata, document contexts and chunk export built and tested (16+12+15+11+9 cases), 3,226 chunks all with contexts; embedders next
+step 04  chunk + embed    IN PROGRESS - all sub-tasks built and measured (16+12+15+11+9 cases, 3,226 chunks with contexts, embedder benchmark run); awaiting owner approval of D-054 (bge-small)
 step 05  hybrid retrieval NOT STARTED
 step 06  generation       NOT STARTED
 step 07  web UI           NOT STARTED as a step (a working UI exists outside the steps)
@@ -51,6 +51,7 @@ Measured, not claimed:
 | Table numbers | **5,511 of 5,520** match the page's own words (9 mismatches listed) |
 | Chunks (95 docs with text) | **3,226** (2,958 text + 268 table); 2,381 carry a year, 1,633 a publisher, 946 a section path |
 | Document contexts | **96 of 96** documents with text, **all 3,226 chunks carry one** (qwen3.5:4b, temp 0, ~7 s per document) |
+| Embedder benchmark (CPU, 3,226 chunks) | `bge-small` **23/26 recall@5, MRR 0.702**, 606 chunks/min; `e5-small` 23/26, 0.723, 585/min; `MiniLM` 18/26, 0.430, 2,148/min. All **below** the BM25 page baseline (25/26, 0.885) |
 | Retrieval baseline (BM25 pages, 97 docs) | **recall@5 25/26, MRR 0.885** (dev 17/17, heldout 8/9). Control on the old 5 documents: 25/26, MRR 0.817. q015 missed at any size |
 | `qwen2.5` 7B through Ollama | 499.1 tok/s prompt, 9.43 tok/s generation |
 | Oracle test (gold page as context, 30 questions) | **17/30**; citation 14/26 strict; numeric 22/24; not-found 4/4 |
@@ -135,7 +136,7 @@ by reputation. Nothing is downloaded until you say so, and `models/` is still em
    corpus signature, so a changed corpus rebuilds it automatically; the first rebuild OCRs
    the scans and takes minutes. Two of the 97 PDFs are broken (see §4) and will stay
    textless until you replace them.
-6. **The embedder choice is not measured yet.** Document contexts are done (`index/doc-context.json`, 96 of 96, in every chunk), but the embedder benchmark needs your download approval. Treat every chunk-level number above as the current state, not as a final baseline.
+6. **The embedder choice is measured but unresolved by you.** D-054 proposes `bge-small-en-v1.5`; it ties `e5-small` within one question and wins only on size. Dense-only retrieval currently **underperforms** the BM25 page baseline, so Step 5's hybrid is where the gain has to come from.
 
 ---
 
