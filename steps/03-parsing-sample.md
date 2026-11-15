@@ -13,7 +13,7 @@
 7. Measure time per page for each tier and extrapolate to 100k pages.
 
 ## Definition of done
-- [ ] 50 docs parsed; all eval source docs included
+- [x] 50 docs parsed; all eval source docs included
 - [ ] Page numbers verified against the PDF viewer on at least 20 random pages (100% match)
 - [ ] At least 20 tables checked cell by cell against the source; numeric cell accuracy reported
 - [ ] LibreOffice conversion tested on at least 5 real Word files; page counts recorded; owner confirms the converted PDFs look right

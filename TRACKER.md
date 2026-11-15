@@ -15,7 +15,7 @@ Nothing in this file is an approval.
 step 00  environment      DONE   (10/10 DoD ticked, no tag yet)
 step 01  eval set         DONE   (6/6 ticked, 30 questions approved, no tag yet)
 step 02  LLM benchmark    DONE 5/5 - awaiting your approval + tag (3 models measured; qwen3.5 4B wins at 23/30)
-step 03  parsing          IN PROGRESS - corpus now 97 PDFs / 169 tables from your Drive sample; parser survives truncated files; 97-doc rebuild running; 50-doc and 20-table boxes are now reachable
+step 03  parsing          97 DOCS PARSED (851 pages, 242 tables) - awaiting your page + table check; Word-file box unreachable
 step 04  chunk + embed    IN PROGRESS - structure, text and table chunkers, path metadata and chunk export built and tested (16+12+15+11+9 cases), 2,258 chunks; document contexts and embedders next
 step 05  hybrid retrieval NOT STARTED
 step 06  generation       NOT STARTED
@@ -47,9 +47,10 @@ Measured, not claimed:
 | Thing | Number |
 |---|---|
 | Corpus | **97 PDFs** (was 5); 37 fetched from your Drive folder, 1 duplicate skipped, no duplicate names |
-| Parsed (60-doc run) | 557 pages, 169 tables, 58 OCR pages, 17 unreadable, 33.5 pages/min |
-| Table numbers | 2,463 of 2,466 match the page's own words |
-| Chunks (58 docs with text) | **2,258** (2,081 text + 177 table); 1,919 carry a year, 889 a publisher, 512 a section path |
+| Parsed (97-doc run) | **851 pages, 242 tables, 86 OCR pages, 20 unreadable, 51.3 pages/min; 32.5 h per 100k pages** |
+| Table numbers | **5,511 of 5,520** match the page's own words (9 mismatches listed) |
+| Chunks (95 docs with text) | **3,226** (2,958 text + 268 table); 2,381 carry a year, 1,633 a publisher, 946 a section path |
+| Retrieval baseline (BM25 pages, 97 docs) | **recall@5 25/26, MRR 0.885** (dev 17/17, heldout 8/9). Control on the old 5 documents: 25/26, MRR 0.817. q015 missed at any size |
 | `qwen2.5` 7B through Ollama | 499.1 tok/s prompt, 9.43 tok/s generation |
 | Oracle test (gold page as context, 30 questions) | **17/30**; citation 14/26 strict; numeric 22/24; not-found 4/4 |
 | Eval scorer self-tests | 30/30 checks pass |

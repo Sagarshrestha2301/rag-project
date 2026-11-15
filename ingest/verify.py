@@ -10,6 +10,7 @@ Usage:
 
 from __future__ import annotations
 
+import html
 import json
 import pathlib
 import random
@@ -111,7 +112,7 @@ def review_html(pages: list[dict], sample_size: int = 20, seed: int = 7) -> path
 
     rows = []
     for page in picked:
-        anchor = f"/pdf/{page['doc']}#page={page['pdf_page']}"
+        anchor = corpus_path(page["doc"]).resolve().as_uri() + f"#page={page['pdf_page']}"
         first = page["text"][:110].replace("<", "&lt;")
         rows.append(
             "<tr>"
@@ -146,6 +147,79 @@ text on the right is what you see.</p>
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / "review.html"
     path.write_text(html, encoding="utf-8")
+    return path
+
+
+def tables_html(found: list[dict], sample_size: int = 5) -> pathlib.Path:
+    """A handful of tables to check cell by cell against the original pages.
+
+    Chosen by spreading across documents and preferring tables with the most
+    numeric cells, because a number that changed is the failure this check
+    exists to catch. Each sample opens the PDF at its own page.
+    """
+    scored = []
+    for entry in found:
+        table = tables.Table(rows=entry["rows"], bbox=tuple(entry["bbox"]),
+                             parser=entry["parser"], notes=entry["notes"])
+        longest = max((len(str(cell)) for row in entry["rows"] for cell in row), default=0)
+        header = entry["rows"][0] if entry["rows"] else []
+        numbers = len(tables.numeric_cells(table))
+        # A detected "table" whose cells hold whole paragraphs, whose first row is
+        # blank, or that has one column and no numbers is a false positive on
+        # running text or an equation block: the owner cannot check cells there.
+        # The report still counts such regions; they are just not offered as the
+        # five tables to check by eye, where numeric cells are the point.
+        if (longest <= 120 and len(header) >= 2 and len(entry["rows"]) >= 2
+                and all(str(cell).strip() for cell in header) and numbers):
+            scored.append((numbers, entry))
+
+    by_doc: dict[str, list[tuple[int, dict]]] = {}
+    for count, entry in scored:
+        by_doc.setdefault(entry["doc"], []).append((count, entry))
+    for entries in by_doc.values():
+        entries.sort(key=lambda pair: -pair[0])
+
+    picked: list[tuple[int, dict]] = []
+    queues = [entries for _, entries in sorted(by_doc.items())]
+    while len(picked) < sample_size and any(queues):
+        for queue in queues:
+            if queue and len(picked) < sample_size:
+                picked.append(queue.pop(0))
+
+    blocks = []
+    for count, entry in picked:
+        link = corpus_path(entry["doc"]).resolve().as_uri() + f"#page={entry['pdf_page']}"
+        rows = "".join(
+            "<tr>" + "".join(f"<td>{html.escape(str(cell))}</td>" for cell in row) + "</tr>"
+            for row in entry["rows"][:16])
+        blocks.append(
+            f"<h2>{html.escape(entry['doc'][:60])} <span>page {entry['pdf_page']}</span></h2>"
+            f"<p class='meta'>parser: {html.escape(entry['parser'])} · "
+            f"{len(entry['rows'])} rows × {max((len(r) for r in entry['rows']), default=0)} "
+            f"cells · {count} numeric · "
+            f"<a href='{link}' target='_blank'>open the PDF page</a></p>"
+            f"<table class='cells'>{rows}</table>")
+
+    page = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Step 3 — table spot check</title>
+<style>
+ body{{font:14px/1.5 -apple-system,Segoe UI,sans-serif;margin:32px;color:#1a1a1a;max-width:1100px}}
+ h1{{font-size:19px;margin:0 0 4px}} h2{{font-size:15px;margin:28px 0 2px}}
+ h2 span{{color:#888;font-weight:400}} p{{color:#555;margin:0 0 8px}}
+ table.cells{{border-collapse:collapse;margin-bottom:10px}}
+ td{{border:1px solid #ddd;padding:4px 8px;font-size:12.5px;vertical-align:top}}
+ tr:first-child td{{font-weight:600;background:#f7f7f7}}
+ a{{color:#0b62d6}} .meta{{font-size:12.5px}}
+</style></head><body>
+<h1>Step 3 — table spot check</h1>
+<p>{len(picked)} tables from {len(found)}. Open each PDF page and compare every cell;
+report any value that differs.</p>
+{''.join(blocks)}
+</body></html>"""
+    OUT.mkdir(parents=True, exist_ok=True)
+    path = OUT / "tables-review.html"
+    path.write_text(page, encoding="utf-8")
     return path
 
 
