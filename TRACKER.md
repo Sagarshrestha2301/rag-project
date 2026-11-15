@@ -1,6 +1,6 @@
 # Tracker — where this project stands and what is yours to decide
 
-One page, checked against the repository on **2026-11-14**: `git log`, `git tag` (none),
+One page, checked against the repository on **2026-11-15**: `git log`, `git tag` (none),
 `APPROVALS.md`, `STATUS.md`, `DECISIONS.md` and the DoD boxes in `steps/`. If this page
 and those files disagree, the files win - this is a summary.
 
@@ -16,7 +16,7 @@ step 00  environment      DONE   (10/10 DoD ticked, no tag yet)
 step 01  eval set         DONE   (6/6 ticked, 30 questions approved, no tag yet)
 step 02  LLM benchmark    DONE 5/5 - awaiting your approval + tag (3 models measured; qwen3.5 4B wins at 23/30)
 step 03  parsing          97 DOCS PARSED (851 pages, 242 tables) - awaiting your page + table check; Word-file box unreachable
-step 04  chunk + embed    IN PROGRESS - all sub-tasks built and measured (16+12+15+11+9 cases, 3,226 chunks with contexts, embedder benchmark run); awaiting owner approval of D-054 (bge-small)
+step 04  chunk + embed    BUILT AND MEASURED - 3,226 chunks with contexts, 6 suites (16+12+26+15+9+5 cases), embedder benchmark run; owner chose bge-small (D-054) on 2026-11-15; awaiting your 10-chunk inspection + completion line
 step 05  hybrid retrieval NOT STARTED
 step 06  generation       NOT STARTED
 step 07  web UI           NOT STARTED as a step (a working UI exists outside the steps)
@@ -49,7 +49,7 @@ Measured, not claimed:
 | Corpus | **97 PDFs** (was 5); 37 fetched from your Drive folder, 1 duplicate skipped, no duplicate names |
 | Parsed (97-doc run) | **851 pages, 242 tables, 86 OCR pages, 20 unreadable, 51.3 pages/min; 32.5 h per 100k pages** |
 | Table numbers | **5,511 of 5,520** match the page's own words (9 mismatches listed) |
-| Chunks (95 docs with text) | **3,226** (2,958 text + 268 table); 2,381 carry a year, 1,633 a publisher, 946 a section path |
+| Chunks (95 docs with text) | **3,226** (2,958 text + 268 table); 2,665 carry a year, 1,670 a publisher, 3,027 a document type, 946 a real section path, all 3,226 a document context |
 | Document contexts | **96 of 96** documents with text, **all 3,226 chunks carry one** (qwen3.5:4b, temp 0, ~7 s per document) |
 | Embedder benchmark (CPU, 3,226 chunks) | `bge-small` **23/26 recall@5, MRR 0.702**, 606 chunks/min; `e5-small` 23/26, 0.723, 585/min; `MiniLM` 18/26, 0.430, 2,148/min. All **below** the BM25 page baseline (25/26, 0.885) |
 | Retrieval baseline (BM25 pages, 97 docs) | **recall@5 25/26, MRR 0.885** (dev 17/17, heldout 8/9). Control on the old 5 documents: 25/26, MRR 0.817. q015 missed at any size |
@@ -87,37 +87,26 @@ All are `PROPOSED` in `DECISIONS.md` except where noted. None blocks the UI.
    should be checked against the PDF.
 4. **Two of the 97 PDFs are broken** (truncated Choudhary file, 0-page Komori file). They
    contribute no text and are reported, not replaced — `data/raw/` is yours.
-5. **Steps 3-9 have no start approval.** `APPROVALS.md` stops at step 01.
+5. **Steps 03-09 have no start approval.** `APPROVALS.md` records the completions of steps 01 and 02 but no start line for 03 or 04.
 
 ## 5. What to do, in this order
 
-**Now (5 minutes, in git — only you can do these):**
+**Now (git, only you can do these):**
 
-```powershell
-cd C:\Users\sagar\Downloads\project\rag-project
-git tag step-00-approved
-git tag step-01-approved
-git push --tags          # only if you want them off this machine
-```
+- Create the two missing tags: `git tag step-00-approved` and `git tag step-01-approved`
+  (the step 02 completion line is recorded, its tag is not).
+- Add the missing start lines for steps 03 and 04 to `APPROVALS.md`; the completion
+  lines for steps 01 and 02 are already there.
+- After the checks below: completion lines plus `step-03-approved` and
+  `step-04-approved`.
 
-Then add to `APPROVALS.md`, with an `OWNER:` commit:
+**Step 4 embedder (done, one edit left):** the owner chose `bge-small-en-v1.5` in chat on
+2026-11-15. The three models were downloaded and benchmarked (3.4 GB actual, pruned to
+719 MB) and the index is built with bge. Nothing is pending; the `DECISIONS.md` entry still
+says PROPOSED, and only you may change an existing entry.
 
-```
-2026-11-14 | completion | step 01 | owner
-2026-11-14 | completion | step 02 | owner
-2026-11-14 | start | step 03 | owner
-2026-11-14 | start | step 04 | owner
-```
-
-Then decide (no code needed): D-038, D-040, D-042, D-043, D-044 as "approved" or
-"rejected" — append a line to each in `DECISIONS.md` and commit with `OWNER:`.
-D-039 can be closed as superseded.
-
-**Then approve the Step 4 embedder downloads** (Decision C in `STEP4-PLAN.md`): three
-small models, about 690 MB in total, so the embedder is chosen by our own eval rather than
-by reputation. Nothing is downloaded until you say so, and `models/` is still empty.
-
-**Then mark the Step 3 Word-file box**, which the corpus cannot satisfy (PDFs only).
+**Step 3 Word-file box:** the corpus has no `.docx`, so "tested on 5 real Word files" cannot
+be met as written. Accept it as a deviation or supply five Word files.
 
 ## 6. Honest risks, in the order they will bite
 
@@ -136,7 +125,7 @@ by reputation. Nothing is downloaded until you say so, and `models/` is still em
    corpus signature, so a changed corpus rebuilds it automatically; the first rebuild OCRs
    the scans and takes minutes. Two of the 97 PDFs are broken (see §4) and will stay
    textless until you replace them.
-6. **The embedder choice is measured but unresolved by you.** D-054 proposes `bge-small-en-v1.5`; it ties `e5-small` within one question and wins only on size. Dense-only retrieval currently **underperforms** the BM25 page baseline, so Step 5's hybrid is where the gain has to come from.
+6. **The embedder is chosen but dense-only retrieval still trails BM25.** D-054 chose `bge-small-en-v1.5` (owner, 2026-11-15); it ties `e5-small` within one question and wins on size. Dense-only retrieval currently **underperforms** the BM25 page baseline (23/26 vs 25/26 recall@5), so Step 5's hybrid is where the gain has to come from.
 
 ---
 

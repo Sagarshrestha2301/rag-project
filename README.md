@@ -83,6 +83,7 @@ rag-project/
 │   ├── doc_context.py            # one cached 2-line context per document
 │   ├── cli.py                    # python -m chunk.cli build   -> index/chunks.jsonl
 │   ├── dense.py                  # python -m chunk.dense       -> index/lancedb + reports/index-size.md
+│   ├── review.py                 # python -m chunk.review      -> artifacts/step4/review.html (10 chunks, 3 tables)
 │   └── test_*.py                 # one suite per module; run the file directly
 ├── ingest/                       # Step 3: PDF -> parsed pages, tables, OCR, verification
 │   ├── base.py                   # corpus paths, page records

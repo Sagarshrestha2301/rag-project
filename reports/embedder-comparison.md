@@ -21,3 +21,9 @@ folder on disk after pruning (ONNX/OpenVINO copies removed).
 
 All three models are 384-dimensional, so the comparison is about
 quality and speed only, not index size.
+
+**Chosen: `bge-small-en-v1.5`** (owner, 2026-11-15). The two top models tie on
+recall@5 and recall@10 and differ by 0.021 MRR, less than one rank across the 26
+answerable questions; bge wins on cost (134 MB of weights against 493 MB) and is
+marginally faster. `multilingual-e5-small` remains the obvious choice if
+non-English questions arrive, and `all-MiniLM-L6-v2` is rejected on measurement.

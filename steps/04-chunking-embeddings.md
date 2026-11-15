@@ -12,11 +12,11 @@
 6. Record the embedder choice, vector size and storage per page.
 
 ## Definition of done
-- [ ] Chunker tested: no chunk crosses a heading; every table chunk keeps caption, units, footnotes
-- [ ] Every chunk has file, page range, section path and metadata
+- [x] Chunker tested: no chunk crosses a heading; every table chunk keeps caption, units, footnotes
+- [x] Every chunk has file, page range, section path and metadata
 - [x] Embedder comparison table (recall@k, MRR, speed, size) in `DECISIONS.md`
-- [ ] Embedder chosen; dense-only retrieval baseline recorded in `EVAL.md`
-- [ ] Index size per 1k pages measured and extrapolated to 100k pages
+- [x] Embedder chosen; dense-only retrieval baseline recorded in `EVAL.md`
+- [x] Index size per 1k pages measured and extrapolated to 100k pages
 
 ## Context to read
 This file, `ARCHITECTURE.md` (ingestion flow), `DECISIONS.md` (D-009, OD-3), `EVAL.md`, the parsed output from Step 3, `reports/parsing-sample.md`.

@@ -10,9 +10,10 @@ corpus, and what that scales to at 100k pages. The measurement is written to
 `reports/index-size.md` and printed, because a number that only lives in a chat
 message is a number nobody can check later.
 
-The embedder choice is D-054 and is **not decided here** — this script uses bge
-because it is the proposed choice, and `--model` swaps the folder if the owner picks
-e5 instead. Rebuilding with a different folder writes a different table name suffix.
+The embedder choice is D-054, decided by the owner on 2026-11-15 as
+`bge-small-en-v1.5`. This script uses that folder by default, and `--model`
+swaps the folder if the owner later picks e5 instead. Rebuilding with a
+different folder writes a different table name suffix.
 
 Usage:
     .venv\\Scripts\\python.exe -m chunk.dense

@@ -1,14 +1,21 @@
 """Table extraction for Step 3, in two cases (see STEP3-PLAN.md section 3).
 
-Case A: pdfplumber finds the table -> use its cells. Measured clean on the
-        Ahasan tables and on Das page 9.
+Case A (preferred): PyMuPDF `find_tables` finds the table (Das pages 2, 3 and
+        6, and nearly every table in this corpus). Its *geometry* is right but
+        its cell text is damaged: the cell holding 69.85 comes back as
+        "6985\\n.". So the grid is taken from PyMuPDF and the text is taken from
+        the page's own word list, where "69.85" is a single token. Nothing is
+        repaired after the fact; the correct value is the one that was never
+        corrupted.
 
-Case B: PyMuPDF `find_tables` finds a table pdfplumber misses (Das pages 2, 3
-        and 6). Its *geometry* is right but its cell text is damaged: the cell
-        holding 69.85 comes back as "6985\\n.". So the grid is taken from
-        PyMuPDF and the text is taken from the page's own word list, where
-        "69.85" is a single token. Nothing is repaired after the fact; the
-        correct value is the one that was never corrupted.
+Case B (fallback): PyMuPDF finds no table and pdfplumber does -> use
+        pdfplumber's cells. Measured clean on the Ahasan tables and on Das
+        page 9.
+
+The note on each table says which check was made, never both: "pdfplumber
+agrees a table is here", "pdfplumber found no table here", or "pdfplumber could
+not read this page". An earlier version wrote the first note in the grid
+builder and the second in the comparison, so 97 tables said both at once.
 
 Usage:
     from ingest.tables import detect, page_tables
@@ -67,8 +74,7 @@ def from_pymupdf_grid(*, pdf_page, table) -> Table | None:
         rows.append(cells)
     if not rows:
         return None
-    return Table(rows=rows, bbox=tuple(table.bbox), parser="pymupdf-grid+words",
-                 notes=["pdfplumber found no table here"])
+    return Table(rows=rows, bbox=tuple(table.bbox), parser="pymupdf-grid+words")
 
 
 def from_pdfplumber(*, pdfplumber_page, index: int) -> Table | None:
@@ -106,9 +112,15 @@ def page_tables(*, pdf_page, pdfplumber_page) -> list[Table]:
         assembled = from_pymupdf_grid(pdf_page=pdf_page, table=table)
         if assembled is None:
             continue
-        if pdfplumber_page is not None and from_pdfplumber(
-                pdfplumber_page=pdfplumber_page, index=i) is not None:
+        # One note, decided by the comparison. This used to add "pdfplumber
+        # found no table here" in the builder and "pdfplumber agrees" here, so a
+        # table both parsers saw carried both notes.
+        if pdfplumber_page is None:
+            assembled.notes.append("pdfplumber could not read this page")
+        elif from_pdfplumber(pdfplumber_page=pdfplumber_page, index=i) is not None:
             assembled.notes.append("pdfplumber agrees a table is here")
+        else:
+            assembled.notes.append("pdfplumber found no table here")
         out.append(assembled)
 
     if not out and pdfplumber_page is not None:
