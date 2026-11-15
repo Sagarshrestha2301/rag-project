@@ -14,17 +14,23 @@ import html
 import json
 import pathlib
 import random
+import sys
 
-import pymupdf
+# Runs as `python -m ingest.verify` or as `python ingest/verify.py`: the absolute
+# `ingest.` imports below need the repository root on the path, not ingest/ itself.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from ingest import tables
-from ingest.base import corpus_path
+import pymupdf                                                   # noqa: E402
+
+from ingest import tables                                        # noqa: E402
+from ingest.base import corpus_path                              # noqa: E402
 
 OUT = pathlib.Path("artifacts/step3")
 PARSED = pathlib.Path("index/parsed")
 
 
 def load() -> tuple[list[dict], list[dict], dict]:
+    """What the parse already wrote: pages, detected tables and the manifest."""
     pages = [json.loads(line) for line in
              (PARSED / "pages.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
     found = [json.loads(line) for line in
@@ -338,6 +344,7 @@ def rebuild() -> tuple[pathlib.Path, pathlib.Path]:
 
 
 def write_report(tables_report: dict, speed: dict, manifest: dict) -> pathlib.Path:
+    """The Step 3 report, also copied to the path the step file names."""
     OUT.mkdir(parents=True, exist_ok=True)
     lines = ["# Step 3 report (generated)", ""]
     totals = manifest["totals"]

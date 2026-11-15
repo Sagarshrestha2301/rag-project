@@ -115,6 +115,7 @@ def check(chunks: list) -> list[str]:
 
 
 def main() -> int:
+    """`chunk.cli build`: write `index/chunks.jsonl`, and refuse to write a broken one."""
     parser = argparse.ArgumentParser(prog="chunk.cli")
     sub = parser.add_subparsers(dest="command", required=True)
     build_cmd = sub.add_parser("build", help="write index/chunks.jsonl")

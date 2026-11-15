@@ -43,6 +43,7 @@ PREFIX = {"multilingual-e5-small": "query: ", "bge-small-en-v1.5": ""}
 
 
 def load_chunks(path: pathlib.Path = CHUNKS) -> list[dict]:
+    """Every chunk record from `index/chunks.jsonl`, in index order."""
     if not path.exists():
         raise SystemExit(f"missing {path}: run `python -m chunk.cli build` first")
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
@@ -56,6 +57,7 @@ def folder_bytes(path: pathlib.Path) -> tuple[int, int]:
 
 
 def build(model_folder: str, batch_size: int = 32) -> dict:
+    """Embed every chunk, write the LanceDB table, and return what it measured."""
     from sentence_transformers import SentenceTransformer
     import lancedb
 
@@ -126,6 +128,7 @@ def build(model_folder: str, batch_size: int = 32) -> dict:
 
 
 def write_report(summaries: list[dict]) -> pathlib.Path:
+    """Write `reports/index-size.md` from measured summaries, never from estimates."""
     lines = [
         "# Dense index size (Step 4 task 6)",
         "",
@@ -171,6 +174,7 @@ def write_report(summaries: list[dict]) -> pathlib.Path:
 
 
 def main(argv: list[str]) -> int:
+    """Build the table, keep the raw measurement in `artifacts/step4/`, print the numbers."""
     parser = argparse.ArgumentParser(prog="chunk.dense")
     parser.add_argument("--model", default="bge-small-en-v1.5",
                         help="folder under models/ (D-054 proposes bge-small-en-v1.5)")
