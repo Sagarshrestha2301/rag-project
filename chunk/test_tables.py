@@ -302,6 +302,49 @@ def real_corpus_ids_unique_and_ordered():
         assert pages_seen == sorted(pages_seen), f"{doc}: chunks not in page order"
 
 
+def _doc(fragment: str):
+    for doc, pages in _corpus().items():
+        if fragment in doc:
+            return doc, pages
+    raise AssertionError(f"no corpus document matching {fragment!r}")
+
+
+def _table_chunks(doc: str, pages: list) -> list:
+    return [chunk for chunk in build.chunks_for_document(pages, DocMeta(file=doc, year=1970))
+            if chunk.type == "table"]
+
+
+def real_corpus_caption_below_siwakoti_p4():
+    """0_Siwakoti p4 prints `Table 2 – Area, production...` *under* the table."""
+    doc, pages = _doc("0_Siwakoti")
+    captions = [chunk.caption for chunk in _table_chunks(doc, pages) if chunk.page_start == 4]
+    assert any("Area, production, and yield of cucumber" in cap for cap in captions), captions
+
+
+def real_corpus_caption_below_ali_p2():
+    """1970_Ali p2 prints `Table 1. Trace Nutrient Concentrations` under the table."""
+    doc, pages = _doc("1970_Ali_Treatment")
+    captions = [chunk.caption for chunk in _table_chunks(doc, pages) if chunk.page_start == 2]
+    assert any("Trace Nutrient Concentrations" in cap for cap in captions), captions
+
+
+def real_corpus_caption_table_no_style():
+    """1970_Acharya writes `Table No. 2: HDI of rural and urban region 1990 and 2000`."""
+    doc, pages = _doc("1970_Acharya_Dimension")
+    captions = [chunk.caption for chunk in _table_chunks(doc, pages)]
+    assert any("Table No. 2: HDI" in cap for cap in captions), captions
+
+
+def real_corpus_caption_coverage_does_not_drop():
+    """37 of 268 table chunks carried a caption on 2026-11-15; never go below that."""
+    captioned = total = 0
+    for doc, pages in _corpus().items():
+        for chunk in _table_chunks(doc, pages):
+            total += 1
+            captioned += 1 if chunk.caption else 0
+    assert captioned >= 37, f"captions fell to {captioned} of {total} table chunks"
+
+
 def _corpus() -> dict[str, list]:
     docs: dict[str, list] = {}
     for line in PARSED.read_text(encoding="utf-8").splitlines():
@@ -358,6 +401,17 @@ def main() -> int:
                       real_corpus_split_tables_repeat_the_header),
                      ("real corpus: ids unique and in page order",
                       real_corpus_ids_unique_and_ordered)]:
+        check(name, fn)
+
+    print("real corpus: the captions that were hard to reach")
+    for name, fn in [("a caption printed below the table (Siwakoti p4)",
+                      real_corpus_caption_below_siwakoti_p4),
+                     ("a caption printed below the table (Ali p2)",
+                      real_corpus_caption_below_ali_p2),
+                     ("`Table No. 2:` numbering (Acharya)",
+                      real_corpus_caption_table_no_style),
+                     ("caption coverage never drops below 37 of 268",
+                      real_corpus_caption_coverage_does_not_drop)]:
         check(name, fn)
 
     print()

@@ -127,6 +127,35 @@ def a_different_model_regenerates():
     assert got["a.pdf"]["context"] == "B" and got["a.pdf"]["model"] == "model-b", got
 
 
+def page_evidence_gives_a_year():
+    assert meta.year_from_text("BANKO JANAKARI Vol. 8, No. 1, 2019 page 3") == 2019
+    assert meta.year_from_text("(c) 2005 ICIMOD, Kathmandu") == 2005
+    assert meta.year_from_text("M. N. Ahasan December 2010 1 Variability and trends") == 2010
+
+
+def page_evidence_refuses_a_citation():
+    # The same words sit in the references on page 1 of two real papers.
+    text = "Variability and trends " + "filler " * 80 + \
+        "Journal of Hydrology and Meteorology, Vol. 7, No. 1, 2010"
+    assert meta.year_from_text(text) is None, "took a citation year as the publication year"
+    assert meta.publisher_from_text(text) == "", "took a cited journal as the publisher"
+
+
+def page_evidence_gives_a_publisher():
+    assert meta.publisher_from_text(
+        "Nepal Journal of Science and Technology Vol. 12, 2011, 45-52") == \
+        "Nepal Journal of Science and Technology"
+    assert meta.publisher_from_text(
+        "Journal of Hydrology and Meteorology, Vol. 6, No. 1 SOHAM-Nepal") == \
+        "Journal of Hydrology and Meteorology"
+
+
+def a_masthead_without_an_outlet_word_stays_empty():
+    # Real page-1 head of 1970_Das: title and author, no journal name anywhere.
+    assert meta.publisher_from_text(
+        "Beliefs, superstitions and taboos associated with bamboos in Nepal A.N. Das") == ""
+
+
 def main() -> int:
     print("metadata from the path")
     for name, fn in [
@@ -140,6 +169,15 @@ def main() -> int:
         ("windows and posix separators agree", windows_separators_give_the_same_answer),
         ("an unknown folder has no doc type", unknown_folder_has_no_doc_type),
     ]:
+        check(name, fn)
+
+    print("metadata from the page (only when the path is silent)")
+    for name, fn in [("a volume, copyright or masthead date gives the year",
+                      page_evidence_gives_a_year),
+                     ("a citation on page 1 gives nothing", page_evidence_refuses_a_citation),
+                     ("a printed journal name is used", page_evidence_gives_a_publisher),
+                     ("a masthead with no outlet word stays empty",
+                      a_masthead_without_an_outlet_word_stays_empty)]:
         check(name, fn)
 
     print("the real corpus")

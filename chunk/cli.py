@@ -64,11 +64,20 @@ def corpus_paths() -> dict[str, pathlib.Path]:
 
 
 def document_meta(name: str, paths: dict[str, pathlib.Path],
-                  contexts: dict[str, dict]) -> DocMeta:
-    """The path-derived metadata plus a cached context, if one was generated."""
+                  contexts: dict[str, dict], first_page_text: str = "") -> DocMeta:
+    """Path-derived metadata, then page-1 evidence for whatever the path lacks.
+
+    The path is authoritative when it says something; the page is only asked when
+    it does not. Page-1 text can add a year (volume or copyright line) or an outlet
+    name that is printed there, and nothing else - see `chunk.meta`.
+    """
     if name not in paths:
         raise FileNotFoundError(f"parsed document {name!r} is not in data/corpus")
     document = meta.to_meta(paths[name])
+    if document.year is None:
+        document.year = meta.year_from_text(first_page_text)
+    if not document.publisher:
+        document.publisher = meta.publisher_from_text(first_page_text)
     document.doc_context = contexts.get(name, {}).get("context", "")
     return document
 
@@ -80,7 +89,7 @@ def build_chunks(parsed: pathlib.Path = PARSED,
     known = doc_context.load(contexts)
     chunks = []
     for name, pages in sorted(load_pages(parsed).items()):
-        document = document_meta(name, paths, known)
+        document = document_meta(name, paths, known, pages[0].text if pages else "")
         chunks.extend(meta.apply(build.chunks_for_document(pages, document), document))
     return chunks
 
