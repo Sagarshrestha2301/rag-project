@@ -62,4 +62,22 @@ $ps -split "`n" | Where-Object { $_ -match [regex]::Escape($Model) -or $_ -match
 
 Write-Host "ready        : POST http://127.0.0.1:$Port/api/chat"
 Write-Host "               POST http://127.0.0.1:$Port/v1/chat/completions (OpenAI-compatible)"
+
+# --- chat UI link ---
+# The model server and the chat UI are separate processes. This prints the URL
+# either way, and says plainly whether it will answer right now, so nobody opens
+# a link that only looks like it works (a dead port 8000 is what produced a 405
+# in the browser once: the request was answered by a static handler, not the app).
+$UiPort = 8000
+$UiUrl  = "http://127.0.0.1:$UiPort"
+try {
+    Invoke-RestMethod -Uri "$UiUrl/api/health" -TimeoutSec 3 | Out-Null
+    Write-Host "chat         : $UiUrl   (running - open it)"
+    Write-Host "               health: $UiUrl/api/health"
+} catch {
+    Write-Host "chat         : $UiUrl   (not running yet)"
+    Write-Host "               start it: .\scripts\open-chat.ps1 -Start"
+    Write-Host "               or      : .venv\Scripts\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port $UiPort"
+}
+
 Write-Host "stop         : ollama stop $Model"
