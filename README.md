@@ -8,6 +8,35 @@ Fully offline question answering over 100k+ pages of official reports and papers
 First-time setup for the owner (git init, first commit, approvals): see `APPROVALS.md`.
 See `STATUS.md`. **No code is written or installed until the docs are approved and each step is approved separately.**
 
+## Quickstart
+
+The short version; options, checks and failure fixes are in `RUNNING.md`.
+
+```powershell
+# 1. Install into the project venv (Python 3.12; this machine has the pinned
+#    interpreter at tools\python312, otherwise use any 3.12 install)
+tools\python312\python.exe -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+# 2. Parse the corpus and build chunks (~17 min for the current 97 PDFs, then ~1 s)
+.venv\Scripts\python.exe -m ingest.cli build
+.venv\Scripts\python.exe -m chunk.cli build
+
+# 3. Dense index (CPU; needs models\bge-small-en-v1.5; writes reports\index-size.md)
+.venv\Scripts\python.exe -m chunk.dense
+
+# 4. Start the model: Ollama on 127.0.0.1:11434, qwen3.5:4b, 30-minute keep-alive
+.\scripts\launch-llm.ps1
+
+# 5. Start the chat UI, then open http://127.0.0.1:8000
+.\scripts\open-chat.ps1 -Start
+```
+
+Everything runs offline and binds to localhost only. The launcher exports the
+offline flags for Ollama. `data/`, `index/` and `models/` are gitignored: the
+corpus and the embedder weights must already be on disk, and step 2 creates
+`index/` from them.
+
 ## Document map
 | File | Purpose |
 |---|---|
