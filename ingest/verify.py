@@ -33,6 +33,79 @@ def load() -> tuple[list[dict], list[dict], dict]:
     return pages, found, manifest
 
 
+LEGACY_RANGES = ((0xE000, 0xF8FF), (0x0600, 0x06FF), (0x0900, 0x097F))
+
+
+def _legacy_font(rows: list[list]) -> bool:
+    """True when a cell holds glyphs that are not plain Latin text.
+
+    A Preeti-font table extracts as private-use or Devanagari code points, and its
+    printed values are then unreadable to a Latin reader comparing the sheet with
+    the page. That is a fact about the text, not an opinion about the table.
+    """
+    for row in rows:
+        for cell in row:
+            text = str(cell)
+            if any(ord(ch) < 32 and ch not in "\n\t" for ch in text):
+                return True
+            if any(start <= ord(ch) <= end for ch in text for start, end in LEGACY_RANGES):
+                return True
+    return False
+
+
+def page_triage(page: dict) -> tuple[bool, str]:
+    """(look here first?, why) for one page of the page-number sheet."""
+    printed = (page.get("printed_label") or "").strip()
+    if page.get("ocr"):
+        return True, "OCR text: the text itself is the only thing to compare"
+    if not (page.get("text") or "").strip():
+        return True, "no text layer: nothing to compare by eye"
+    if printed and printed != str(page["pdf_page"]):
+        # Normal front matter shifts the printed numbering; the row shows both numbers,
+        # so this is not a reason to look here first.
+        return False, f"printed {printed}, PDF page {page['pdf_page']}: front matter shifts the numbering"
+    if not printed:
+        # Most of these PDFs print no page number at all; that is normal, not a risk.
+        return False, "text present; the page prints no number, so compare the text only"
+    return False, "printed number matches the PDF page"
+
+
+def table_triage(entry: dict, numeric: int) -> tuple[bool, str]:
+    """(look here first?, why) for one table of the table sheet."""
+    if _legacy_font(entry["rows"]):
+        return True, "legacy-font cells: printed values may not match the extraction"
+    if entry.get("ocr"):
+        return True, "OCR page: digits can be misread as other digits"
+    if numeric == 0:
+        return True, "no numeric cells, so there is less to compare"
+    return False, f"{numeric} numeric cells in Latin script"
+
+
+def triage_banner(kind: str, entries: list[dict], total: int, extra_note: str = "") -> str:
+    """One shared summary block for both sheets: where to look first.
+
+    This is pre-triage for the owner's eye, not a review result: it says where the
+    evidence is weakest and states plainly that nothing here is verified.
+    """
+    attention = [e for e in entries if e["attention"]]
+    confident = [e for e in entries if not e["attention"]]
+    items = "".join(
+        f"<li><strong>{html.escape(e['label'])}</strong> &mdash; {html.escape(e['why'])}</li>"
+        for e in attention)
+    if not attention:
+        items = "<li>None of the %d offered %s has a known weak spot.</li>" % (len(entries), kind)
+    return f"""<section class='triage'>
+  <h2>Pre-triage &mdash; where to look first</h2>
+  <p class='triage__rule'>Pre-triage, not a review: this is a guess about where the evidence is weakest, based only on what the
+  parser recorded (no text layer, OCR, legacy-font glyphs, a missing printed number). <strong>Nothing on this page is
+  verified</strong>; only your check can do that.</p>
+  <p class='triage__count'>{len(confident)} of {len(entries)} offered {kind} look straightforward, {len(attention)} need extra attention
+  ({len(entries)} sampled from {total}).</p>
+  <ul class='triage__list'>{items}</ul>
+  {"<p class='triage__note'>" + html.escape(extra_note) + "</p>" if extra_note else ""}
+</section>"""
+
+
 def _page_words(doc: str, page_no: int) -> set[str]:
     with pymupdf.open(corpus_path(doc)) as pdf:
         return {w[4] for w in pdf[page_no - 1].get_text("words")}
@@ -111,20 +184,26 @@ def review_html(pages: list[dict], sample_size: int = 20, seed: int = 7) -> path
     picked.sort(key=lambda p: (p["doc"], p["pdf_page"]))
 
     rows = []
+    triage = []
     for page in picked:
         anchor = corpus_path(page["doc"]).resolve().as_uri() + f"#page={page['pdf_page']}"
         first = page["text"][:110].replace("<", "&lt;")
+        attention, why = page_triage(page)
+        triage.append({"label": f"{page['doc'][:44]} p{page['pdf_page']}",
+                       "why": why, "attention": attention})
         rows.append(
-            "<tr>"
-            f"<td>{page['doc'][:46]}</td>"
+            "<tr%s>" % (" class='attention'" if attention else "")
+            + f"<td>{page['doc'][:46]}</td>"
             f"<td class='num'>{page['pdf_page']}</td>"
             f"<td class='num'>{page['printed_label'] or '—'}</td>"
             f"<td>{page['parser']}{' · OCR' if page['ocr'] else ''}</td>"
             f"<td class='snip'>{first}…</td>"
+            f"<td class='triage-cell'>{'look here' if attention else 'straightforward'}</td>"
             f"<td><a href='{anchor}' target='_blank'>open</a></td>"
             "</tr>"
         )
 
+    triage_block = triage_banner("pages", triage, len(pages))
     html = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Step 3 — page number check</title>
@@ -136,12 +215,18 @@ def review_html(pages: list[dict], sample_size: int = 20, seed: int = 7) -> path
  .num{{font-variant-numeric:tabular-nums;font-family:ui-monospace,Consolas,monospace}}
  .snip{{color:#444;font-size:12.5px;max-width:520px}}
  a{{color:#0b62d6}}
+ .triage{{border:1px solid #f0c36d;background:#fffaf0;padding:12px 16px;margin:0 0 20px;border-radius:6px}}
+ .triage h2{{font-size:15px;margin:0 0 6px}} .triage p{{margin:0 0 6px}}
+ .triage__rule{{font-size:12.5px;color:#6b4b00}} .triage__count{{font-size:13px}}
+ .triage__list{{margin:6px 0 0 18px;padding:0;font-size:13px}}
+ tr.attention td{{background:#fffaf0}} .triage-cell{{font-size:12px;color:#6b4b00;white-space:nowrap}}
 </style></head><body>
 <h1>Step 3 — page number check</h1>
 <p>{len(picked)} pages sampled from {len(pages)}. “PDF page” is the index the eval uses;
 “printed” is the number visible on the page. Open each PDF at that page and confirm the
 text on the right is what you see.</p>
-<table><thead><tr><th>Document</th><th>PDF page</th><th>Printed</th><th>Parser</th><th>Opening text</th><th></th></tr></thead>
+{triage_block}
+<table><thead><tr><th>Document</th><th>PDF page</th><th>Printed</th><th>Parser</th><th>Opening text</th><th>Pre-triage</th><th></th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table>
 </body></html>"""
     OUT.mkdir(parents=True, exist_ok=True)
@@ -187,19 +272,31 @@ def tables_html(found: list[dict], sample_size: int = 5) -> pathlib.Path:
                 picked.append(queue.pop(0))
 
     blocks = []
+    triage = []
     for count, entry in picked:
         link = corpus_path(entry["doc"]).resolve().as_uri() + f"#page={entry['pdf_page']}"
         rows = "".join(
             "<tr>" + "".join(f"<td>{html.escape(str(cell))}</td>" for cell in row) + "</tr>"
             for row in entry["rows"][:16])
+        attention, why = table_triage(entry, count)
+        triage.append({"label": f"{entry['doc'][:44]} p{entry['pdf_page']}",
+                       "why": why, "attention": attention})
+        marker = (f"<p class='marker'>look here first: {html.escape(why)}</p>"
+                  if attention else "")
         blocks.append(
-            f"<h2>{html.escape(entry['doc'][:60])} <span>page {entry['pdf_page']}</span></h2>"
+            f"<h2 class='{ 'attention' if attention else '' }'>"
+            f"{html.escape(entry['doc'][:60])} <span>page {entry['pdf_page']}</span></h2>"
             f"<p class='meta'>parser: {html.escape(entry['parser'])} · "
             f"{len(entry['rows'])} rows × {max((len(r) for r in entry['rows']), default=0)} "
             f"cells · {count} numeric · "
-            f"<a href='{link}' target='_blank'>open the PDF page</a></p>"
+            f"<a href='{link}' target='_blank'>open the PDF page</a></p>{marker}"
             f"<table class='cells'>{rows}</table>")
 
+    legacy_total = sum(1 for entry in found if _legacy_font(entry["rows"]))
+    note = (f"{legacy_total} of the {len(found)} detected tables hold legacy-font cells. The one "
+            "known to lose values (4 of 32 numbers unreadable) is not in the five offered here, "
+            "so a clean summary above does not mean every table is clean.") if legacy_total else ""
+    triage_block = triage_banner("tables", triage, len(found), note)
     page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Step 3 — table spot check</title>
@@ -211,16 +308,33 @@ def tables_html(found: list[dict], sample_size: int = 5) -> pathlib.Path:
  td{{border:1px solid #ddd;padding:4px 8px;font-size:12.5px;vertical-align:top}}
  tr:first-child td{{font-weight:600;background:#f7f7f7}}
  a{{color:#0b62d6}} .meta{{font-size:12.5px}}
+ .triage{{border:1px solid #f0c36d;background:#fffaf0;padding:12px 16px;margin:0 0 20px;border-radius:6px}}
+ .triage h2{{font-size:15px;margin:0 0 6px}} .triage p{{margin:0 0 6px}}
+ .triage__rule{{font-size:12.5px;color:#6b4b00}} .triage__count{{font-size:13px}}
+ .triage__list{{margin:6px 0 0 18px;padding:0;font-size:13px}}
+ h2.attention{{color:#8a4b12}} .marker{{color:#8a4b12;font-size:12.5px;margin:-6px 0 8px}}
 </style></head><body>
 <h1>Step 3 — table spot check</h1>
 <p>{len(picked)} tables from {len(found)}. Open each PDF page and compare every cell;
 report any value that differs.</p>
+{triage_block}
 {''.join(blocks)}
 </body></html>"""
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / "tables-review.html"
     path.write_text(page, encoding="utf-8")
     return path
+
+
+def rebuild() -> tuple[pathlib.Path, pathlib.Path]:
+    """Regenerate both review sheets from what the parse already wrote.
+
+    No parsing, no PDF text extraction beyond the page links: `load()` reads
+    `index/parsed/`, so this is seconds rather than the ~16 minutes a full
+    `ingest.cli build` takes.
+    """
+    pages, found, _manifest = load()
+    return review_html(pages), tables_html(found)
 
 
 def write_report(tables_report: dict, speed: dict, manifest: dict) -> pathlib.Path:
@@ -284,3 +398,10 @@ def write_report(tables_report: dict, speed: dict, manifest: dict) -> pathlib.Pa
     named.parent.mkdir(parents=True, exist_ok=True)
     named.write_text(body, encoding="utf-8")
     return path
+
+
+if __name__ == "__main__":
+    # Regenerate the two review sheets in place; the parse is not repeated.
+    page_sheet, table_sheet = rebuild()
+    print(f"wrote {page_sheet}")
+    print(f"wrote {table_sheet}")
