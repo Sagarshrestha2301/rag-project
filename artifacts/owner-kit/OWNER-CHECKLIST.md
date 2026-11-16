@@ -48,10 +48,12 @@ lines above them.
 entry to `'APPROVE'` — the script will write it, and the record will then contain both
 the claim and its correction.
 
-`$AcceptStep2` and `$AcceptStep4` are both `$true`, so the run also records the
-completion of steps 02 and 04 and tags `step-02-approved` and `step-04-approved`: all
-five of Step 2's DoD boxes are ticked and the comparison you asked for exists, Step 4
-was built, measured and inspected (your 10-chunk review, approved in chat 2026-11-16).
+`$AcceptStep2`, `$AcceptStep4` and `$AcceptStep5` are all `$true`, so the run also
+records the completion of steps 02, 04 and 05 and tags `step-02-approved`,
+`step-04-approved` and `step-05-approved`: Step 2's five DoD boxes are ticked and the
+comparison you asked for exists, Step 4 was built, measured and inspected (your 10-chunk
+review, approved in chat 2026-11-16), and Step 5's seven boxes are all ticked with the
+baseline re-based on the 45-question dev set.
 
 ## B. Two things only you can do by hand
 
@@ -82,13 +84,13 @@ the Word-conversion box, cannot be met at all because the corpus holds no `.docx
 ## D. After the script
 
 ```powershell
-git tag                      # step-00, 01, 02 and 04 -approved
+git tag                      # step-00, 01, 02, 04 and 05 -approved
 git log --oneline -3         # two OWNER: commits
 git status                   # clean
 ```
 
-The run also adds **one `completion | step 04` line** to `APPROVALS.md`, so Step 4 stops
-being a step that was finished but never recorded.
+The run also adds **two `completion` lines** to `APPROVALS.md`, for steps 04 and 05, so
+neither stays a step that was finished but never recorded.
 
 Expect **19 verdict lines** in `DECISIONS.md` — 18 `APPROVED` and 1 `SUPERSEDED D-046 by
 D-047` — each placed directly *above* the entry it answers, so the entry keeps its body.

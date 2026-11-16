@@ -41,8 +41,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File artifacts\owner-kit\apply-ow
 no commits. The real run does four things in order, each with its own `OWNER:` commit
 where a commit is needed:
 
-1. **APPROVALS.md** — adds `completion` lines for steps 01 and 02 and `start` lines for steps **02, 03, 04 and 05**, dated the day you run it. A line whose step and action already exist is skipped, so running it twice does not duplicate anything.
-2. **Tags** — creates `step-00-approved` and `step-01-approved` (and `step-02-approved` only if you set `$AcceptStep2 = $true`).
+1. **APPROVALS.md** — adds `completion` lines for steps 01, 02, 04 and 05 and `start` lines for steps **02, 03, 04 and 05**, dated the day you run it. A line whose step and action already exist is skipped, so running it twice does not duplicate anything.
+2. **Tags** — creates `step-00-approved` and `step-01-approved`, plus `step-02-approved`, `step-04-approved` and `step-05-approved` for the switches you leave at `$true` (`$AcceptStep2`, `$AcceptStep4`, `$AcceptStep5`).
 3. **DECISIONS.md** — writes one line per decision in the table: `APPROVED <id> by the owner <date>` for each approval, and `SUPERSEDED D-046 by D-047` for the one decision that a later entry replaced. Each line goes directly *above* the entry it answers, so the entry keeps its indented body. A decision that already has a verdict line of any kind is skipped, so a second run cannot add a contradicting one.
 4. **Check** — prints the two `APPROVALS.md` checks A and B from that file, so you can see the result immediately.
 
