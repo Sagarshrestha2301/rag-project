@@ -140,8 +140,13 @@ def build(force: bool = False) -> dict:
     return index
 
 
-class _BM25:
-    """Small BM25. k1/b are the usual defaults; the corpus is tiny."""
+class BM25:
+    """Small BM25. k1/b are the usual defaults; the corpus is tiny.
+
+    Public because `retrieval/hybrid.py` scores chunks with the same class: one
+    scorer, two granularities, so a hybrid comparison cannot drift from the page
+    baseline it is measured against.
+    """
 
     def __init__(self, pages: list[dict], k1: float = 1.5, b: float = 0.75):
         self.k1, self.b = k1, b
@@ -173,16 +178,16 @@ class _BM25:
 
 
 _CACHE_KEY: tuple | None = None
-_CACHE_BM25: _BM25 | None = None
+_CACHE_BM25: BM25 | None = None
 
 
-def _bm25(index: dict) -> _BM25:
+def _bm25(index: dict) -> BM25:
     global _CACHE_KEY, _CACHE_BM25
     key = (id(index), len(index["pages"]))
     if _CACHE_BM25 is None or _CACHE_KEY != key:
         # Build over every page, readable or not, so BM25 indices match the page
         # list. Filtering here would shift every index and score the wrong page.
-        _CACHE_BM25 = _BM25(index["pages"])
+        _CACHE_BM25 = BM25(index["pages"])
         _CACHE_KEY = key
     return _CACHE_BM25
 
