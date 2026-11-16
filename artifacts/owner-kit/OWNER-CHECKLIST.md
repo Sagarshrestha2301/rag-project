@@ -4,11 +4,11 @@ Everything here is yours to decide or do. Nothing in this list has been done by 
 agent. Measurements are from this repository and are reproducible with the commands
 quoted; nothing here is an estimate dressed up as a number.
 
-**Scope:** all 19 decisions that `DECISIONS.md` still lists as `PROPOSED`, one row each.
+**Scope:** all 21 decisions that `DECISIONS.md` still lists as `PROPOSED`, one row each.
 D-041 is not here because you already rejected it on 2026-11-13, and D-057 was added on
 2026-11-16 to withdraw two figures that did not reproduce.
 
-## A. The 19 decisions in `apply-owner-actions.ps1`
+## A. The 21 decisions in `apply-owner-actions.ps1`
 
 Each entry in the `$Decisions` table at the top of the script starts as `'PENDING'`.
 Set it to `'APPROVE'`, `'REJECT'` or `'SUPERSEDE'`; the script refuses to run while
@@ -38,6 +38,9 @@ lines above them.
 | **Step 5 — retrieval** | | | |
 | D-056 keep page BM25, reject the hybrid | 115 | APPROVE | Over 79 saved configurations: page BM25 alone 25/26 at MRR 0.885, best fusion 23/26 at 0.432, no fusion beats the baseline. The hybrid stays as evidence in `retrieval/`. |
 | D-057 withdraw two figures from D-056 | end of file | APPROVE | D-056 quoted 24/26 at 0.832 and 24/26 at 0.486; neither reproduces and neither had an artifact. The saved sweep replaces them and the decision is unchanged. |
+| **Step 6 — generation** | | | |
+| D-058 not-found gate is the generator, not a score | 143 | APPROVE | No BM25 statistic separates the 6 not-found dev questions from the 39 answerable ones: top-1 18.43-80.52 against 18.01-29.97, margin 0.10-26.93 against 0.01-6.25, ratio 1.01-2.20 against 1.00-1.39. A top-1 gate at 30 catches 6/6 and wrongly rejects 12/39 answerable.
+| D-059 generator is `qwen3.5:4b`, 7B as fallback | 153 | APPROVE | 23/30 against 18/30, citations 20/30 against 15/30, 4.9 s against 5.4 s, 3,689 MiB against 3,505 MiB. Both already installed, so no download.
 | **Runtime and UI** | | | |
 | D-042 runtime = Ollama | 95 | APPROVE | Same weights, same prompt: 499.1 tok/s prompt and 9.43 tok/s generation against llama-server's 293.1 and 7.46. |
 | D-043 chat UI before Step 7 | 94 | APPROVE | The UI answers and streams, and says on screen when an answer is ungrounded instead of pretending to cite. |
@@ -95,7 +98,7 @@ step 06** (`$StartStep6`, `$true` by default), which is what opens the next step
 creates no tag: Step 6 gets `step-06-approved` only when its own definition of done is
 finished.
 
-Expect **19 verdict lines** in `DECISIONS.md` — 18 `APPROVED` and 1 `SUPERSEDED D-046 by
+Expect **21 verdict lines** in `DECISIONS.md` — 20 `APPROVED` and 1 `SUPERSEDED D-046 by
 D-047` — each placed directly *above* the entry it answers, so the entry keeps its body.
 
 Then hand the agent the Step 4 sub-task you want next, in the TASK/CONTEXT/OUTPUT form

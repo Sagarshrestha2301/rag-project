@@ -5,7 +5,7 @@ No approval line was added to `APPROVALS.md`, no tag was created, and no entry i
 `DECISIONS.md` was approved — only you may do those, from a commit whose message
 starts with `OWNER:`.
 
-On 2026-11-16 the owner approved all 18 pending decisions in chat, so the script's
+On 2026-11-16 the owner approved all 20 pending decisions in chat (D-058 and D-059 were proposed and approved the same day, for Step 6), so the script's
 `$Decisions` table is pre-filled: `APPROVE` for seventeen and `SUPERSEDE by D-047` for
 D-046, which a later entry replaced. The verdicts are filled in so you review the
 wording you are signing, not so you retype eighteen values; overwrite any of them.
@@ -14,7 +14,7 @@ Three files:
 
 | File | What it is | Safe to run? |
 |---|---|---|
-| `apply-owner-actions.ps1` | Writes the missing approval lines, creates the missing tags, and records a verdict for all 18 pending decisions. | Read it first; it refuses to act until every decision in its table has a verdict. |
+| `apply-owner-actions.ps1` | Writes the missing approval lines, creates the missing tags, and records a verdict for all 20 pending decisions. | Read it first; it refuses to act until every decision in its table has a verdict. |
 | `step-file-edits.patch` | A unified diff for two wording fixes in `steps/02` and `steps/03`. **Not applied.** | `git apply --check` passes; you apply it when you want it. |
 | `OWNER-CHECKLIST.md` | What only you can decide, and what only you can do by hand. | Read it. |
 
@@ -27,7 +27,7 @@ Three files:
 1. Commit your own `APPROVALS.md` edit, so the tree is clean. The script stops if it is not:
    `git add APPROVALS.md` then `git commit -m "OWNER: record step 01 and step 02 completion"`.
    Check the diff first: if you replaced the `approval | step 01` line rather than adding a completion line under it, the log no longer records that step 01 was approved.
-2. Open `apply-owner-actions.ps1` and check the `$Decisions` table near the top: all 18 entries have a verdict filled in already, each with the sentence that will be written to `DECISIONS.md`. Change any you disagree with to `'REJECT'` or back to `'PENDING'`. The script refuses to run while any entry is `'PENDING'`, and the verdicts are yours to overwrite — the table is filled in so you review the wording, not so you retype eighteen values.
+2. Open `apply-owner-actions.ps1` and check the `$Decisions` table near the top: all 21 entries have a verdict filled in already, each with the sentence that will be written to `DECISIONS.md`. Change any you disagree with to `'REJECT'` or back to `'PENDING'`. The script refuses to run while any entry is `'PENDING'`, and the verdicts are yours to overwrite — the table is filled in so you review the wording, not so you retype twenty-one values.
 3. Read `OWNER-CHECKLIST.md` for the two judgement calls inside the script (the tags and `$AcceptStep2`).
 
 ## Dry run, then real run

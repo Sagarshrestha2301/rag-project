@@ -11,8 +11,8 @@
          for steps 01, 02, 04 and 05, start for steps 02, 03, 04, 05 and 06;
       3. creates step-00-approved, step-01-approved, step-02-approved, step-04-approved
          and step-05-approved (each gated by a switch below);
-      4. writes one verdict line for every decision in the table below - 19 rows as
-         shipped, 18 APPROVED and one SUPERSEDED - and commits them;
+      4. writes one verdict line for every decision in the table below - 21 rows as
+         shipped, 20 APPROVED and one SUPERSEDED - and commits them;
       5. prints the two verification commands from APPROVALS.md.
 
     Each decision has exactly one line in the table, so the record cannot end up with
@@ -63,6 +63,9 @@ $Decisions = @(
     # --- Step 5: retrieval -----------------------------------------------------
     @{ Id = 'D-056'; Verdict = 'APPROVE';   Why = 'Measured over 79 saved weight configurations (eval/runs/2026-11-16-sweep/): page BM25 alone keeps 25/26 at MRR 0.885, the best fusion reaches 23/26 at 0.432, and no fusion beats the baseline - the four that reach 25/26 are exactly the ones with chunk and dense at zero. The hybrid stays in the repository as evidence, and the UI keeps the simpler retriever.' }
     @{ Id = 'D-057'; Verdict = 'APPROVE';   Why = 'Withdraws two figures D-056 quoted (24/26 at 0.832 and 24/26 at 0.486) that no artifact supports and that do not reproduce; the saved sweep replaces them and the decision to keep page BM25 stands, now on stronger evidence.' }
+    # --- Step 6: the two decisions that fixed its design -----------------------
+    @{ Id = 'D-058'; Verdict = 'APPROVE';   Why = 'Measured rather than preferred: on the re-based dev set the answerable and not-found ranges overlap on top-1 BM25 (18.43-80.52 against 18.01-29.97), on the top1-top2 margin (0.10-26.93 against 0.01-6.25) and on the ratio (1.01-2.20 against 1.00-1.39), and a top-1 gate at 30 that catches all 6 not-found questions wrongly rejects 12 of 39 answerable ones. So the generator decides, quote verification enforces it, and the only retrieval floor left is a degenerate-retrieval guard at top-1 < 15 that costs nothing on this set.' }
+    @{ Id = 'D-059'; Verdict = 'APPROVE';   Why = 'Step 2 measured it on this machine at temperature 0, num_ctx 4096: qwen3.5:4b 23/30 with citations 20/30, median 4.9 s, 3,689 MiB, against qwen2.5 7B 18/30 with 15/30, 5.4 s, 3,505 MiB. Both are already installed and pinned, so naming the 4B for Step 6 adds no download, and the 7B stays as the fallback.' }
 
     # --- Runtime and UI --------------------------------------------------------
     @{ Id = 'D-042'; Verdict = 'APPROVE';   Why = 'Same weights, same 3,394-token prompt: Ollama 499.1 tok/s prompt and 9.43 tok/s generation against llama-server 293.1 and 7.46, and the llama.cpp build is already removed.' }
