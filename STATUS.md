@@ -1,8 +1,8 @@
 # Status
 
-**Last updated:** 2026-11-15
-**Phase:** Steps 0-2 complete and verified in chat (owner approved 2026-11-13/14; tags still pending). The corpus grew from 5 to **97 PDFs** (Drive sample, D-030 layout), Steps 3-4 are in progress, and a working UI prototype exists outside the steps.
-**Current step:** Step 3 has no start line in `APPROVALS.md`; work proceeds on the owner's chat instruction. Step 4 is the same. Every Step 4 sub-task is built and measured, and the owner chose **`bge-small-en-v1.5`** in chat on 2026-11-15; Step 4 now waits on the owner's 10-chunk inspection and completion line.
+**Last updated:** 2026-11-16
+**Phase:** Steps 0-5 are finished in the repository's own terms - built, measured and, for Step 5, every DoD box ticked - and none of them is recorded yet: `APPROVALS.md` still ends at step 01 and **no `step-*` tag exists**. The corpus is **97 PDFs / 851 pages / 3,226 chunks** (D-030, D-038 Stage B), retrieval is page-level BM25 at **recall@5 45/48 on 55 questions**, and a working UI prototype exists outside the steps.
+**Current step:** Step 5 (all seven boxes ticked 2026-11-16, re-based on the enlarged dev set). Step 6 is written but **closed**: `steps/06-generation.md` requires a start approval that does not exist here yet, and the kit now writes `start | step 06 | owner` on its next run. Its two design questions are answered as PROPOSED decisions, D-058 (not-found gate) and D-059 (generator), both awaiting the owner's verdict. Step 3 still waits on two owner reviews.
 
 ## Step tracker
 Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the owner's `step-NN-approved` git tags.
@@ -11,11 +11,11 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 |---|---|---|
 | 0 | Environment check | done (approval recorded 2026-11-13; owner tag pending) |
 | 1 | Eval set | done (30 questions and scorer approved 2026-11-13; owner tag pending) |
-| 2 | LLM benchmark | **done, awaiting owner approval** — all 5 DoD boxes ticked on 2026-11-14: three models downloaded and measured (qwen2.5 7B 18/30, **qwen3.5 4B 23/30**, phi4-mini 16/30), table in D-047. Needs the owner's completion line and `step-02-approved`, plus a decision on D-048 (switch the generator to the 4B) |
+| 2 | LLM benchmark | **done, awaiting the owner's line and tag** — all 5 DoD boxes ticked on 2026-11-14: three models downloaded and measured (qwen2.5 7B 18/30, **qwen3.5 4B 23/30**, phi4-mini 16/30), table in D-047. The kit writes the completion line and `step-02-approved` on its next run, and answers D-048; D-059 names the 4B for Step 6 |
 | 3 | Parsing sample | **awaiting the owner's checks** — 97 docs / 851 pages / 242 tables parsed (20 unreadable, 2.4%), 5,511/5,520 numeric tokens match; 4 of 7 boxes ticked. The page-number check and the 5-table review are the last verifiable boxes; the Word-file box is unreachable |
 | 4 | Chunking + embeddings | **done — the owner approved the 10-chunk inspection and Step 4's completion in chat on 2026-11-16; the completion line and `step-04-approved` are written by the kit's next run, because only an `OWNER:` commit may add them** - structure, text and table chunkers, programmatic metadata, document contexts and the chunk export are built and tested: **3,226 chunks (268 tables) from 95 documents, every chunk carrying a 2-line document context**. Retrieval baseline at 97 documents: recall@5 25/26, MRR 0.885 (BM25 pages). Embedder benchmark run on all 3,226 chunks: `bge-small` 23/26 recall@5 (MRR 0.702), `e5-small` 23/26 (0.723), `MiniLM` 18/26 (0.430) |
-| 5 | Hybrid retrieval | **all 7 DoD boxes ticked** - hybrid built and rejected on measurement (D-056, corrected by D-057), ablation saved over 79 configurations, latency per stage, held-out recorded, offline proof PASS, baseline re-based on the enlarged dev set (20 -> 45 dev questions, 25 owner-approved). Waiting only on the owner's completion line and `step-05-approved` |
-| 6 | Generation | not started |
+| 5 | Hybrid retrieval | **all 7 DoD boxes ticked; awaiting the owner's line and tag** - hybrid built and rejected on measurement (D-056, corrected by D-057), ablation saved over 79 configurations, latency per stage, held-out recorded, offline proof PASS, baseline re-based on the enlarged dev set (20 -> 45 dev questions, 25 owner-approved). The kit writes that completion line and `step-05-approved` on its next run |
+| 6 | Generation | **closed, awaiting the start approval** — every task is specified in `steps/06-generation.md`, and the two decisions it cannot start without are written: **PROPOSED D-058** (the not-found gate is the generator's refusal plus quote verification, because no BM25 statistic separates the 6 not-found dev questions from the 39 answerable ones) and **PROPOSED D-059** (generator `qwen3.5:4b`, 23/30 against 18/30 for `qwen2.5` 7B). The kit's next run writes the start line for step 06; nothing is implemented here |
 | 7 | Web UI | not started |
 | 8 | Full ingestion | not started |
 | 9 | Tuning + docs | not started |
@@ -23,21 +23,21 @@ Approvals are NOT recorded here. They exist only in `APPROVALS.md` and in the ow
 States: not started / in progress / awaiting verification / awaiting approval / done / blocked.
 
 ## Next action
-1. **Owner checks for Step 3** (files ready): open `artifacts/step3/review.html` (20 random pages) and confirm the parsed text matches the PDF at each PDF page; open `artifacts/step3/tables-review.html` (5 tables) and confirm the cells. Then say whether the Word-file box is accepted as a deviation.
-2. After those answers: tick the two boxes, write the Step 3 completion evidence, and commit.
-3. Step 4 is **built and measured**, and the owner chose **`bge-small-en-v1.5`** (D-054) in chat on 2026-11-15: 3,226 chunks with contexts, retrieval baseline recorded, embedder benchmark run (`reports/embedder-comparison.md`). Remaining: the owner inspects `artifacts/step4/review.html` (10 chunks, 3 tables) and records the completion line plus `step-04-approved`. An answer-level re-baseline at the new corpus size is still not run; the Step 4 DoD does not require it.
-4. Still needed from the owner: the Step 4 completion line and tag, the Step 3 page/table checks, start lines for steps 03-04, and (optionally) changing D-054 from PROPOSED in `DECISIONS.md` - agents may not edit existing entries.
+1. **Run the owner kit, once:** `powershell -NoProfile -ExecutionPolicy Bypass -File artifacts\owner-kit\apply-owner-actions.ps1` (or `-WhatIf` first, which shows the whole plan and writes nothing). It records start lines for steps 02-06, completion lines for 01, 02, 04 and 05, verdicts for 19 decisions, and creates `step-00/01/02/04/05-approved`. Nothing of it has run yet: **0 tags, no `step 06` line, `APPROVALS.md` unchanged**.
+2. **Verdicts on D-058 and D-059** (both PROPOSED, 2026-11-16). D-058 replaces D-010's reranker-score gate with the generator's refusal plus quote verification and one floor at top-1 < 15; D-059 names `qwen3.5:4b` for Step 6 with `qwen2.5` 7B as fallback. Say "approve D-058 and D-059" and both become rows in the kit, re-verified in a scratch repo, so the same run records them.
+3. **Then Step 6 tasks 1-2** - the citation-forcing prompt and the quote verifier - need nothing more than the start line; neither depends on the not-found gate.
+4. **Step 3 still needs you:** `artifacts/step3/review.html` (20 pages), `artifacts/step3/tables-review.html` (5 tables), and a yes/no on the Word-file box that cannot be met with a PDF-only corpus.
 
 ## Earlier next action
 Owner approved the 30 questions and the scorer spec in chat; the scorer was then implemented and tested on fake outputs, which completed Step 1.
 
 ## Blockers / open questions
-- No `start` line in `APPROVALS.md` for steps 03 or 04, and no tags for any step; only the owner may add them. Work proceeds on chat instruction.
-- Two owner tags are outstanding (`step-00-approved`, `step-01-approved`, and step 02 if accepted); agents never tag.
-- **D-054 is chosen but not recorded as decided:** the owner chose `bge-small-en-v1.5` in chat on 2026-11-15; the `DECISIONS.md` entry still reads PROPOSED because only the owner edits existing entries.
-- Step 3's "LibreOffice conversion tested on at least 5 Word files" box cannot be met: the corpus holds PDFs only.
-- Two Drive PDFs are corrupt and contribute no text: `2005_Choudhary_Trans_boundary_Floods_..._W210886295.pdf` (truncated, pdfplumber `Unexpected EOF`, PyMuPDF recovers 4 empty pages) and `2006_Komori_Scars_of_the_Glacial_Lake_Outburst_Flood_..._W2328682512.pdf` (0 pages). They are reported, not replaced; `data/raw/` is owner-only.
-- Proposal 4 (staged corpus plan, drafted as D-038) is still undecided by the owner.
+- **No step is recorded yet.** `APPROVALS.md` holds only steps 00-01, no `step-*` tag exists, and steps 2-5 are finished but unrecorded. The kit writes all of it in one idempotent run; only the owner may run it.
+- **Step 6 cannot start until that run**, because it needs a `start | step 06 | owner` line. The kit writes one and creates no tag for it.
+- **D-058 and D-059 need the owner's verdict** before the not-found gate and the generator are fixed. `DECISIONS.md` may only be appended to, so nothing is changed until then.
+- **Step 3's "LibreOffice conversion tested on at least 5 Word files" box cannot be met:** the corpus holds PDFs only.
+- **Step 8 cannot be met as written:** it means 100k pages; the corpus is 97 documents, and the ingestion rate measured on it (51.3 pages/min, 32.5 h per 100k) makes the target a scope decision, not a build one.
+- Two Drive PDFs are corrupt and contribute no text: `2005_Choudhary_Trans_boundary_Floods_..._W210886295.pdf` (truncated) and `2006_Komori_Scars_of_the_Glacial_Lake_Outburst_Flood_..._W2328682512.pdf` (0 pages). Reported, not replaced; `data/raw/` is owner-only.
 
 ## Measured facts
 - **Corpus grown from Drive (2026-11-14): 97 PDFs in `data/raw/` and `data/corpus/`, no duplicate basenames.** `ingest/drive.py` walked the shared tree, kept `--per-category 2` PDFs per leaf folder (folders starting with `_` skipped), and fetched **37 new files**; **1 was skipped as a duplicate by content** (a NARAYAN copy already at top level). Hardlinks mirror `data/raw`'s folders into `data/corpus` (D-030). Every download is recorded with its Drive id, byte count, SHA-256 and link mode in `logs/drive-downloads.jsonl`. `data/raw` was not otherwise touched.
