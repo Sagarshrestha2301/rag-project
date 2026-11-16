@@ -6,9 +6,10 @@ the model is told what failed and asked once more; if the second answer fails to
 is returned marked `unverified` with the reasons, never silently passed off as
 grounded.
 
-This is tasks 1 and 2 of Step 6. The not-found gate (task 3, D-058), the intent router
-(task 4), the condense step (task 5) and the cache (task 6) are not here yet, so a
-refusal is recognised but not yet decided by a threshold.
+This is tasks 1-3 of Step 6. Task 3's gate (`generation/gate.py`, D-058) runs before the
+model: a question whose best passage scores below the floor is refused without asking,
+and otherwise the model's own refusal decides. The intent router (task 4), the condense
+step (task 5) and the cache (task 6) are not here yet.
 
 Usage:
     .venv\\Scripts\\python.exe -m generation.answer "What was the 24-hour rainfall at Tistung?"
@@ -28,7 +29,7 @@ import time
 
 import httpx
 
-from generation import prompt, think, verify
+from generation import gate, prompt, think, verify
 from ui import retrieval
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
@@ -89,6 +90,28 @@ def answer(question: str, *, k: int = PASSAGES, model: str = MODEL,
     source = index if index is not None else globals()["index"]()
     passages = retrieval.search(source, question, k=k)
 
+    # Task 3's floor: a question nothing scores against is refused without spending a
+    # model call, and without giving the model a chance to answer from nothing.
+    early = gate.decide(passages)
+    early["model_called"] = False
+    if not early["ask_model"]:
+        return {
+            "question": question,
+            "answer": prompt.NOT_FOUND_TEXT,
+            "status": "not_found",
+            "gate": early,
+            "citations": [],
+            "problems": [],
+            "attempts": 0,
+            "passages": [{"n": i, "doc": p.get("doc"), "page": p["page"],
+                          "label": p.get("label"), "score": p.get("score")}
+                         for i, p in enumerate(passages, start=1)],
+            "model": model,
+            "prompt_version": prompt.PROMPT_VERSION,
+            "timing": {},
+            "seconds": round(time.perf_counter() - started, 2),
+        }
+
     messages = [{"role": "system", "content": prompt.build_system(passages)},
                 {"role": "user", "content": question}]
     text, timing = _ask(messages, model, temperature)
@@ -106,17 +129,17 @@ def answer(question: str, *, k: int = PASSAGES, model: str = MODEL,
         verdict = verify.verify_answer(text, passages)
         attempts = 2
 
-    if verdict["said_not_found"] and verdict["ok"]:
-        status = "not_found"
-    elif verdict["ok"]:
-        status = "verified"
-    else:
-        status = "unverified"
+    # The model decides; the gate only records what that decision was and why.
+    decided = gate.decide(passages, verdict)
+    decided["model_called"] = True
+    status = {"not_found": "not_found", "answer": "verified"}.get(decided["decision"],
+                                                                   "unverified")
 
     return {
         "question": question,
         "answer": text,
         "status": status,
+        "gate": decided,
         "citations": verdict["citations"],
         "problems": verdict["problems"],
         "attempts": attempts,
@@ -150,6 +173,10 @@ def main(argv: list[str] | None = None) -> int:
     print(record["answer"] or "(empty answer)")
     print()
     print(f"status: {record['status']}")
+    gate_info = record.get("gate") or {}
+    called = "model asked" if gate_info.get("model_called") else "model not asked"
+    print(f"gate:   {gate_info.get('decision')} - {gate_info.get('reason')} "
+          f"(top {gate_info.get('top')}, floor {gate_info.get('floor')}, {called})")
     for problem in record["problems"]:
         print(f"  - {problem}")
     if record["citations"]:
