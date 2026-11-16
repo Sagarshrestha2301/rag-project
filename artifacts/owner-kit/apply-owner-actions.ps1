@@ -60,7 +60,8 @@ $Decisions = @(
     @{ Id = 'D-055'; Verdict = 'APPROVE';   Why = 'Captions 32 to 37 and units 37 to 52 of 268 table chunks, with the measured ceiling kept in view: 210 detected tables have no printed caption within 160 points.' }
 
     # --- Step 5: retrieval -----------------------------------------------------
-    @{ Id = 'D-056'; Verdict = 'APPROVE';   Why = 'Measured rather than assumed: page BM25 keeps 25/26 at MRR 0.885, the three-list chunk hybrid reaches 24/26 at 0.832, and the best of 24 weightings is 24/26 at 0.486. The hybrid stays in the repository as evidence.' }
+    @{ Id = 'D-056'; Verdict = 'APPROVE';   Why = 'Measured over 79 saved weight configurations (eval/runs/2026-11-16-sweep/): page BM25 alone keeps 25/26 at MRR 0.885, the best fusion reaches 23/26 at 0.432, and no fusion beats the baseline - the four that reach 25/26 are exactly the ones with chunk and dense at zero. The hybrid stays in the repository as evidence, and the UI keeps the simpler retriever.' }
+    @{ Id = 'D-057'; Verdict = 'APPROVE';   Why = 'Withdraws two figures D-056 quoted (24/26 at 0.832 and 24/26 at 0.486) that no artifact supports and that do not reproduce; the saved sweep replaces them and the decision to keep page BM25 stands, now on stronger evidence.' }
 
     # --- Runtime and UI --------------------------------------------------------
     @{ Id = 'D-042'; Verdict = 'APPROVE';   Why = 'Same weights, same 3,394-token prompt: Ollama 499.1 tok/s prompt and 9.43 tok/s generation against llama-server 293.1 and 7.46, and the llama.cpp build is already removed.' }

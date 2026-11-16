@@ -6,12 +6,22 @@ Two retrievers were built and scored on the same 30 questions with the same scor
 | retriever | recall@5 | recall@10 | recall@30 | MRR |
 |---|---|---|---|---|
 | page BM25 (`ui/retrieval.py`) — **in use** | **25/26** | 25/26 | 25/26 | **0.885** |
-| chunk BM25 + chunk bge, RRF fused | 24/26 | 25/26 | 26/26 | 0.832 |
-| + page BM25 in the fusion, equal weights | 18/26 | 25/26 | 26/26 | 0.464 |
-| + page BM25, best of 24 weight combinations | 24/26 | 25/26 | 26/26 | 0.486 |
+| chunk BM25 alone (page and dense at 0) | 18/26 | 24/26 | 26/26 | 0.394 |
+| chunk BM25 + chunk bge, no page list | 18/26 | 25/26 | 26/26 | 0.449 |
+| + page BM25 in the fusion, weights in the code | 18/26 | 25/26 | 26/26 | 0.464 |
+| + page BM25, best of 79 weight combinations (3 / 0.5 / 0) | 23/26 | 25/26 | 26/26 | 0.432 |
+
+**Corrected 2026-11-16.** This table first quoted `chunk BM25 + chunk bge` at 24/26 with
+MRR 0.832 and `best of 24 weight combinations` at 24/26 with MRR 0.486. Neither number
+reproduces, and neither had an artifact behind it: they came from a shell session. The
+same scorer over **79 saved configurations** (`eval/run_sweep.py`,
+`eval/runs/2026-11-16-sweep/`) gives the rows above instead — the best fusion is 23/26 at
+MRR 0.432, and the best MRR any fusion reaches is 0.500 at 22/26. The decision does not
+change; it gets stronger, because no fusion gets near the baseline. See PROPOSED D-057.
 
 Runs: `eval/runs/2026-11-15-2026-11-14-97docs` (baseline),
-`eval/runs/2026-11-16-hybrid-bge` (the fusion). Reproduce with
+`eval/runs/2026-11-16-hybrid-bge` (the fusion), `eval/runs/2026-11-16-sweep/` (each list
+alone and 79 weight combinations, the ablation table above). Reproduce with
 `.venv\Scripts\python.exe evalun_hybrid.py --label hybrid-bge`.
 
 ## What this says

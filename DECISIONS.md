@@ -126,3 +126,17 @@ Format: ID, date, decision, reason, alternatives rejected. Never delete entries;
   Why page BM25 is strong here, stated so it can be argued with: the eval questions quote exact strings (a station name, `540 mm`, a year), which whole-page BM25 matches directly, and a page keeps terms together that chunking splits — q010 asks for "the correlation coefficient for equation (2)", which is on one page and in no single chunk.
 
   Proposed: the UI and the Step 5 baseline stay on page BM25; `retrieval/hybrid.py` stays in the repo as evidence with `TODO(step-05)`; the next attempt is a cross-encoder reranker over the baseline's top 30 pages (same candidate set, so recall cannot fall), or per-list score normalisation instead of rank-only RRF. Re-tuning RRF weights on these 26 questions would be fitting the test set, and is not proposed. Numbers and repro commands in `reports/retrieval-step5.md`.
+
+- **PROPOSED D-057 Correction: the fusion figures quoted in D-056 are replaced by a saved sweep (Step 5, needs owner approval).** D-056's evidence table quotes `chunk BM25 + chunk bge, RRF fused` at **24/26, MRR 0.832** and `best of 24 weight combinations` at **24/26, MRR 0.486**. Neither reproduces. Re-measured on 2026-11-16 with the same scorer, the same 30 questions and the same page-level definition of a hit, over **79 saved weight configurations** (`eval/run_sweep.py`, artifact `eval/runs/2026-11-16-sweep/`):
+
+  | retriever | recall@5 | recall@10 | recall@30 | MRR |
+  |---|---|---|---|---|
+  | page BM25 alone, through the fusion code (control) | 25/26 | 25/26 | 25/26 | 0.885 |
+  | chunk BM25 alone | 18/26 | 24/26 | 26/26 | 0.394 |
+  | chunk dense alone | 16/26 | 22/26 | 26/26 | 0.422 |
+  | chunk BM25 + chunk bge, no page list | 18/26 | 25/26 | 26/26 | 0.449 |
+  | best fusion of all three (page 3 / chunk 0.5 / dense 0) | 23/26 | 25/26 | 26/26 | 0.432 |
+  | weights in the code (page 1 / chunk 1 / dense 0.7) | 18/26 | 25/26 | 26/26 | 0.464 |
+
+  The best MRR any fusion reaches is 0.500, at 22/26. **The four configurations that reach 25/26 are exactly the ones with the chunk and dense weights at zero.** So D-056's decision is unchanged and now rests on a stronger measurement: page-level BM25 stays, and no fusion of chunk-granularity lists beats it on this eval set. Consequence: the two withdrawn figures are corrected in `retrieval/hybrid.py` and `reports/retrieval-step5.md`, and this entry should be read together with D-056. Why it needs approval: the old numbers are already quoted in the record, and only the owner withdraws a figure an agent wrote.
+

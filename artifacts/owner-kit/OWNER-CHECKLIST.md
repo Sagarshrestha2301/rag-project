@@ -4,10 +4,11 @@ Everything here is yours to decide or do. Nothing in this list has been done by 
 agent. Measurements are from this repository and are reproducible with the commands
 quoted; nothing here is an estimate dressed up as a number.
 
-**Scope:** all 18 decisions that `DECISIONS.md` still lists as `PROPOSED`, one row each.
-D-041 (line 97) is not here because you already rejected it on 2026-11-13.
+**Scope:** all 19 decisions that `DECISIONS.md` still lists as `PROPOSED`, one row each.
+D-041 is not here because you already rejected it on 2026-11-13, and D-057 was added on
+2026-11-16 to withdraw two figures that did not reproduce.
 
-## A. The 18 decisions in `apply-owner-actions.ps1`
+## A. The 19 decisions in `apply-owner-actions.ps1`
 
 Each entry in the `$Decisions` table at the top of the script starts as `'PENDING'`.
 Set it to `'APPROVE'`, `'REJECT'` or `'SUPERSEDE'`; the script refuses to run while
@@ -35,7 +36,8 @@ lines above them.
 | D-054 embedder = `bge-small-en-v1.5` | 104 | APPROVE — **yours alone**, rule 9 | Ties `multilingual-e5-small` on recall@5 (23/26 each), differs by 0.021 MRR (0.702 vs 0.723), and is 134 MB against 493 MB. |
 | D-055 captions, units, footnotes | 113 | APPROVE | Captions 32 → 37 and units 37 → 52 of 268 table chunks; 210 detected tables print no caption within 160 points, and each such chunk says so. |
 | **Step 5 — retrieval** | | | |
-| D-056 keep page BM25, reject the hybrid | 115 | APPROVE | Page BM25 25/26 at MRR 0.885; the three-list hybrid 24/26 at 0.832; the best of 24 weightings 24/26 at 0.486. The hybrid stays as evidence in `retrieval/`. |
+| D-056 keep page BM25, reject the hybrid | 115 | APPROVE | Over 79 saved configurations: page BM25 alone 25/26 at MRR 0.885, best fusion 23/26 at 0.432, no fusion beats the baseline. The hybrid stays as evidence in `retrieval/`. |
+| D-057 withdraw two figures from D-056 | end of file | APPROVE | D-056 quoted 24/26 at 0.832 and 24/26 at 0.486; neither reproduces and neither had an artifact. The saved sweep replaces them and the decision is unchanged. |
 | **Runtime and UI** | | | |
 | D-042 runtime = Ollama | 95 | APPROVE | Same weights, same prompt: 499.1 tok/s prompt and 9.43 tok/s generation against llama-server's 293.1 and 7.46. |
 | D-043 chat UI before Step 7 | 94 | APPROVE | The UI answers and streams, and says on screen when an answer is ungrounded instead of pretending to cite. |
@@ -83,7 +85,7 @@ git log --oneline -3         # two OWNER: commits
 git status                   # clean
 ```
 
-Expect **18 verdict lines** in `DECISIONS.md` — 17 `APPROVED` and 1 `SUPERSEDED D-046 by
+Expect **19 verdict lines** in `DECISIONS.md` — 18 `APPROVED` and 1 `SUPERSEDED D-046 by
 D-047` — each placed directly *above* the entry it answers, so the entry keeps its body.
 
 Then hand the agent the Step 4 sub-task you want next, in the TASK/CONTEXT/OUTPUT form
