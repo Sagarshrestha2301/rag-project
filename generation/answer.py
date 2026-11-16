@@ -10,8 +10,8 @@ This is tasks 1-6 of Step 6. The router (`generation/router.py`) decides the rou
 its retrieval/prompt settings, the condense step (`generation/condense.py`) rewrites a
 follow-up only when there is history, the gate (`generation/gate.py`, D-058) refuses on a
 floor or on the model's own refusal, and the cache (`generation/cache.py`, D-017) is keyed
-on the question, the index, the model file and the prompt version. The full dev eval
-task 7 runs is not here yet.
+on the question, the index, the model file and the prompt version. Task 7 runs all of it
+over the eval set: `eval/run_generation.py`.
 
 Usage:
     .venv\\Scripts\\python.exe -m generation.answer "What was the 24-hour rainfall at Tistung?"
@@ -39,6 +39,9 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 MODEL = os.environ.get("CHAT_MODEL", "qwen3.5:4b")
 NUM_CTX = int(os.environ.get("CHAT_NUM_CTX", "4096"))
 KEEP_ALIVE = os.environ.get("CHAT_KEEP_ALIVE", "30m")
+# Temperature 0 makes sampling greedy, and the seed is pinned anyway (EVAL.md run
+# protocol): a later Ollama default must not be able to make two eval runs incomparable.
+SEED = int(os.environ.get("CHAT_SEED", "0"))
 # Thinking stays off: with it on, qwen3.5 spends the answer budget on hidden reasoning
 # and returns an empty string (measured on all 30 questions in Step 2).
 THINK = os.environ.get("CHAT_THINK", "0").lower() in ("1", "true", "yes")
@@ -64,7 +67,7 @@ def _ask(messages: list[dict], model: str, temperature: float = 0.0) -> tuple[st
         "stream": False,
         "think": THINK,
         "keep_alive": KEEP_ALIVE,
-        "options": {"temperature": temperature, "num_ctx": NUM_CTX},
+        "options": {"temperature": temperature, "num_ctx": NUM_CTX, "seed": SEED},
     }
     with httpx.Client(timeout=httpx.Timeout(connect=5, read=600, write=30, pool=5)) as client:
         response = client.post(f"{OLLAMA_URL}/api/chat", json=body)

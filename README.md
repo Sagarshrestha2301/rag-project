@@ -95,7 +95,7 @@ rag-project/
 │   └── verify.py                 # cell check + the two review sheets the owner reads
 ├── eval/                         # the eval set and its scorer
 │   ├── questions.jsonl           # 55 questions (gold answers, gold pages, dev/held-out)
-│   ├── score.py, run_retrieval.py, build_questions.py, build_review.py, make_fixtures.py
+│   ├── score.py, run_retrieval.py, run_generation.py, build_questions.py, build_review.py, make_fixtures.py
 │   ├── fixtures/                 # hand-made scorer fixtures
 │   └── runs/                     # recorded eval runs (committed on purpose)
 ├── ui/                           # chat UI: FastAPI + static files, no build step

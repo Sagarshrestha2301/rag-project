@@ -344,7 +344,7 @@ def main() -> int:
     print(f"{label}: {summary['n']} questions (dev {pts['dev']} pts each, held-out {pts['heldout']} pts each)")
     print(f"  recall@5  {summary['retrieval']['recall@5']['pass']['count']}/{summary['retrieval']['recall@5']['pass']['of']}")
     print(f"  MRR       {summary['mrr']}")
-    print(f"  citation  {summary['citation']['count']}/{summary['n']}")
+    print(f"  citation  {summary['citation']['count']}/{summary['citation']['of']}")
     print(f"  numeric   {summary['numeric']['count']}/{summary['numeric']['of']}")
     print(f"  nf(a) dev {summary['notfound_a']['count']}/{summary['notfound_a']['of']}")
     print(f"  nf(b)     {summary['notfound_b']['count']}/{summary['notfound_b']['of']}")

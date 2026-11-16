@@ -103,6 +103,24 @@ Prove the scorer itself still works (five fixtures, 30 checks):
 .venv\Scripts\python.exe eval\test_scorer.py
 ```
 
+**Known stale:** the fixtures still count 30 questions, so 10 of these checks fail
+against the 55-question set (the expected values, not the scorer, are old). Tracked as a
+follow-up; until it is fixed, a failure here is not evidence of a scorer regression.
+
+## 3b. Run the full generation eval
+
+Answers every eval question through `generation/answer.py` — router, condense,
+retrieval, gate, prompt, the local model and quote verification — with the cache off,
+then writes `run.jsonl`, `meta.json` and `report.md` (latency, routes, refusals):
+
+```powershell
+.venv\Scripts\python.exe eval\run_generation.py --label step6-full
+.venv\Scripts\python.exe eval\score.py --run eval\runs\<date>-step6-full\run.jsonl --out eval\runs\<date>-step6-full
+```
+
+`--only q001,q023` runs a smoke subset; `--resume` keeps finished lines and answers the
+rest. It stops before the first question if Ollama is down or the model is not pulled.
+
 ## 4. Run the oracle benchmark
 
 Gives the model the gold page for every question and scores its answers — the
