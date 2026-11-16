@@ -38,6 +38,14 @@ $env:HF_HUB_OFFLINE       = '1'
 $env:TRANSFORMERS_OFFLINE = '1'
 $env:HF_DATASETS_OFFLINE  = '1'
 
+function Write-TextNoBom {
+    # PowerShell 5.1's Set-Content -Encoding UTF8 writes a BOM, which makes the JSON
+    # artifact unreadable to json.load(); this writes the bytes it means to write.
+    param([string]$Path, [string]$Text)
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $Text + "`n", $encoding)
+}
+
 $lines = @()
 $started = Get-Date
 $exitCode = $null
@@ -66,7 +74,7 @@ try {
     $left = (Get-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue | Measure-Object).Count
     $lines += ("firewall rules left after the run: " + $left + " (0 = cleaned up)")
     $lines += ("finished: " + (Get-Date).ToString('s'))
-    $lines | Set-Content -LiteralPath $log -Encoding UTF8
+    Write-TextNoBom -Path $log -Text ($lines -join "`n")
 }
 
 $scoresPath = Join-Path $runDir 'scores.json'
@@ -86,7 +94,7 @@ if ($scores) {
     $summary += ("MRR: " + $scores.mrr)
 }
 $summary += ("log: " + $log)
-$summary | Set-Content -LiteralPath $summ -Encoding UTF8
+Write-TextNoBom -Path $summ -Text ($summary -join "`n")
 
 [ordered]@{
     verdict = $verdict
@@ -99,7 +107,7 @@ $summary | Set-Content -LiteralPath $summ -Encoding UTF8
     mrr = if ($scores) { $scores.mrr } else { $null }
     run = $runDir
     log = $log
-} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $json -Encoding UTF8
+} | ConvertTo-Json -Depth 4 | ForEach-Object { Write-TextNoBom -Path $json -Text $_ }
 
 $summary | ForEach-Object { Write-Host $_ }
 if ($verdict -ne 'PASS') { exit 1 }
