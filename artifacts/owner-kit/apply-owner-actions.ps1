@@ -11,8 +11,8 @@
          for steps 01, 02, 04 and 05, start for steps 02, 03, 04, 05 and 06;
       3. creates step-00-approved, step-01-approved, step-02-approved, step-04-approved
          and step-05-approved (each gated by a switch below);
-      4. writes one verdict line for every decision in the table below - 17 APPROVED
-         and one SUPERSEDED - and commits them;
+      4. writes one verdict line for every decision in the table below - 19 rows as
+         shipped, 18 APPROVED and one SUPERSEDED - and commits them;
       5. prints the two verification commands from APPROVALS.md.
 
     Each decision has exactly one line in the table, so the record cannot end up with
