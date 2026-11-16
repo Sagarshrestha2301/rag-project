@@ -14,13 +14,13 @@
 8. Offline proof: run the retrieval eval once with the network disabled.
 
 ## Definition of done
-- [ ] Ablation table in `EVAL.md` (recall@5/10/30, MRR for each configuration)
-- [ ] Final configuration beats or equals every simpler one on dev (otherwise keep the simpler one)
-- [ ] Retrieval latency per stage recorded and within budget
+- [x] Ablation table in `EVAL.md` (recall@5/10/30, MRR for each configuration)
+- [x] Final configuration beats or equals every simpler one on dev (otherwise keep the simpler one)
+- [x] Retrieval latency per stage recorded and within budget
 - [ ] Dev set grown toward 50-60 questions, all owner-approved, new baseline logged
-- [ ] Held-out result recorded
-- [ ] Offline run: pass (network disabled, output recorded)
-- [ ] Baseline locked for the regression gate
+- [x] Held-out result recorded
+- [x] Offline run: pass (network disabled, output recorded)
+- [x] Baseline locked for the regression gate
 
 ## Context to read
 This file, `EVAL.md` (metrics and regression gate), `DECISIONS.md` (D-003, D-004, D-029), `ARCHITECTURE.md` (query flow), the chunk index from Step 4.

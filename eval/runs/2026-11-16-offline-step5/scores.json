@@ -1,0 +1,89 @@
+{
+  "label": "offline-step5",
+  "retrieval": {
+    "recall@5": {
+      "pass": {
+        "count": 25,
+        "of": 26,
+        "pct": 96.2
+      }
+    },
+    "recall@10": {
+      "pass": {
+        "count": 25,
+        "of": 26,
+        "pct": 96.2
+      }
+    },
+    "recall@30": {
+      "pass": {
+        "count": 25,
+        "of": 26,
+        "pct": 96.2
+      }
+    }
+  },
+  "mrr": 0.885,
+  "by_split": {
+    "dev": {
+      "n": 20,
+      "retrieval": {
+        "recall@5": {
+          "pass": {
+            "count": 17,
+            "of": 17,
+            "pct": 100.0
+          }
+        },
+        "recall@10": {
+          "pass": {
+            "count": 17,
+            "of": 17,
+            "pct": 100.0
+          }
+        },
+        "recall@30": {
+          "pass": {
+            "count": 17,
+            "of": 17,
+            "pct": 100.0
+          }
+        }
+      },
+      "mrr": 0.926
+    },
+    "heldout": {
+      "n": 10,
+      "retrieval": {
+        "recall@5": {
+          "pass": {
+            "count": 8,
+            "of": 9,
+            "pct": 88.9
+          }
+        },
+        "recall@10": {
+          "pass": {
+            "count": 8,
+            "of": 9,
+            "pct": 88.9
+          }
+        },
+        "recall@30": {
+          "pass": {
+            "count": 8,
+            "of": 9,
+            "pct": 88.9
+          }
+        }
+      },
+      "mrr": 0.806
+    }
+  },
+  "corpus": {
+    "documents": 97,
+    "pages": 851,
+    "ocr_pages": 86
+  },
+  "seconds": 0.3
+}
