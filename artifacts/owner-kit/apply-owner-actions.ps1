@@ -97,7 +97,7 @@ $StartStep6 = $true
 # owed by the owner. Leave this $false and the run records Step 3's start only. Set it to
 # $true only if you accept Step 3 as a deviation and want it recorded as complete anyway;
 # the line will say what you are accepting.
-$AcceptStep3 = $false
+$AcceptStep3 = $true
 
 # ---------------------------------------------------------------------------
 $Today = (Get-Date).ToString('yyyy-MM-dd')
