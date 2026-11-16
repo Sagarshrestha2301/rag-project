@@ -97,6 +97,18 @@ def model_digest(model: str) -> str | None:
     return None
 
 
+def _passages(passages: list[dict]) -> list[dict]:
+    """The public shape of the passages that were shown, numbered as the prompt numbered them.
+
+    Both answer paths record this -- the floor refusal and the answered case -- so it is
+    built here once. The `n` must match the [n] the model was given, which is why the
+    numbering comes from `enumerate` rather than from the order they happen to be found in.
+    """
+    return [{"n": number, "doc": p.get("doc"), "page": p["page"],
+             "label": p.get("label"), "score": p.get("score")}
+            for number, p in enumerate(passages, start=1)]
+
+
 def _record(question: str, **fields) -> dict:
     """One answer record, with the fields every path must fill in."""
     base = {"question": question, "answer": "", "status": "unverified", "gate": {},
@@ -155,9 +167,7 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
         record = _record(question, answer=prompt.NOT_FOUND_TEXT, status="not_found",
                          gate=early, route=routed, search_question=search_question,
                          condensed=condensed,
-                         passages=[{"n": i, "doc": p.get("doc"), "page": p["page"],
-                                    "label": p.get("label"), "score": p.get("score")}
-                                   for i, p in enumerate(passages, start=1)],
+                         passages=_passages(passages),
                          model=model,
                          seconds=round(time.perf_counter() - started, 2))
         if use_cache:
@@ -195,9 +205,7 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
                      citations=verdict["citations"], problems=verdict["problems"],
                      attempts=attempts, route=routed, search_question=search_question,
                      condensed=condensed,
-                     passages=[{"n": i, "doc": p.get("doc"), "page": p["page"],
-                                "label": p.get("label"), "score": p.get("score")}
-                               for i, p in enumerate(passages, start=1)],
+                     passages=_passages(passages),
                      model=model, timing=timing,
                      seconds=round(time.perf_counter() - started, 2))
 
