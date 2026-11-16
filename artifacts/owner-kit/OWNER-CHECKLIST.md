@@ -4,31 +4,57 @@ Everything here is yours to decide or do. Nothing in this list has been done by 
 agent. Measurements are from this repository and are reproducible with the commands
 quoted; nothing here is an estimate dressed up as a number.
 
-## A. Fill in the six decision variables in `apply-owner-actions.ps1`
+**Scope:** all 18 decisions that `DECISIONS.md` still lists as `PROPOSED`, one row each.
+D-041 (line 97) is not here because you already rejected it on 2026-11-13.
 
-Each variable starts as `'PENDING'` and the script refuses to run while any of them
-is still `'PENDING'`. Set each to `'APPROVE'` or `'REJECT'`. My recommendation and
-the one-line evidence are below; the reasoning is in `DECISIONS.md`.
+## A. The 18 decisions in `apply-owner-actions.ps1`
 
-| Variable | Recommendation | One-line evidence |
-|---|---|---|
-| `$D038` staged corpus growth | APPROVE | Already how it went: the corpus grew Stage A (one document) → Stage B (97 documents, 851 pages), and `EVAL.md` was re-baselined at each growth, which is what the decision asked for. |
-| `$D040` generator = your `qwen2.5` 7B, fallback 1.5B | APPROVE | Measured on your card: 496.8 tok/s prompt, 8.6 tok/s generation, 3,505 MiB of 4,096 MiB VRAM peak, oracle 15/30 citations and 22/24 numeric exact. The 7B does not fit with headroom for a reranker, which D-004 already keeps on CPU. |
-| `$D042` runtime = Ollama, llama.cpp removed | APPROVE | Same weights, same 3,394-token prompt: Ollama 499.1 tok/s prompt / 9.43 tok/s generation against llama-server 293.1 / 7.46, and the deletion already happened. |
-| `$D043` chat UI before Step 7 | APPROVE | The UI exists in `ui/`, answers questions and streams; it is ungrounded until the index is used by Step 5, and it says so on screen. |
-| `$D044` page-level BM25 prototype in the UI | APPROVE | 25/26 recall@5 with MRR 0.885 at page level, which is still better than every dense embedding measured so far (best: 23/26, 0.723). It is a prototype, not Step 5. |
-| `$D054` embedder = `bge-small-en-v1.5` | **Your call, not mine** (rule 9) | bge and e5 tie on recall@5 (23/26 vs 23/26) and differ by 0.021 MRR; bge wins only on size, 134 MB against 493 MB. The table is in `DECISIONS.md` and `reports/embedder-comparison.md`. |
-| `$D039` three-model download | SUPERSEDE with D-040 | You declined the 8.38 GB download; the script writes the "superseded" line D-039 needs, so it never looks like an open question again. |
+Each entry in the `$Decisions` table at the top of the script starts as `'PENDING'`.
+Set it to `'APPROVE'`, `'REJECT'` or `'SUPERSEDE'`; the script refuses to run while
+anything is `'PENDING'`, because a decision approved by a script is not an approval.
+Line numbers are where the entry starts today, before the script inserts its verdict
+lines above them.
 
-`$AcceptStep2` stays `$false` unless you consider Step 2 finished: its comparison table
-has one measured model by your own instruction, which is the stated deviation in D-040.
+| Decision | `DECISIONS.md` | Recommendation | One line of evidence |
+|---|---|---|---|
+| **Step 2 — which model answers** | | | |
+| D-039 three-model download | 98 | APPROVE | Two of the three candidates were downloaded and measured after all — `qwen3.5:4b` (3.3 GB) and `phi4-mini` (2.5 GB) — and their rows are in D-047. Gemma 4 E2B was not downloaded. The kit used to say "never downloaded"; that was written before D-047 and is corrected here. |
+| D-040 generator = your `qwen2.5` 7B | 96 | APPROVE | Measured on your card: 496.8 tok/s prompt, 8.6 tok/s generation, 3,505 MiB of 4,096 MiB peak. It stands as the 2026-11-13 decision, with D-048 moving the generator on measured evidence. |
+| D-046 comparison table, two rows blank | 83 | **SUPERSEDE by D-047** | Its title says two models "never will be" measured. D-047 measured them on 2026-11-14, so approving both would record two contradictory statements. |
+| D-047 three-model comparison | 72 | APPROVE | Oracle 23/30 (`qwen3.5` 4B, thinking off), 18/30 (7B), 16/30 (`phi4-mini`); citations 20/30, 15/30, 14/30; first token 3.64 s, 4.77 s, 2.32 s. |
+| D-048 switch to `qwen3.5:4b`, thinking off | 82 | APPROVE | 23/30 against 18/30 and 0.9 s faster to first token; this is already how the UI runs, and thinking on returned an empty answer on all 30 questions. |
+| **Step 3 — how pages are read** | | | |
+| D-045 OCR at index build | 92 | APPROVE | 86 of 851 pages need it, at 16-23 s per 4 pages; 20 pages stay reported as unreadable rather than dropped. |
+| D-049 parser per page type | 62 | APPROVE | Filling PyMuPDF's grid from the page's own words fixed `69.85` → `6985 .` and friends: 393/393 numeric tokens on table pages, 5,511/5,520 across the corpus. |
+| **Step 4 — chunks, metadata, embedder** | | | |
+| D-038 staged corpus growth | 99 | APPROVE | Already how it went: one document, then 97 documents / 851 pages, with the eval re-baselined at each growth. |
+| D-050 chunk shape | 100 | APPROVE | 3,226 chunks from 95 documents: section-bounded text, one table per chunk. |
+| D-051 heading detection | 101 | APPROVE | Two heading shapes, four trap families rejected; 0 chunks cross a heading across the 16 structure cases. |
+| D-052 chunk sizing | 102 | APPROVE | Paragraph-atomic with the cap stronger than the overlap: no chunk ends mid-sentence, 0 bad page ranges. |
+| D-053 one table = one chunk, table text excluded | 103 | APPROVE | 268 table chunks; table text is kept out of prose chunks by geometry *and* content, so one number cannot be retrieved twice. |
+| D-054 embedder = `bge-small-en-v1.5` | 104 | APPROVE — **yours alone**, rule 9 | Ties `multilingual-e5-small` on recall@5 (23/26 each), differs by 0.021 MRR (0.702 vs 0.723), and is 134 MB against 493 MB. |
+| D-055 captions, units, footnotes | 113 | APPROVE | Captions 32 → 37 and units 37 → 52 of 268 table chunks; 210 detected tables print no caption within 160 points, and each such chunk says so. |
+| **Step 5 — retrieval** | | | |
+| D-056 keep page BM25, reject the hybrid | 115 | APPROVE | Page BM25 25/26 at MRR 0.885; the three-list hybrid 24/26 at 0.832; the best of 24 weightings 24/26 at 0.486. The hybrid stays as evidence in `retrieval/`. |
+| **Runtime and UI** | | | |
+| D-042 runtime = Ollama | 95 | APPROVE | Same weights, same prompt: 499.1 tok/s prompt and 9.43 tok/s generation against llama-server's 293.1 and 7.46. |
+| D-043 chat UI before Step 7 | 94 | APPROVE | The UI answers and streams, and says on screen when an answer is ungrounded instead of pretending to cite. |
+| D-044 page-level BM25 prototype in the UI | 93 | APPROVE | 25/26 at MRR 0.885, better than every dense embedding measured so far (best 23/26 at 0.723). |
+
+**The one judgement call in the table.** Every row is `APPROVE` except D-046, which is
+`SUPERSEDE by D-047`. If you want D-046 recorded as approved as well, change that one
+entry to `'APPROVE'` — the script will write it, and the record will then contain both
+the claim and its correction.
+
+`$AcceptStep2` is `$true`, so the run also creates `step-02-approved`: all five of
+Step 2's DoD boxes are ticked and the comparison you asked for exists.
 
 ## B. Two things only you can do by hand
 
 1. **The 20-page review** — open `artifacts\step3\review.html`, click each PDF link and
    confirm the text shown is the page it claims. 18 of 20 pages were confirmed earlier;
    the 2 that were not are pages with no text layer, so there is nothing to compare by
-   eye. Its new pre-triage banner names them and says which rows to look at first.
+   eye. Its pre-triage banner names them and says which rows to look at first.
 2. **The 20-table review** — open `artifacts\step3\tables-review.html`. The corpus holds
    242 detected tables and the page offers 5 to check cell by cell; 116 of 144 numeric
    cells on the checked pages matched (80.6%), and every miss is in one legacy-font
@@ -45,15 +71,21 @@ the Word-conversion box, cannot be met at all because the corpus holds no `.docx
   "100% match" cannot be shown for them by eye. They stay unconfirmed rather than assumed.
 - **The Preeti table**: the values extract as legacy-font glyphs (`/fli6«o jg gLlt`), so
   the 4 of 32 missing cells cannot be checked without reading the printed page yourself.
-- **Step 4's DoD** still has open boxes (see `STATUS.md`); approving `$D054` fixes only
-  the "embedder chosen" box.
+- **Whether D-048 should have been D-040 edited instead**: rule 9 keeps existing entries
+  untouched, so the change is recorded as a new decision that supersedes, never as a
+  rewrite of the old one.
 
 ## D. After the script
 
 ```powershell
-git tag                      # step-00-approved, step-01-approved
+git tag                      # step-00-approved, step-01-approved, step-02-approved
 git log --oneline -3         # two OWNER: commits
+git status                   # clean
 ```
 
+Expect **18 verdict lines** in `DECISIONS.md` — 17 `APPROVED` and 1 `SUPERSEDED D-046 by
+D-047` — each placed directly *above* the entry it answers, so the entry keeps its body.
+
 Then hand the agent the Step 4 sub-task you want next, in the TASK/CONTEXT/OUTPUT form
-from `AGENTS.md`.
+from `AGENTS.md`. Steps 6-9 still have no start line and no approval, and Step 5's DoD is
+not finished: the seven boxes in `steps/05-hybrid-retrieval.md` remain open.

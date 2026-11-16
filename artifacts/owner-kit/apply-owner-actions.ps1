@@ -5,18 +5,20 @@
     reviewable run, instead of leaving the record behind what actually happened.
 
     What it does, in order:
-      1. refuses to run if the working tree is not clean, or if any decision
-         variable below is still 'PENDING';
+      1. refuses to run if the working tree is not clean, or if any decision below
+         still says 'PENDING';
       2. adds the missing approval lines to APPROVALS.md and commits them: completion
-          for steps 01 and 02, start for steps 02, 03, 04 and 05;
+         for steps 01 and 02, start for steps 02, 03, 04 and 05;
       3. creates step-00-approved and step-01-approved (step 02 only if you say so);
-      4. adds APPROVED lines to D-038, D-040, D-042, D-043, D-044 and a SUPERSEDED
-         line to D-039 in DECISIONS.md, and commits them;
+      4. writes one verdict line for every decision in the table below - 17 APPROVED
+         and one SUPERSEDED - and commits them;
       5. prints the two verification commands from APPROVALS.md.
 
-    Before running, set each decision variable below to 'APPROVE' or 'REJECT' after
-    reading that decision in DECISIONS.md. PENDING means "I have not decided yet",
-    and the script will not act on a decision you have not made.
+    Each decision has exactly one line in the table, so the record cannot end up with
+    a decision that was read but never answered. Change 'PENDING' to 'APPROVE',
+    'REJECT' or 'SUPERSEDE' after reading that decision in DECISIONS.md. PENDING means
+    "I have not decided yet", and the script will not act on a decision you have not
+    made.
 
     Dry run (changes nothing, prints what it would do):
         powershell -NoProfile -ExecutionPolicy Bypass -File artifacts\owner-kit\apply-owner-actions.ps1 -WhatIf
@@ -31,27 +33,49 @@ param()
 $ErrorActionPreference = 'Stop'
 
 # ---------------------------------------------------------------------------
-# Your decisions. Change 'PENDING' to 'APPROVE' or 'REJECT'. Nothing else here.
-# Evidence for each one is in OWNER-CHECKLIST.md next to this file.
+# Your decisions. Each entry is one decision: Id, Verdict, Why.
+# Verdict is 'PENDING', 'APPROVE', 'REJECT', or 'SUPERSEDE' (then By = the id that
+# replaces it). 'Why' is the sentence that will appear in DECISIONS.md, so it has to
+# be true of the entry above it. Evidence for each one is in OWNER-CHECKLIST.md.
 # ---------------------------------------------------------------------------
-$D038 = 'PENDING'   # D-038 staged corpus growth (one document, then 30-50, then all)
-$D040 = 'PENDING'   # D-040 generator is your existing qwen2.5 7B, fallback 1.5B
-$D042 = 'PENDING'   # D-042 runtime is Ollama, llama.cpp removed
-$D043 = 'PENDING'   # D-043 chat UI built before Step 7, ungrounded until the index exists
-$D044 = 'PENDING'   # D-044 chat UI carries the page-level BM25 retrieval prototype
-$D054 = 'PENDING'   # D-054 embedder: bge-small-en-v1.5 (rule 9: only you decide this)
-$D039 = 'PENDING'   # D-039 three-model download: SUPERSEDE it with D-040, or APPROVE it
+$Decisions = @(
+    # --- Step 2: which model answers, and what was measured ---------------------
+    @{ Id = 'D-039'; Verdict = 'APPROVE';   Why = 'Two of the three candidates were downloaded and measured after all: qwen3.5 4b (3.3 GB) and phi4-mini (2.5 GB), both in D-047. Gemma 4 E2B was not downloaded, and the earlier note claiming none of them were is corrected by this line.' }
+    @{ Id = 'D-040'; Verdict = 'APPROVE';   Why = 'Recorded as the choice made on 2026-11-13: 496.8 tok/s prompt, 8.6 tok/s generation, 3,505 MiB of 4,096 MiB peak. D-048 later moves the generator to the 4B on measured evidence and keeps this model as the fallback, so this entry stands as history rather than as the current setting.' }
+    @{ Id = 'D-046'; Verdict = 'SUPERSEDE'; By = 'D-047'; Why = 'Its title says two candidates will never be measured, and that stopped being true on 2026-11-14 when the owner asked for the comparison and D-047 filled both blank rows. Approving both entries would record two contradictory statements; D-047 is the table that stands.' }
+    @{ Id = 'D-047'; Verdict = 'APPROVE';   Why = 'The comparison exists and was measured on this machine, temperature 0, num_ctx 4096: qwen3.5 4B 23/30, qwen2.5 7B 18/30, phi4-mini 16/30, with citations 20/30, 15/30 and 14/30.' }
+    @{ Id = 'D-048'; Verdict = 'APPROVE';   Why = 'Justified by D-047 (23/30 against 18/30, citations 20/30 against 15/30) and already how the system runs: qwen3.5:4b with thinking off, the 7B kept as the fallback.' }
+
+    # --- Step 3: how pages are read --------------------------------------------
+    @{ Id = 'D-045'; Verdict = 'APPROVE';   Why = 'OCR runs at index build for pages with no text layer: 86 of 851 pages, 16-23 s for 4 pages, and pages that stay unreadable are reported (20 of 851) rather than silently dropped.' }
+    @{ Id = 'D-049'; Verdict = 'APPROVE';   Why = 'Parser per page type, measured on this corpus: PyMuPDF grid filled from the page own words gives 393/393 numeric tokens on table pages and 5,511/5,520 across the corpus, and OCR for the 4 NARAYAN pages.' }
+
+    # --- Step 4: chunks, metadata and the embedder -----------------------------
+    @{ Id = 'D-038'; Verdict = 'APPROVE';   Why = 'Already how the corpus grew: Stage A (one document), then Stage B (97 documents, 851 pages), with the eval re-baselined at each growth.' }
+    @{ Id = 'D-050'; Verdict = 'APPROVE';   Why = 'How the chunker works, as built: section-bounded text chunks and one table per chunk, 3,226 chunks from 95 documents.' }
+    @{ Id = 'D-051'; Verdict = 'APPROVE';   Why = 'Heading detection reads two shapes and rejects four trap families; 0 chunks cross a heading across the 16 structure cases, and the guard test can fail.' }
+    @{ Id = 'D-052'; Verdict = 'APPROVE';   Why = 'Text chunks are paragraph-atomic with the cap stronger than the overlap, so no chunk ends mid-sentence and no record carries a bad page range.' }
+    @{ Id = 'D-053'; Verdict = 'APPROVE';   Why = 'One table is one chunk, and table text is kept out of prose chunks by geometry plus content, so the same numbers cannot be retrieved twice.' }
+    @{ Id = 'D-054'; Verdict = 'APPROVE';   Why = 'bge-small-en-v1.5: ties multilingual-e5-small on recall@5 (23/26 each), differs by 0.021 MRR (0.702 against 0.723), and is 134 MB against 493 MB.' }
+    @{ Id = 'D-055'; Verdict = 'APPROVE';   Why = 'Captions 32 to 37 and units 37 to 52 of 268 table chunks, with the measured ceiling kept in view: 210 detected tables have no printed caption within 160 points.' }
+
+    # --- Step 5: retrieval -----------------------------------------------------
+    @{ Id = 'D-056'; Verdict = 'APPROVE';   Why = 'Measured rather than assumed: page BM25 keeps 25/26 at MRR 0.885, the three-list chunk hybrid reaches 24/26 at 0.832, and the best of 24 weightings is 24/26 at 0.486. The hybrid stays in the repository as evidence.' }
+
+    # --- Runtime and UI --------------------------------------------------------
+    @{ Id = 'D-042'; Verdict = 'APPROVE';   Why = 'Same weights, same 3,394-token prompt: Ollama 499.1 tok/s prompt and 9.43 tok/s generation against llama-server 293.1 and 7.46, and the llama.cpp build is already removed.' }
+    @{ Id = 'D-043'; Verdict = 'APPROVE';   Why = 'The UI exists in ui/, answers and streams, and says on screen when an answer is ungrounded instead of pretending to cite.' }
+    @{ Id = 'D-044'; Verdict = 'APPROVE';   Why = 'Page-level BM25 in the UI scores 25/26 at MRR 0.885, better than every dense embedding measured so far (best 23/26 at 0.723); it is a prototype, not Step 5.' }
+)
 
 # Tag step-02-approved as well? Set to $false if step 02 is not finished to your eye.
-$AcceptStep2 = $false
+$AcceptStep2 = $true
 
 # ---------------------------------------------------------------------------
 $Today = (Get-Date).ToString('yyyy-MM-dd')
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$Decisions = [ordered]@{
-    'D-038' = $D038; 'D-040' = $D040; 'D-042' = $D042; 'D-043' = $D043; 'D-044' = $D044
-    'D-054' = $D054; 'D-039' = $D039
-}
+
+$Verdicts = @('PENDING', 'APPROVE', 'REJECT', 'SUPERSEDE')
 
 function Write-TextFile {
     param([string]$Path, [string[]]$Lines)
@@ -104,6 +128,31 @@ function Test-LogLine {
     return $false
 }
 
+function Get-VerdictLine {
+    # One line per decision, in the style D-041 already uses. It goes *above* the
+    # PROPOSED bullet: inserting it below the header would split the entry from the
+    # indented body that belongs to it.
+    param([hashtable]$Decision, [string]$Date)
+    switch ($Decision.Verdict) {
+        'APPROVE'   { return ('- **APPROVED {0} by the owner {1}.** {2}' -f $Decision.Id, $Date, $Decision.Why) }
+        'REJECT'    { return ('- **REJECTED {0} by the owner {1}.** {2}' -f $Decision.Id, $Date, $Decision.Why) }
+        'SUPERSEDE' { return ('- **SUPERSEDED {0} by {1} ({2}).** {3}' -f $Decision.Id, $Decision.By, $Date, $Decision.Why) }
+        default     { throw ('Get-VerdictLine called with verdict ' + $Decision.Verdict) }
+    }
+}
+
+# --- 0. validate the table before touching anything -------------------------
+$ids = @($Decisions | ForEach-Object { $_.Id })
+$dupes = @($ids | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
+if ($dupes.Count -gt 0) { throw ('a decision appears twice in $Decisions: ' + ($dupes -join ', ')) }
+foreach ($d in $Decisions) {
+    if (-not $d.Id) { throw 'a decision entry has no Id' }
+    if ($d.Verdict -notin $Verdicts) { throw ('unclear verdict for ' + $d.Id + ': ' + $d.Verdict + ' - use PENDING, APPROVE, REJECT or SUPERSEDE') }
+    if (-not $d.Why) { throw ('no Why for ' + $d.Id + ' - every verdict needs the sentence that justifies it') }
+    if ($d.Verdict -eq 'SUPERSEDE' -and -not $d.By) { throw ('SUPERSEDE for ' + $d.Id + ' needs By = the id that replaces it') }
+    if ($d.By -and ($ids -notcontains $d.By)) { throw ($d.Id + ' is superseded by ' + $d.By + ', which is not a decision in this table') }
+}
+
 # --- 1. gates ---------------------------------------------------------------
 Push-Location $Root
 try {
@@ -116,26 +165,23 @@ try {
         exit 1
     }
 
-    $pending = @($Decisions.Keys | Where-Object { $Decisions[$_] -eq 'PENDING' })
+    $pending = @($Decisions | Where-Object { $_.Verdict -eq 'PENDING' } | ForEach-Object { $_.Id })
     if ($pending.Count -gt 0) {
         if (-not $WhatIfPreference) {
             Write-Host 'REFUSING TO RUN: these decisions are still PENDING:' -ForegroundColor Red
             $pending | ForEach-Object { Write-Host ('  ' + $_) }
-            Write-Host 'Open this file and set each one to APPROVE or REJECT. A decision approved by a script is not an approval.' -ForegroundColor Red
+            Write-Host 'Open this file and set each one to APPROVE, REJECT or SUPERSEDE. A decision approved by a script is not an approval.' -ForegroundColor Red
             exit 1
         }
         Write-Host ('WHAT IF: a real run would refuse, because these are still PENDING: ' + ($pending -join ', ')) -ForegroundColor Yellow
     }
-    $unclear = @($Decisions.Keys | Where-Object { $Decisions[$_] -notin @('PENDING', 'APPROVE', 'REJECT') })
-    if ($unclear.Count -gt 0) { throw ('unclear decision value for: ' + ($unclear -join ', ') + ' - use APPROVE or REJECT') }
 
     # --- 2. APPROVALS.md ----------------------------------------------------
     $approvals = Join-Path $Root 'APPROVALS.md'
     $lines = [System.IO.File]::ReadAllLines($approvals)
-    # Steps 02 and 05 are worked on in the record without a start line: step 02 has a
+    # Steps 02 and 05 were worked on with no start line in the record: step 02 has a
     # completion but no start, and step 05's retrieval work (commit e873131) has neither.
-    # Both are included so the log stops claiming those steps were never started. Any
-    # line already present is skipped, so this list can stay complete as steps are added.
+    # Any line already present is skipped, so this list can stay complete as steps are added.
     $wanted = @(
         @{ Step = 'step 05'; Action = 'start' },
         @{ Step = 'step 04'; Action = 'start' },
@@ -166,8 +212,8 @@ try {
     Write-Host ''
     Write-Host 'NOTE: these tags point at the current HEAD commit. There is no historical' -ForegroundColor Yellow
     Write-Host 'completion commit for step 00/01/02 to tag: those completions were only ever' -ForegroundColor Yellow
-    Write-Host 'recorded in APPROVALS.md, and it was never committed. A tag here marks "approved' -ForegroundColor Yellow
-    Write-Host 'as of this commit", not the original completion date.' -ForegroundColor Yellow
+    Write-Host 'recorded in APPROVALS.md. A tag here marks "approved as of this commit", not' -ForegroundColor Yellow
+    Write-Host 'the original completion date.' -ForegroundColor Yellow
     $existingTags = @(& git tag -l)
     foreach ($tag in $tags) {
         if ($existingTags -contains $tag) {
@@ -181,43 +227,45 @@ try {
     # --- 4. DECISIONS.md ----------------------------------------------------
     $decisionsPath = Join-Path $Root 'DECISIONS.md'
     $decisionLines = [System.IO.File]::ReadAllLines($decisionsPath)
-    $approved = @('D-038', 'D-040', 'D-042', 'D-043', 'D-044')
     $insertions = [ordered]@{}
-    foreach ($id in $approved) {
-        if ($Decisions[$id] -ne 'APPROVE') {
-            Write-Host ('skip    ' + $id + ' is ' + $Decisions[$id] + ', no APPROVED line added')
-            continue
-        }
-        $existing = @($decisionLines | Where-Object { $_ -like ('- **APPROVED ' + $id + ' by the owner*') })
-        if ($existing.Count -gt 0) { Write-Host ('skip    ' + $id + ' already has an APPROVED line'); continue }
-        $insertions[$id] = ('- **APPROVED {0} by the owner {1}.** The owner set the {0} variable in `artifacts/owner-kit/apply-owner-actions.ps1` to APPROVE; the entry above is unchanged.' -f $id, $Today)
-    }
-    if ($Decisions['D-039'] -eq 'PENDING') {
-        Write-Host 'skip    D-039 is PENDING, no SUPERSEDED line added'
-    } elseif (@($decisionLines | Where-Object { $_ -like '- **SUPERSEDED D-039*' }).Count -eq 0) {
-        $insertions['D-039'] = ('- **SUPERSEDED D-039 by D-040 ({0}).** The owner declined the three-model download, and D-040 chose the model already on disk, so the candidates proposed here were never downloaded and no comparison was measured.' -f $Today)
-    } else {
-        Write-Host 'skip    D-039 already has a SUPERSEDED line'
+    foreach ($d in $Decisions) {
+        if ($d.Verdict -eq 'PENDING') { Write-Host ('skip    ' + $d.Id + ' is PENDING, no verdict line added'); continue }
+        # Any verdict already recorded for this id counts, whatever it says, so a
+        # second run cannot append a contradicting line.
+        $pattern = '^\- \*\*(APPROVED|REJECTED|SUPERSEDED) ' + [regex]::Escape($d.Id) + '(\s|$|\()'
+        $existing = @($decisionLines | Where-Object { $_ -match $pattern })
+        if ($existing.Count -gt 0) { Write-Host ('skip    ' + $d.Id + ' already has a verdict line'); continue }
+        $insertions[$d.Id] = (Get-VerdictLine -Decision $d -Date $Today)
     }
 
     if ($insertions.Count -gt 0) {
         $out = New-Object System.Collections.Generic.List[string]
+        $placed = @{}
         foreach ($line in $decisionLines) {
-            $out.Add($line)
             foreach ($id in @($insertions.Keys)) {
-                if ($line -like ('- **PROPOSED ' + $id + ' *') -or $line -like ('- **PROPOSED by agent, pending owner*' + $id + '*')) {
+                # Above the PROPOSED bullet, so the entry keeps its indented body.
+                if ($line -like ('- **PROPOSED ' + $id + ' *')) {
                     $out.Add($insertions[$id])
+                    $placed[$id] = $true
                 }
             }
+            $out.Add($line)
         }
-        $missing = @($insertions.Keys | Where-Object { -not ($out -contains $insertions[$_]) })
-        if ($missing.Count -gt 0) { throw ('could not find the entry line(s) for ' + ($missing -join ', ') + ' in DECISIONS.md') }
-        if ($PSCmdlet.ShouldProcess('DECISIONS.md', ('add ' + $insertions.Count + ' approval line(s) for ' + ($insertions.Keys -join ', ')))) {
+        $missing = @($insertions.Keys | Where-Object { -not $placed.ContainsKey($_) })
+        if ($missing.Count -gt 0) { throw ('could not find the PROPOSED entry line(s) for ' + ($missing -join ', ') + ' in DECISIONS.md') }
+
+        $approvedCount = @($Decisions | Where-Object { $_.Verdict -eq 'APPROVE' }).Count
+        $rejectedCount = @($Decisions | Where-Object { $_.Verdict -eq 'REJECT' }).Count
+        $supersededIds = @($Decisions | Where-Object { $_.Verdict -eq 'SUPERSEDE' } | ForEach-Object { $_.Id })
+        $message = 'OWNER: record {0} decisions ({1} approved, {2} rejected, {3} superseded: {4})' -f `
+            $insertions.Count, $approvedCount, $rejectedCount, $supersededIds.Count, ($supersededIds -join ', ')
+
+        if ($PSCmdlet.ShouldProcess('DECISIONS.md', ('add ' + $insertions.Count + ' verdict line(s) for ' + ($insertions.Keys -join ', ')))) {
             Write-TextFile -Path $decisionsPath -Lines $out.ToArray()
             Invoke-Git @('add', '--', 'DECISIONS.md') | Out-Null
-            Invoke-Git @('commit', '-m', 'OWNER: approve decisions D-038, D-040, D-042, D-043 and D-044 and supersede D-039') | Out-Null
+            Invoke-Git @('commit', '-m', $message) | Out-Null
             Write-Host ('added   ' + ($insertions.Keys -join ', ')) -ForegroundColor Green
-            Write-Host 'committed DECISIONS.md'
+            Write-Host ('committed DECISIONS.md: ' + $message)
         }
     }
 
