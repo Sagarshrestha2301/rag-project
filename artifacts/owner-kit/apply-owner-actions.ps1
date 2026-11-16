@@ -8,9 +8,11 @@
       1. refuses to run if the working tree is not clean, or if any decision below
          still says 'PENDING';
       2. adds the missing approval lines to APPROVALS.md and commits them: completion
-         for steps 01, 02, 04 and 05, start for steps 02, 03, 04, 05 and 06;
+         for steps 01, 02, 04 and 05, start for steps 02, 03, 04, 05 and 06, plus the
+         completion of step 03 when you accept it as a deviation ($AcceptStep3);
       3. creates step-00-approved, step-01-approved, step-02-approved, step-04-approved
-         and step-05-approved (each gated by a switch below);
+         and step-05-approved, plus step-03-approved when $AcceptStep3 (each gated by a
+         switch below);
       4. writes one verdict line for every decision in the table below - 21 rows as
          shipped, 20 APPROVED and one SUPERSEDED - and commits them;
       5. prints the two verification commands from APPROVALS.md.
@@ -89,6 +91,13 @@ $AcceptStep5 = $true
 # is tagged only when its definition of done is finished. Set to $false to keep Step 6
 # closed (for example while you decide the not-found gate and the generator).
 $StartStep6 = $true
+
+# Step 3 is NOT finished: 4 of its 7 DoD boxes are ticked. The Word-conversion box cannot
+# be met on a PDF-only corpus, and the 20-page review and the 5-table review are still
+# owed by the owner. Leave this $false and the run records Step 3's start only. Set it to
+# $true only if you accept Step 3 as a deviation and want it recorded as complete anyway;
+# the line will say what you are accepting.
+$AcceptStep3 = $false
 
 # ---------------------------------------------------------------------------
 $Today = (Get-Date).ToString('yyyy-MM-dd')
@@ -212,6 +221,7 @@ try {
         @{ Step = 'step 02'; Action = 'completion' },
         @{ Step = 'step 01'; Action = 'completion' }
     )
+    if ($AcceptStep3) { $wanted += @{ Step = 'step 03'; Action = 'completion' } }
     $added = @()
     foreach ($entry in $wanted) {
         if (Test-LogLine -Lines $lines -Step $entry.Step -Action $entry.Action) {
@@ -223,7 +233,9 @@ try {
     if ($added.Count -gt 0 -and $PSCmdlet.ShouldProcess('APPROVALS.md', ('add ' + $added.Count + ' approval line(s): ' + ($added -join '; ')))) {
         Write-TextFile -Path $approvals -Lines (Add-LogLine -Lines $lines -NewLines $added)
         Invoke-Git @('add', '--', 'APPROVALS.md') | Out-Null
-        Invoke-Git @('commit', '-m', 'OWNER: record the start of steps 02-06 and the completion of steps 01, 02, 04 and 05') | Out-Null
+        $completionSteps = @('step 01', 'step 02', 'step 04', 'step 05')
+        if ($AcceptStep3) { $completionSteps += 'step 03' }
+        Invoke-Git @('commit', '-m', ('OWNER: record the start of steps 02-06 and the completion of ' + ($completionSteps -join ', '))) | Out-Null
         Write-Host ('added   ' + ($added -join ', ')) -ForegroundColor Green
         Write-Host 'committed APPROVALS.md'
     }
@@ -233,6 +245,7 @@ try {
     if ($AcceptStep2) { $tags += 'step-02-approved' }
     if ($AcceptStep4) { $tags += 'step-04-approved' }
     if ($AcceptStep5) { $tags += 'step-05-approved' }
+    if ($AcceptStep3) { $tags += 'step-03-approved' }
     Write-Host ''
     Write-Host 'NOTE: these tags point at the current HEAD commit. There is no historical' -ForegroundColor Yellow
     Write-Host 'completion commit for step 00/01/02 to tag: those completions were only ever' -ForegroundColor Yellow
@@ -301,6 +314,7 @@ try {
     $prevTag = if ($tags -contains 'step-05-approved') { 'step-05-approved' }
                elseif ($tags -contains 'step-04-approved') { 'step-04-approved' }
                elseif ($tags -contains 'step-02-approved') { 'step-02-approved' }
+               elseif ($tags -contains 'step-03-approved') { 'step-03-approved' }
                else { 'step-01-approved' }
     Write-Host ("  git log {0}..HEAD --invert-grep --grep=`"^OWNER:`" --name-only --format=`"%h %s`" -- AGENTS.md PLAN.md REQUIREMENTS.md APPROVALS.md" -f $prevTag)
     Write-Host ("  git diff -U0 {0}..HEAD -- EVAL.md DECISIONS.md steps eval/questions.jsonl | Select-String `"^-`" | Where-Object {{ $_ -notmatch `"^--- `" }}" -f $prevTag)

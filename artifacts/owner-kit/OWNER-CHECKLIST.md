@@ -98,6 +98,13 @@ step 06** (`$StartStep6`, `$true` by default), which is what opens the next step
 creates no tag: Step 6 gets `step-06-approved` only when its own definition of done is
 finished.
 
+**Step 3 is the one step this kit will not close by default.** It is 4 of 7 boxes: the
+Word-conversion box cannot be met on a PDF-only corpus and the 20-page and 5-table
+reviews are still owed, so `$AcceptStep3` ships as `$false` and the run records Step 3's
+*start* only. If you accept Step 3 as a deviation, set `$AcceptStep3 = $true` and the same
+run adds `completion | step 03` and `step-03-approved` as well - both branches are
+verified, the `$false` one producing 5 tags and the `$true` one 6.
+
 Expect **21 verdict lines** in `DECISIONS.md` — 20 `APPROVED` and 1 `SUPERSEDED D-046 by
 D-047` — each placed directly *above* the entry it answers, so the entry keeps its body.
 
