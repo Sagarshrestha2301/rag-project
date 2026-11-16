@@ -8,8 +8,9 @@
       1. refuses to run if the working tree is not clean, or if any decision below
          still says 'PENDING';
       2. adds the missing approval lines to APPROVALS.md and commits them: completion
-         for steps 01 and 02, start for steps 02, 03, 04 and 05;
-      3. creates step-00-approved and step-01-approved (step 02 only if you say so);
+         for steps 01, 02 and 04, start for steps 02, 03, 04 and 05;
+      3. creates step-00-approved, step-01-approved, step-02-approved and
+         step-04-approved (each gated by a switch below);
       4. writes one verdict line for every decision in the table below - 17 APPROVED
          and one SUPERSEDED - and commits them;
       5. prints the two verification commands from APPROVALS.md.
@@ -71,6 +72,10 @@ $Decisions = @(
 
 # Tag step-02-approved as well? Set to $false if step 02 is not finished to your eye.
 $AcceptStep2 = $true
+
+# Step 4's 10-chunk inspection was approved in chat on 2026-11-16, so its completion
+# line and tag belong in the same run. Set to $false to leave Step 4 open.
+$AcceptStep4 = $true
 
 # ---------------------------------------------------------------------------
 $Today = (Get-Date).ToString('yyyy-MM-dd')
@@ -188,6 +193,7 @@ try {
         @{ Step = 'step 04'; Action = 'start' },
         @{ Step = 'step 03'; Action = 'start' },
         @{ Step = 'step 02'; Action = 'start' },
+        @{ Step = 'step 04'; Action = 'completion' },
         @{ Step = 'step 02'; Action = 'completion' },
         @{ Step = 'step 01'; Action = 'completion' }
     )
@@ -202,7 +208,7 @@ try {
     if ($added.Count -gt 0 -and $PSCmdlet.ShouldProcess('APPROVALS.md', ('add ' + $added.Count + ' approval line(s): ' + ($added -join '; ')))) {
         Write-TextFile -Path $approvals -Lines (Add-LogLine -Lines $lines -NewLines $added)
         Invoke-Git @('add', '--', 'APPROVALS.md') | Out-Null
-        Invoke-Git @('commit', '-m', 'OWNER: record step 01 and 02 completion and the start of steps 02, 03, 04 and 05') | Out-Null
+        Invoke-Git @('commit', '-m', 'OWNER: record the start of steps 02-05 and the completion of steps 01, 02 and 04') | Out-Null
         Write-Host ('added   ' + ($added -join ', ')) -ForegroundColor Green
         Write-Host 'committed APPROVALS.md'
     }
@@ -210,6 +216,7 @@ try {
     # --- 3. tags ------------------------------------------------------------
     $tags = @('step-00-approved', 'step-01-approved')
     if ($AcceptStep2) { $tags += 'step-02-approved' }
+    if ($AcceptStep4) { $tags += 'step-04-approved' }
     Write-Host ''
     Write-Host 'NOTE: these tags point at the current HEAD commit. There is no historical' -ForegroundColor Yellow
     Write-Host 'completion commit for step 00/01/02 to tag: those completions were only ever' -ForegroundColor Yellow
@@ -275,7 +282,9 @@ try {
     Write-Host 'Done. Verify with the two checks from APPROVALS.md (run them yourself):'
     # Check A and B both need a previous tag. Naming step-02-approved hard-coded made
     # those commands fail whenever $AcceptStep2 is false and the tag was not created.
-    $prevTag = if ($tags -contains 'step-02-approved') { 'step-02-approved' } else { 'step-01-approved' }
+    $prevTag = if ($tags -contains 'step-04-approved') { 'step-04-approved' }
+               elseif ($tags -contains 'step-02-approved') { 'step-02-approved' }
+               else { 'step-01-approved' }
     Write-Host ("  git log {0}..HEAD --invert-grep --grep=`"^OWNER:`" --name-only --format=`"%h %s`" -- AGENTS.md PLAN.md REQUIREMENTS.md APPROVALS.md" -f $prevTag)
     Write-Host ("  git diff -U0 {0}..HEAD -- EVAL.md DECISIONS.md steps eval/questions.jsonl | Select-String `"^-`" | Where-Object {{ $_ -notmatch `"^--- `" }}" -f $prevTag)
     Write-Host 'Check A must print nothing; every removed line in check B must be a ticked checkbox.'
