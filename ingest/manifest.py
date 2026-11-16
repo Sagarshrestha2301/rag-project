@@ -19,8 +19,9 @@ import time
 import pdfplumber
 import pymupdf
 
+from corpus import files as corpus_files
 from ingest import ocr, tables, text
-from ingest.base import PageResult, corpus_files
+from ingest.base import PageResult
 
 MIN_TEXT_CHARS = 40      # below this a page is treated as having no text layer
 

@@ -86,20 +86,20 @@ rag-project/
 │   ├── dense.py                  # python -m chunk.dense       -> index/lancedb + reports/index-size.md
 │   ├── review.py                 # python -m chunk.review      -> artifacts/step4/review.html (10 chunks, 3 tables)
 │   └── test_*.py                 # one suite per module; run the file directly
+├── corpus.py                     # one owner for page text, page words and the page -> file path
 ├── ingest/                       # Step 3: PDF -> parsed pages, tables, OCR, verification
-│   ├── base.py                   # corpus paths, page records
+│   ├── base.py                   # page records and the parser registry
 │   ├── text.py, tables.py, ocr.py, manifest.py
 │   ├── drive.py                  # bounded Google Drive sample fetch + SHA-256 manifest
 │   ├── cli.py                    # python -m ingest.cli build | verify
 │   └── verify.py                 # cell check + the two review sheets the owner reads
 ├── eval/                         # the eval set and its scorer
-│   ├── questions.jsonl           # 30 questions (gold answers, gold pages, dev/held-out)
+│   ├── questions.jsonl           # 55 questions (gold answers, gold pages, dev/held-out)
 │   ├── score.py, run_retrieval.py, build_questions.py, build_review.py, make_fixtures.py
 │   ├── fixtures/                 # hand-made scorer fixtures
 │   └── runs/                     # recorded eval runs (committed on purpose)
 ├── ui/                           # chat UI: FastAPI + static files, no build step
 │   ├── server.py                 # streams answers, serves /pdf/{name}, health endpoint
-│   ├── retrieval.py              # page-level BM25 prototype (superseded by Step 5)
 │   └── static/                   # index.html, app.js, styles
 ├── scripts/                      # PowerShell helpers: health, health report, launch, offline proof
 ├── benchmarks/                   # what was measured, and with what

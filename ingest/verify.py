@@ -20,10 +20,8 @@ import sys
 # `ingest.` imports below need the repository root on the path, not ingest/ itself.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-import pymupdf                                                   # noqa: E402
-
+from corpus import page_words, path_for                          # noqa: E402
 from ingest import tables                                        # noqa: E402
-from ingest.base import corpus_path                              # noqa: E402
 
 OUT = pathlib.Path("artifacts/step3")
 PARSED = pathlib.Path("index/parsed")
@@ -112,11 +110,6 @@ def triage_banner(kind: str, entries: list[dict], total: int, extra_note: str = 
 </section>"""
 
 
-def _page_words(doc: str, page_no: int) -> set[str]:
-    with pymupdf.open(corpus_path(doc)) as pdf:
-        return {w[4] for w in pdf[page_no - 1].get_text("words")}
-
-
 def check_tables(found: list[dict]) -> dict:
     """Every numeric token in a table must exist verbatim in that page's words.
 
@@ -133,7 +126,7 @@ def check_tables(found: list[dict]) -> dict:
                              parser=entry["parser"], notes=entry["notes"])
         key = (entry["doc"], entry["pdf_page"])
         if key not in cache:
-            cache[key] = _page_words(*key)
+            cache[key] = page_words(*key)
         words = cache[key]
 
         numbers = tables.numeric_cells(table)
@@ -192,7 +185,7 @@ def review_html(pages: list[dict], sample_size: int = 20, seed: int = 7) -> path
     rows = []
     triage = []
     for page in picked:
-        anchor = corpus_path(page["doc"]).resolve().as_uri() + f"#page={page['pdf_page']}"
+        anchor = path_for(page["doc"]).resolve().as_uri() + f"#page={page['pdf_page']}"
         first = page["text"][:110].replace("<", "&lt;")
         attention, why = page_triage(page)
         triage.append({"label": f"{page['doc'][:44]} p{page['pdf_page']}",
@@ -280,7 +273,7 @@ def tables_html(found: list[dict], sample_size: int = 5) -> pathlib.Path:
     blocks = []
     triage = []
     for count, entry in picked:
-        link = corpus_path(entry["doc"]).resolve().as_uri() + f"#page={entry['pdf_page']}"
+        link = path_for(entry["doc"]).resolve().as_uri() + f"#page={entry['pdf_page']}"
         rows = "".join(
             "<tr>" + "".join(f"<td>{html.escape(str(cell))}</td>" for cell in row) + "</tr>"
             for row in entry["rows"][:16])

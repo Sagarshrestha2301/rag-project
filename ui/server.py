@@ -1,9 +1,9 @@
 """Local chat UI server: retrieval + Ollama, localhost only, offline.
 
-Every answer is built from pages of `data/corpus/` found by `ui/retrieval.py`
-and comes back with the pages it used, so a citation can be checked by opening
-the PDF at that page. This is page-level retrieval, a prototype for the chunking
-and hybrid search of Steps 4-5, not a substitute for them.
+Every answer is built from pages of `data/corpus/` found by `corpus.py` and comes
+back with the pages it used, so a citation can be checked by opening the PDF at
+that page. This is page-level retrieval, a prototype for the chunking and hybrid
+search of Steps 4-5, not a substitute for them.
 
 Usage:
     .venv\\Scripts\\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8000
@@ -24,8 +24,8 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from corpus import build as build_pages, search as search_pages
 from generation.think import ThinkFilter
-from ui import retrieval
 
 STATIC = pathlib.Path(__file__).parent / "static"
 CORPUS = pathlib.Path("data/corpus").resolve()
@@ -56,7 +56,7 @@ SYSTEM_RULES = (
 app = FastAPI(title="RAG project chat", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
-INDEX = retrieval.build()
+INDEX = build_pages()
 
 
 class Message(BaseModel):
@@ -168,7 +168,7 @@ def pdf(name: str) -> FileResponse:
 @app.post("/api/chat")
 async def chat(payload: ChatRequest, request: Request) -> StreamingResponse:
     question = next((m.content for m in reversed(payload.messages) if m.role == "user"), "")
-    hits = retrieval.search(INDEX, question, k=TOP_K)
+    hits = search_pages(INDEX, question, k=TOP_K)
 
     history = [m.model_dump() for m in payload.messages][-6:]
     messages = [{"role": "system", "content": build_system(hits)}] + history

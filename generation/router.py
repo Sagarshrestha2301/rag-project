@@ -10,13 +10,16 @@ Five routes, each changing one or two settings:
 |---|---|---|---|
 | `greeting` | none | none | "hello" is not a corpus question; answering it from passages is how a chat starts quoting a rainfall paper at you |
 | `followup` | 5 passages | normal, question condensed first | "and in 1990?" only means something with the previous turn (task 5) |
-| `summary` | 8 passages | `summary` rules | an overview legitimately needs more than one page |
+| `summary` | 6 passages | `summary` rules | an overview needs the most context the 4-6 budget allows, and the rule that says summarise only what you can quote |
 | `table` | 6 passages | `table` rules | figures need the rule that says copy the number, the unit and the row |
 | `normal` | 5 passages | normal | everything else |
 
 Off-topic questions are deliberately **not** a route: there is no reliable rule for "this
 question is about something else", and the gate in `generation/gate.py` already refuses
 whatever retrieval cannot support (top-1 below the floor, or the model's own refusal).
+
+`k` here is the default the route asks for; `generation.answer` uses it unless a caller
+passes `k=` explicitly, so `--k` on the command line overrides one route, not all of them.
 
 Usage:
     from generation import router
@@ -45,17 +48,27 @@ TABLE = re.compile(
     r"percent(age)?|proportion|average|mean|median|total\s+number)\b|%",
     re.IGNORECASE,
 )
-# A pronoun or a bare continuation with no subject of its own: it needs the previous turn.
-FOLLOWUP = re.compile(
-    r"(^\s*(and|but|also|then|what\s+about|how\s+about)\b)|"
+# A bare continuation: the question opens by referring to the previous turn.
+CONTINUATION = re.compile(r"^\s*(and|but|also|then|what\s+about|how\s+about)\b",
+                          re.IGNORECASE)
+# A pronoun or demonstrative with no noun of its own: it needs the previous turn.
+BACKREF = re.compile(
     r"\b(it|its|it's|that|those|these|they|them|their|this|he|she|his|her|there|same)\b",
+    re.IGNORECASE,
+)
+# ...unless the demonstrative names its own subject: "this paper", "the same table".
+# "What does this paper say about the rainfall?" is a complete question, and condensing
+# it against the previous turn would search for something the user did not ask.
+SELF_CONTAINED = re.compile(
+    r"\b(this|that|these|those|the\s+same)\s+(paper|document|report|study|corpus|dataset|"
+    r"table|figure|section|chapter|page|question|answer)\b",
     re.IGNORECASE,
 )
 
 SETTINGS = {
     "greeting": {"k": 0, "prompt_mode": "normal", "condense": False},
     "followup": {"k": 5, "prompt_mode": "normal", "condense": True},
-    "summary": {"k": 8, "prompt_mode": "summary", "condense": False},
+    "summary": {"k": 6, "prompt_mode": "summary", "condense": False},
     "table": {"k": 6, "prompt_mode": "table", "condense": False},
     "normal": {"k": 5, "prompt_mode": "normal", "condense": False},
 }
@@ -87,10 +100,14 @@ def route(question: str, history: list[dict] | None = None) -> dict:
         return {"route": "greeting", "reason": "opens with a greeting or thanks",
                 **SETTINGS["greeting"]}
 
-    # Follow-up before summary/table: "what about the table?" is still a follow-up.
-    if has_user_turn(history) and FOLLOWUP.search(text) and (
-            word_count(text) <= SHORT_QUESTION_WORDS or text.lower().startswith(
-                ("and", "but", "also", "then", "what about", "how about"))):
+    # Follow-up before summary/table: "what about the table?" is still a follow-up. An
+    # opening continuation always wins; otherwise the question must be short and lean on
+    # a back-reference that has no noun of its own.
+    if has_user_turn(history) and (
+            CONTINUATION.match(text) or (
+                word_count(text) <= SHORT_QUESTION_WORDS
+                and BACKREF.search(text)
+                and not SELF_CONTAINED.search(text))):
         return {"route": "followup", "reason": "refers back to the previous turn",
                 **SETTINGS["followup"]}
 

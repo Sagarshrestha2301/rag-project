@@ -121,7 +121,7 @@ be met as written. Accept it as a deviation or supply five Word files.
 4. **Nothing here is offline-proven end to end.** Step 0 proved a firewall-blocked answer;
    the full app (Ollama + server + UI) has not been run with the network off. That proof
    is due at Step 5/6/8 anyway, but do not assume it.
-5. **`data/corpus` is read-only and the index is derived.** `index/ui-pages.json` carries a
+5. **`data/corpus` is read-only and the index is derived.** `index/pages.json` carries a
    corpus signature, so a changed corpus rebuilds it automatically; the first rebuild OCRs
    the scans and takes minutes. Two of the 97 PDFs are broken (see §4) and will stay
    textless until you replace them.

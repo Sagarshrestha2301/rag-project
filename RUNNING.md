@@ -141,7 +141,7 @@ Streaming answers, conversations kept in the browser, stop mid-answer, copy,
 regenerate, light/dark theme, and live tokens/second under each reply.
 
 **Answers are grounded in the corpus.** Before the model sees a question,
-`ui/retrieval.py` scores all 42 pages with BM25 and passes the four best to
+`corpus.py` scores every page with BM25 and passes the four best to
 qwen3.5 4B, which cites them by letter. Each reply ends with **Sources** chips
 (document and page); click a chip or an inline citation like [A] to open that PDF
 page in a new tab. The model is told to answer `NOT FOUND` when the passages do
@@ -153,7 +153,7 @@ sources used for each answer.
 qwen3.5 wraps its (empty) reasoning in literal ` thinking` tags even with thinking
 off; the server strips them from the stream, so you should never see one.
 
-The page index is cached in `index/ui-pages.json` (regenerated, not committed).
+The page index is cached in `index/pages.json` (regenerated, not committed).
 After changing the corpus, delete that file and restart the server above.
 
 **The scanned NARAYAN paper is searchable too.** Its four pages have no text layer,

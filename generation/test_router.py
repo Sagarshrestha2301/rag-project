@@ -100,12 +100,47 @@ def table_question_with_history_is_still_a_table_question_if_complete() -> None:
 # ----------------------------------------------------------------------- settings
 def settings_per_route() -> None:
     assert router.route("hi")["k"] == 0, "a greeting must not retrieve"
-    assert router.route("summarise this paper")["k"] == 8
+    assert router.route("summarise this paper")["k"] == 6
     assert router.route("summarise this paper")["prompt_mode"] == "summary"
     assert router.route("how many households")["k"] == 6
     assert router.route("how many households")["prompt_mode"] == "table"
     assert router.route("what was the rainfall at Tistung")["k"] == 5
     assert router.route("what was the rainfall at Tistung")["prompt_mode"] == "normal"
+
+
+def every_route_stays_inside_the_context_budget() -> None:
+    """Task 1 pins 4-6 passages in context; a route may not raise that on its own."""
+    for name, settings in router.SETTINGS.items():
+        if name == "greeting":
+            assert settings["k"] == 0, "a greeting must not retrieve"
+        else:
+            assert 4 <= settings["k"] <= 6, f"{name} asks for k={settings['k']}"
+
+
+def the_cli_does_not_override_the_route() -> None:
+    """`--k` unset must mean "the route's k", or summary and table never get theirs."""
+    from generation import answer
+
+    assert answer._parser().parse_args(["a question"]).k is None
+    assert answer._parser().parse_args(["a question", "--k", "4"]).k == 4
+
+
+def a_question_about_this_paper_is_not_a_followup() -> None:
+    """"this paper" names its own subject, so it is complete even after a previous turn.
+
+    Routing it as a follow-up would condense it against the last turn and search for a
+    question the user did not ask.
+    """
+    routed = router.route("What does this paper say about the rainfall in Tistung?",
+                          HISTORY)
+    assert routed["route"] != "followup", routed
+    assert routed["condense"] is False, routed
+
+
+def a_continuation_still_wins_over_a_named_subject() -> None:
+    """...but a question that opens by referring back is a follow-up regardless."""
+    routed = router.route("and what about the same table?", HISTORY)
+    assert routed["route"] == "followup", routed
 
 
 def only_followups_condense() -> None:
@@ -143,9 +178,14 @@ def main() -> int:
              a_complete_question_with_history_is_not_a_followup),
             ("a complete table question stays a table question",
              table_question_with_history_is_still_a_table_question_if_complete),
+            ("'this paper' is a subject, not a back-reference",
+             a_question_about_this_paper_is_not_a_followup),
+            ("an opening continuation still wins", a_continuation_still_wins_over_a_named_subject),
         ]),
         ("settings", [
             ("each route sets its own k and prompt mode", settings_per_route),
+            ("no route exceeds the 4-6 context budget", every_route_stays_inside_the_context_budget),
+            ("the CLI leaves the route's k alone", the_cli_does_not_override_the_route),
             ("only a follow-up condenses", only_followups_condense),
             ("every route explains itself", every_route_has_a_reason),
         ]),

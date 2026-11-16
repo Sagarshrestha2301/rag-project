@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from ingest.base import corpus_path             # noqa: E402
+from corpus import path_for as corpus_path      # noqa: E402
 
 CHUNKS = pathlib.Path("index/chunks.jsonl")
 OUT = pathlib.Path("artifacts/step4/review.html")

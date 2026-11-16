@@ -27,8 +27,7 @@ from __future__ import annotations
 import pathlib
 import re
 
-import pymupdf
-
+from corpus import page_text
 from generation.prompt import NOT_FOUND_TEXT
 
 # TODO(step-06): the verifier checks quotations, not the numbers in the answer prose. A
@@ -36,12 +35,6 @@ from generation.prompt import NOT_FOUND_TEXT
 # passes it because the quotation is genuine; only the numeric metric in EVAL.md sees
 # that. Task 3 (the gate, D-058) is where a prose check belongs, before the answer is
 # returned as grounded.
-
-CORPUS = pathlib.Path("data/corpus")
-INDEX_CACHE = pathlib.Path("index/ui-pages.json")
-# Below this a page has no usable text layer, so its indexed OCR text is the only
-# text there is to quote (the same threshold ui/retrieval.py uses).
-MIN_PAGE_CHARS = 40
 
 # One citation line: [2] name.pdf, p. 12: "quote"  (the quote may be unquoted)
 # Every dash a model has been seen to type before the quotation is accepted here --
@@ -71,56 +64,6 @@ def strip_wrapping(quote: str) -> str:
     while len(q) >= 2 and q[0] in _WRAPPING and q[-1] in _WRAPPING:
         q = q[1:-1].strip()
     return q
-
-
-def _corpus_files() -> dict[str, pathlib.Path]:
-    return {path.name: path for path in CORPUS.rglob("*.pdf")}
-
-
-_FILES: dict[str, pathlib.Path] | None = None
-_PAGE_TEXT: dict[tuple[str, int], str] = {}
-
-
-def page_text(doc: str, page: int) -> str:
-    """The text of one corpus page, from the PDF, with the OCR text as fallback.
-
-    The PDF is the authority: the quote has to be on the page the reader will open,
-    not merely in a cached index. Scanned pages have no text layer, so for those the
-    indexed OCR text (`index/ui-pages.json`) is used, which is what the retriever
-    showed the model in the first place.
-    """
-    key = (doc, page)
-    if key in _PAGE_TEXT:
-        return _PAGE_TEXT[key]
-
-    global _FILES
-    if _FILES is None:
-        _FILES = _corpus_files()
-
-    text = ""
-    path = _FILES.get(pathlib.PurePosixPath(doc).name)
-    if path is not None:
-        try:
-            with pymupdf.open(path) as pdf:
-                if 1 <= page <= pdf.page_count:
-                    text = pdf[page - 1].get_text()
-        except Exception as exc:  # noqa: BLE001 - a broken PDF must not crash a check
-            print(f"[verify] cannot read {path.name}: {exc.__class__.__name__}: {exc}")
-
-    if len(re.sub(r"\s+", "", text)) < MIN_PAGE_CHARS and INDEX_CACHE.exists():
-        import json
-
-        try:
-            pages = json.loads(INDEX_CACHE.read_text(encoding="utf-8")).get("pages", [])
-        except (json.JSONDecodeError, OSError):
-            pages = []
-        for entry in pages:
-            if entry.get("doc") == pathlib.PurePosixPath(doc).name and entry.get("page") == page:
-                text = entry.get("text") or text
-                break
-
-    _PAGE_TEXT[key] = text
-    return text
 
 
 def parse_citations(answer: str) -> list[dict]:

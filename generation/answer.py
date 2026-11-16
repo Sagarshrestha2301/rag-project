@@ -26,13 +26,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import pathlib
 import sys
 import time
 
 import httpx
 
+from corpus import build as build_pages, search as search_pages
 from generation import cache, condense, gate, prompt, router, think, verify
-from ui import retrieval
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 MODEL = os.environ.get("CHAT_MODEL", "qwen3.5:4b")
@@ -41,8 +42,6 @@ KEEP_ALIVE = os.environ.get("CHAT_KEEP_ALIVE", "30m")
 # Thinking stays off: with it on, qwen3.5 spends the answer budget on hidden reasoning
 # and returns an empty string (measured on all 30 questions in Step 2).
 THINK = os.environ.get("CHAT_THINK", "0").lower() in ("1", "true", "yes")
-# Step 6 asks for 4-6 passages; the router raises it for an overview (8) or a table (6).
-PASSAGES = router.SETTINGS["normal"]["k"]
 GREETING_REPLY = ("Hello. Ask me about the indexed documents — rainfall, floods, land use "
                   "and the reports in the corpus.")
 
@@ -50,10 +49,10 @@ _INDEX: dict | None = None
 
 
 def index() -> dict:
-    """The page index, built once per process (cached on disk by ui.retrieval)."""
+    """The page index, built once per process (cached on disk by corpus.build)."""
     global _INDEX
     if _INDEX is None:
-        _INDEX = retrieval.build()
+        _INDEX = build_pages()
     return _INDEX
 
 
@@ -157,19 +156,23 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
         search_question, condensed = condense.condense(
             question, history, ask=lambda messages: _ask(messages, model, temperature)[0])
 
-    versions = {"index_version": cache.index_version(source),
-                "model_version": cache.model_version(model, model_digest(model)),
-                "prompt_version": prompt.PROMPT_VERSION}
+    # The key follows the question that was actually searched: a follow-up condensed
+    # against a different history is a different question, and its answer must not be
+    # replayed for this one.
+    versions = None
     path = cache_path or cache.CACHE_PATH
     if use_cache:
-        hit = cache.get(question, path=path, **versions)
+        versions = {"index_version": cache.index_version(source),
+                    "model_version": cache.model_version(model, model_digest(model)),
+                    "prompt_version": prompt.PROMPT_VERSION}
+        hit = cache.get(search_question, path=path, **versions)
         if hit is not None:
             return _record(question, **{**hit, "cached": True,
                                         "route": routed, "search_question": search_question,
                                         "condensed": condensed,
                                         "seconds": round(time.perf_counter() - started, 2)})
 
-    passages = retrieval.search(source, search_question, k=k or routed["k"])
+    passages = search_pages(source, search_question, k=k or routed["k"])
 
     # Task 3's floor: a question nothing scores against is refused without spending a
     # model call, and without giving the model a chance to answer from nothing.
@@ -181,7 +184,7 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
                          model=model,
                          seconds=round(time.perf_counter() - started, 2))
         if use_cache:
-            _remember(record, question, path, versions)
+            _remember(record, search_question, path, versions)
         return record
 
     messages = [{"role": "system",
@@ -218,19 +221,28 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     # An unverified answer is not cached: it is the one outcome that should be retried
     # rather than replayed.
     if use_cache and status != "unverified":
-        _remember(record, question, path, versions)
+        _remember(record, search_question, path, versions)
     return record
 
 
-def main(argv: list[str] | None = None) -> int:
+def _parser() -> argparse.ArgumentParser:
+    """The CLI, built here so its defaults can be checked without running a model."""
     parser = argparse.ArgumentParser(prog="generation.answer", description=__doc__)
     parser.add_argument("question")
-    parser.add_argument("--k", type=int, default=PASSAGES, help="passages in context (4-6)")
+    # None means "use the route's own k": summary and table ask for more context than a
+    # normal question, and a default here would silently override every route.
+    parser.add_argument("--k", type=int, default=None,
+                        help="passages in context (4-6); default: the route's own k")
     parser.add_argument("--model", default=MODEL)
     parser.add_argument("--json", action="store_true", help="print the whole record")
     parser.add_argument("--history", default="",
                         help="previous question, so a follow-up can be tested")
     parser.add_argument("--no-cache", action="store_true", help="ignore the answer cache")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _parser()
     args = parser.parse_args(argv)
 
     history = ([{"role": "user", "content": args.history}] if args.history else None)

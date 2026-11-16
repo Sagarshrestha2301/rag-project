@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "eval"))
 
 import score  # noqa: E402  (after the path fix, this is how eval/ modules import)
-from ui import retrieval  # noqa: E402
+from corpus import build, search  # noqa: E402
 
 CORPUS = ROOT / "data" / "corpus"
 RUNS = ROOT / "eval" / "runs"
@@ -55,10 +55,10 @@ def corpus_paths() -> dict[str, str]:
 
 def retrieve(questions: list[dict], paths: dict[str, str], k: int) -> tuple[list[dict], dict]:
     """Top-k pages per question, plus the index that produced them."""
-    index = retrieval.build()
+    index = build()
     rows = []
     for question in questions:
-        hits = retrieval.search(index, question["question"], k=k)
+        hits = search(index, question["question"], k=k)
         rows.append({
             "id": question["id"],
             "retrieved": [
@@ -82,7 +82,7 @@ def report(summary: dict, results: list[dict], questions: list[dict], index: dic
         f"({index['ocr_pages']} OCR pages, {len(index['unreadable'])} files with unreadable pages)",
         f"- Questions: {len(questions)} ({len(answered)} answerable, "
         f"{len(questions) - len(answered)} not-found)",
-        f"- Index: BM25 over pages, k=30 (`ui/retrieval.py`), question text only",
+        f"- Index: BM25 over pages, k=30 (`corpus.py`), question text only",
         "",
         "| metric | count | share |",
         "|---|---|---|",

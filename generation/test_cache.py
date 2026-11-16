@@ -1,8 +1,12 @@
-"""Prove the cache: hit on a repeat, miss after any change that could invalidate it.
+"""Prove the cache: a hit on a repeat, a miss after anything that invalidates it.
 
 D-017 requires the key to include the index, the model files and the prompt version, so
-each of those is tested as its own miss — a cache that only keys on the question would
+each of those is tested as its own miss. A cache that only keys on the question would
 serve yesterday's answer after a re-parse and nobody would notice.
+
+The last group tests the second guard: an entry stores a fingerprint of every page it
+relied on, and a hit re-checks them against the corpus. A page that was removed, or a
+page whose text changed, must be a miss even when the key still matches.
 
 Usage:
     .venv\\Scripts\\python.exe generation\\test_cache.py
@@ -16,6 +20,8 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
+import pymupdf                                    # noqa: E402
+
 from generation import cache                      # noqa: E402
 
 FAILURES: list[str] = []
@@ -23,6 +29,10 @@ TOTAL = 0
 
 VERSIONS = {"index_version": "idx-a", "model_version": "qwen3.5:4b:abc123",
             "prompt_version": "s6-2"}
+
+PAGE_TEXT = ("Table 2: Flood damage in the East-Rapti basin. The 24-hour rainfall depth "
+             "of 540 mm at Tistung was recorded in July 1970, and 139 households were "
+             "surveyed in the lower catchment. Of these, 71 were growers.")
 
 
 def check(name: str, fn) -> None:
@@ -40,6 +50,23 @@ def temp_path() -> pathlib.Path:
     return pathlib.Path(tempfile.mkdtemp()) / "answer-cache.json"
 
 
+def write_pdf(path: pathlib.Path, pages: list[str]) -> None:
+    """A real PDF with a real text layer, so the page lookup is exercised for real."""
+    path.unlink(missing_ok=True)
+    doc = pymupdf.open()
+    for text in pages:
+        doc.new_page().insert_text((72, 72), text)
+    doc.save(path)
+    doc.close()
+
+
+def record(*pages: tuple[str, int]) -> dict:
+    return {"answer": "540 mm",
+            "passages": [{"n": n, "doc": doc, "page": page}
+                         for n, (doc, page) in enumerate(pages, start=1)]}
+
+
+# ---------------------------------------------------------------- the key (D-017)
 def hit_on_repeat() -> None:
     path = temp_path()
     cache.put("What was the rainfall at Tistung?", {"answer": "540 mm"}, path=path, **VERSIONS)
@@ -116,6 +143,55 @@ def model_version_prefers_the_digest() -> None:
     assert cache.model_version("qwen3.5:4b", "a" * 64) == "qwen3.5:4b:aaaaaaaaaaaa"
 
 
+# ------------------------------------------------- the page fingerprints (re-verify)
+def unchanged_pages_are_a_hit() -> None:
+    root, path = pathlib.Path(tempfile.mkdtemp()), temp_path()
+    write_pdf(root / "a.pdf", [PAGE_TEXT])
+    cache.put("q", record(("a.pdf", 1)), path=path, corpus_root=root, **VERSIONS)
+    assert cache.get("q", path=path, corpus_root=root, **VERSIONS) is not None
+
+
+def a_removed_document_is_a_miss() -> None:
+    root, path = pathlib.Path(tempfile.mkdtemp()), temp_path()
+    write_pdf(root / "a.pdf", [PAGE_TEXT])
+    cache.put("q", record(("a.pdf", 1)), path=path, corpus_root=root, **VERSIONS)
+    (root / "a.pdf").unlink()
+    assert cache.get("q", path=path, corpus_root=root, **VERSIONS) is None
+
+
+def an_altered_page_is_a_miss() -> None:
+    root, path = pathlib.Path(tempfile.mkdtemp()), temp_path()
+    write_pdf(root / "a.pdf", [PAGE_TEXT])
+    cache.put("q", record(("a.pdf", 1)), path=path, corpus_root=root, **VERSIONS)
+    write_pdf(root / "a.pdf", [PAGE_TEXT.replace("540 mm", "482 mm")])
+    assert cache.get("q", path=path, corpus_root=root, **VERSIONS) is None
+
+
+def a_removed_page_is_a_miss() -> None:
+    root, path = pathlib.Path(tempfile.mkdtemp()), temp_path()
+    write_pdf(root / "a.pdf", ["Cover page. " * 8, PAGE_TEXT])
+    cache.put("q", record(("a.pdf", 2)), path=path, corpus_root=root, **VERSIONS)
+    write_pdf(root / "a.pdf", ["Cover page. " * 8])
+    assert cache.get("q", path=path, corpus_root=root, **VERSIONS) is None
+
+
+def a_change_to_an_unrelated_document_is_not_a_miss() -> None:
+    root, path = pathlib.Path(tempfile.mkdtemp()), temp_path()
+    write_pdf(root / "a.pdf", [PAGE_TEXT])
+    write_pdf(root / "b.pdf", [PAGE_TEXT])
+    cache.put("q", record(("a.pdf", 1)), path=path, corpus_root=root, **VERSIONS)
+    write_pdf(root / "b.pdf", [PAGE_TEXT.replace("540 mm", "482 mm")])
+    assert cache.get("q", path=path, corpus_root=root, **VERSIONS) is not None
+
+
+def an_entry_without_fingerprints_is_a_miss() -> None:
+    """Entries written before this guard cannot be re-checked, so they are not served."""
+    path = temp_path()
+    old_key = cache.key("q", **VERSIONS)
+    cache.save({old_key: {"answer": "540 mm"}}, path)
+    assert cache.get("q", path=path, **VERSIONS) is None
+
+
 def main() -> int:
     cases = [
         ("a repeated question is a hit", hit_on_repeat),
@@ -130,6 +206,13 @@ def main() -> int:
         ("a corrupt file is an empty cache", corrupt_file_is_an_empty_cache),
         ("the index version follows the corpus signature", index_version_follows_the_signature),
         ("the model version prefers the digest", model_version_prefers_the_digest),
+        ("a hit re-checks unchanged pages", unchanged_pages_are_a_hit),
+        ("a hit with a removed document is a miss", a_removed_document_is_a_miss),
+        ("a hit with an altered page is a miss", an_altered_page_is_a_miss),
+        ("a hit with a removed page is a miss", a_removed_page_is_a_miss),
+        ("an unrelated document does not invalidate a hit",
+         a_change_to_an_unrelated_document_is_not_a_miss),
+        ("an entry without fingerprints is a miss", an_entry_without_fingerprints_is_a_miss),
     ]
     for name, fn in cases:
         check(name, fn)

@@ -18,7 +18,7 @@ import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from chunk import doc_context, meta                  # noqa: E402
-from ingest.base import corpus_files                 # noqa: E402
+from corpus import files as corpus_files             # noqa: E402
 
 FAILURES: list[str] = []
 

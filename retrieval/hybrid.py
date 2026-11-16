@@ -1,7 +1,7 @@
 """Hybrid retrieval: page BM25 + chunk BM25 + chunk dense, fused with RRF (Step 5).
 
 **MEASURED OUTCOME: this does not beat the page baseline, and the UI does not use it.**
-On the 26 answerable eval questions the page-level BM25 baseline (`ui/retrieval.py`)
+On the 26 answerable eval questions the page-level BM25 baseline (`corpus.py`)
 scores recall@5 25/26 with MRR 0.885. `eval/run_sweep.py` then scored every list alone
 and the weight grid (`eval/runs/2026-11-16-sweep/`): chunk BM25 alone 18/26 at MRR
 0.394, chunk dense alone 16/26 at 0.422, and across 79 configurations the best fusion
@@ -19,7 +19,7 @@ on these 26 questions: that is fitting the test set.
 
 Three signals, and each is there for a measured reason rather than symmetry:
 
-- **page BM25** (`ui/retrieval.py`) is the baseline the eval set was measured on: 25 of
+- **page BM25** (`corpus.py`) is the baseline the eval set was measured on: 25 of
   26 answerable questions at rank 1, MRR 0.885. A whole page keeps terms together that
   chunking splits apart — q010's "correlation coefficient for equation (2)" is on one
   page but in no single chunk — so dropping this signal is measurable damage, not a
@@ -37,8 +37,8 @@ That comparison was made in an earlier session and is **not reproducible from th
 current sweep artifact**, so it is stated as a reason, not as a number.
 
 A citation is a page: `file` + `page_start` of the best matching chunk, or the page
-itself when only the page-level list found it. Hits keep the keys
-`ui/retrieval.search()` returns, so the UI does not care which retriever answered.
+itself when only the page-level list found it. Hits keep the keys `corpus.search()`
+returns, so the UI does not care which retriever answered.
 
 `lists()` and `fuse()` are split out of `search()` for two reasons: the ablation pays
 for one dense encode per question instead of one per weight combination, and the
@@ -64,11 +64,10 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-# `ui.retrieval` owns the page index, the tokenizer, the snippet cutter and the BM25
-# scorer. Importing them keeps one definition of "a token" and one scorer across both
+# `corpus` owns the page index, the tokenizer, the snippet cutter and the BM25 scorer.
+# Importing them keeps one definition of "a token" and one scorer across both
 # granularities, so the comparison against the baseline cannot drift.
-from ui import retrieval as pages_retrieval      # noqa: E402
-from ui.retrieval import BM25, context_for, label_for, snippet, tokens  # noqa: E402
+from corpus import BM25, build as build_pages, context_for, label_for, snippet, tokens  # noqa: E402
 
 CHUNKS = ROOT / "index" / "chunks.jsonl"
 DB = ROOT / "index" / "lancedb"
@@ -115,7 +114,7 @@ class Dense:
 def build(use_dense: bool = True) -> dict:
     """Load chunks and pages, index both for BM25, and open the dense table."""
     chunks = _read_chunks()
-    page_index = pages_retrieval.build()
+    page_index = build_pages()
     dense = None
     dense_error = ""
     if use_dense and DB.exists():

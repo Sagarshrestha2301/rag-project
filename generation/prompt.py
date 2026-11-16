@@ -11,7 +11,7 @@ that exact text on that page, so a sentence the model made up has nothing to cit
 
 Usage:
     from generation import prompt
-    text = prompt.build_system(hits)          # hits from ui.retrieval.search
+    text = prompt.build_system(hits)          # hits from corpus.search
     prompt.PROMPT_VERSION                     # changes when this file's wording does
 
 Example of the shape a compliant answer has (this is what verify.py parses):
@@ -91,8 +91,7 @@ def file_name(hit: dict) -> str:
     return hit.get("doc") or pathlib.PurePosixPath(str(hit.get("file", ""))).name
 
 
-def build_system(hits: list[dict], *, context_key: str = "context",
-                 mode: str = "normal") -> str:
+def build_system(hits: list[dict], *, mode: str = "normal") -> str:
     """Number the passages, then append the rules.
 
     The number is printed next to the passage three times -- in the heading, at the
@@ -106,7 +105,7 @@ def build_system(hits: list[dict], *, context_key: str = "context",
 
     blocks = []
     for number, hit in enumerate(hits, start=1):
-        body = hit.get(context_key) or hit.get("text") or ""
+        body = hit.get("context") or hit.get("text") or ""
         blocks.append(
             f"PASSAGE [{number}] — {hit.get('label') or file_name(hit)}, "
             f"page {hit['page']}, file {file_name(hit)}\n"
