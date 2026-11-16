@@ -48,7 +48,7 @@ corpus and the embedder weights must already be on disk, and step 2 creates
 | `AGENTS.md` | Rules every coding agent must follow |
 | `APPROVALS.md` | Owner-only record of step approvals (agents read, never edit) |
 | `EVAL.md` | Evaluation set, metrics, regression gate, results |
-| `docs/manual.html` | Stand-alone manual for readers who will not open the repo; `reports/build_manual.py` regenerates it |
+| `docs/manual.html` | Stand-alone manual for readers who will not open the repo; `reports/build_manual.py` regenerates it, and `scripts/manual-to-pdf.ps1` prints `docs/manual.pdf` for emailing |
 | `steps/NN-name.md` | One file per step: tasks, definition of done, verification |
 
 ## Repository layout

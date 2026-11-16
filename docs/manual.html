@@ -58,9 +58,27 @@ pre code{background:none;border:0;padding:0}
 .manual__footer{padding:26px 0;font-size:13px;color:var(--muted)}
 .tag{font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-radius:999px;
      padding:2px 8px;border:1px solid var(--line);color:var(--muted)}
+/* A4 with real margins: Chromium's default is US Letter with 10 mm margins, and the
+   owner's region prints A4. */
+@page{size:A4;margin:18mm 16mm 16mm}
+
+/* Print: force the light palette (the screen palette follows the OS, and printing a
+   dark page wastes ink and can come out unreadable), unpin the table's scroll width so
+   no column is cut off, and keep rows, stages and callouts whole across page breaks. */
 @media print{
-  body{font-size:11.5pt} .nav{display:none} .manual{max-width:none;padding:0}
-  .section{page-break-inside:avoid} pre,table{page-break-inside:avoid}
+  :root{--ink:#111;--muted:#555;--line:#b9c2cb;--bg:#fff;--soft:#f4f6f8;
+        --accent:#1a4f8a;--warn:#7a3f0e;--ok:#1a5c3b}
+  body{font-size:10.5pt;background:#fff}
+  .nav{display:none}
+  .manual{max-width:none;padding:0 0 12pt}
+  .manual__header{padding-top:0}
+  .manual__title{font-size:23pt}
+  h2,h3{page-break-after:avoid}
+  .section{padding:18pt 0 4pt}
+  .stage,.card,.callout,tr,pre{page-break-inside:avoid}
+  .table-wrap{overflow:visible;border-color:var(--line)}
+  .table{min-width:0;font-size:9pt}
+  .table th,.table td{padding:5pt 7pt}
   a{color:inherit;text-decoration:none}
 }
 </style>
