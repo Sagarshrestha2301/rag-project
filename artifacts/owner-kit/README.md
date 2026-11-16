@@ -15,7 +15,7 @@ Three files:
 
 ## Why this kit exists
 
-`APPROVALS.md` has completion lines for steps 01 and 02 but **no start line for step 03 or 04**, and `git tag` lists nothing at all. Steps 3 and 4 were worked on anyway, on explicit chat instruction (recorded in `STATUS.md`), which left the record behind reality. This kit closes that gap in one reviewable run instead of asking you to remember a sequence of commands.
+`APPROVALS.md` has completion lines for steps 01 and 02, but **no start line for step 02** (its completion is there, its start is not), none for steps 03 and 04, and none for step 05. `git tag` lists nothing at all. Steps 2, 3, 4 and 5 were worked on anyway, on explicit chat instruction (recorded in `STATUS.md`), which left the record behind reality. This kit closes that gap in one reviewable run instead of asking you to remember a sequence of commands.
 
 ## Before you run the script
 
@@ -36,7 +36,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File artifacts\owner-kit\apply-ow
 no commits. The real run does four things in order, each with its own `OWNER:` commit
 where a commit is needed:
 
-1. **APPROVALS.md** — adds `completion` lines for steps 01 and 02 and `start` lines for steps 03 and 04, dated the day you run it. A line whose step and action already exist is skipped, so running it twice does not duplicate anything.
+1. **APPROVALS.md** — adds `completion` lines for steps 01 and 02 and `start` lines for steps **02, 03, 04 and 05**, dated the day you run it. A line whose step and action already exist is skipped, so running it twice does not duplicate anything.
 2. **Tags** — creates `step-00-approved` and `step-01-approved` (and `step-02-approved` only if you set `$AcceptStep2 = $true`).
 3. **DECISIONS.md** — adds an `APPROVED … by the owner <date>` line after each of D-038, D-040, D-042, D-043 and D-044, and a `SUPERSEDED D-039 by D-040` line after D-039.
 4. **Check** — prints the two `APPROVALS.md` checks A and B from that file, so you can see the result immediately.
