@@ -109,6 +109,18 @@ def _passages(passages: list[dict]) -> list[dict]:
             for number, p in enumerate(passages, start=1)]
 
 
+# What the cache stores: everything needed to replay an answer, and nothing about this
+# particular request (route, timing, seconds) that a future call would compute itself.
+_CACHE_FIELDS = ("answer", "status", "gate", "citations", "problems", "attempts",
+                 "passages", "model", "prompt_version", "timing")
+
+
+def _remember(record: dict, question: str, path: pathlib.Path, versions: dict) -> None:
+    """Store an answer, so a later identical question is served instead of re-asked."""
+    cache.put(question, {key: record[key] for key in _CACHE_FIELDS},
+              path=path, **versions)
+
+
 def _record(question: str, **fields) -> dict:
     """One answer record, with the fields every path must fill in."""
     base = {"question": question, "answer": "", "status": "unverified", "gate": {},
@@ -161,20 +173,15 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
 
     # Task 3's floor: a question nothing scores against is refused without spending a
     # model call, and without giving the model a chance to answer from nothing.
-    early = gate.decide(passages)
-    early["model_called"] = False
-    if not early["ask_model"]:
+    checked = gate.pre_ask(passages)
+    if checked["refused"]:
         record = _record(question, answer=prompt.NOT_FOUND_TEXT, status="not_found",
-                         gate=early, route=routed, search_question=search_question,
-                         condensed=condensed,
-                         passages=_passages(passages),
+                         gate=checked, route=routed, search_question=search_question,
+                         condensed=condensed, passages=_passages(passages),
                          model=model,
                          seconds=round(time.perf_counter() - started, 2))
         if use_cache:
-            cache.put(question, {key: record[key] for key in (
-                "answer", "status", "gate", "citations", "problems", "attempts",
-                "passages", "model", "prompt_version", "timing")},
-                path=path, **versions)
+            _remember(record, question, path, versions)
         return record
 
     messages = [{"role": "system",
@@ -196,12 +203,11 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
         attempts = 2
 
     # The model decides; the gate only records what that decision was and why.
-    decided = gate.decide(passages, verdict)
-    decided["model_called"] = True
-    status = {"not_found": "not_found", "answer": "verified"}.get(decided["decision"],
+    decision = gate.resolve(verdict)
+    status = {"not_found": "not_found", "answer": "verified"}.get(decision["decision"],
                                                                   "unverified")
 
-    record = _record(question, answer=text, status=status, gate=decided,
+    record = _record(question, answer=text, status=status, gate={**checked, **decision},
                      citations=verdict["citations"], problems=verdict["problems"],
                      attempts=attempts, route=routed, search_question=search_question,
                      condensed=condensed,
@@ -212,10 +218,7 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     # An unverified answer is not cached: it is the one outcome that should be retried
     # rather than replayed.
     if use_cache and status != "unverified":
-        cache.put(question, {key: record[key] for key in (
-            "answer", "status", "gate", "citations", "problems", "attempts",
-            "passages", "model", "prompt_version", "timing")},
-            path=path, **versions)
+        _remember(record, question, path, versions)
     return record
 
 
@@ -249,7 +252,7 @@ def main(argv: list[str] | None = None) -> int:
     print()
     print(f"status: {record['status']}")
     gate_info = record.get("gate") or {}
-    called = "model asked" if gate_info.get("model_called") else "model not asked"
+    called = "model asked" if record["attempts"] else "model not asked"
     print(f"gate:   {gate_info.get('decision')} - {gate_info.get('reason')} "
           f"(top {gate_info.get('top')}, floor {gate_info.get('floor')}, {called})")
     for problem in record["problems"]:

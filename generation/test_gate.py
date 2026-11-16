@@ -1,4 +1,8 @@
-"""Prove the not-found gate: floor before the model, refusal after it, nothing invented.
+"""Prove the gate: the floor refuses before the model, the verdict decides after it.
+
+The two halves are tested separately because they run at different times: `pre_ask` sees
+passages and no answer, `resolve` sees a verdict and no passages. A case that mixed them
+would be testing a sequence the pipeline never performs.
 
 Usage:
     .venv\\Scripts\\python.exe generation\\test_gate.py
@@ -32,83 +36,73 @@ def check(name: str, fn) -> None:
         print(f"  FAIL  {name}: {exc}")
 
 
-# ------------------------------------------------------------------ before asking
+# --------------------------------------------------------------- before the model
 def empty_retrieval_is_refused() -> None:
-    verdict = gate.decide([])
-    assert verdict["decision"] == "not_found", verdict
-    assert verdict["ask_model"] is False
-    assert "no page above zero" in verdict["reason"], verdict["reason"]
+    checked = gate.pre_ask([])
+    assert checked["refused"] is True and checked["decision"] == "not_found", checked
+    assert "no page above zero" in checked["reason"], checked["reason"]
 
 
-def below_floor_is_refused_without_asking() -> None:
-    verdict = gate.decide(pages(4.0, 2.0, 1.0))
-    assert verdict["decision"] == "not_found" and verdict["ask_model"] is False, verdict
-    assert verdict["top"] == 4.0
+def below_floor_is_refused() -> None:
+    checked = gate.pre_ask(pages(4.0, 2.0, 1.0))
+    assert checked["refused"] is True, checked
+    assert checked["top"] == 4.0, checked["top"]
 
 
-def just_below_floor_is_refused() -> None:
-    assert gate.decide(pages(gate.FLOOR - 0.01))["decision"] == "not_found"
+def the_floor_is_the_boundary() -> None:
+    assert gate.pre_ask(pages(gate.FLOOR - 0.01))["refused"] is True
+    assert gate.pre_ask(pages(gate.FLOOR))["refused"] is False, "the floor itself is allowed"
 
 
-def just_above_floor_asks_the_model() -> None:
-    verdict = gate.decide(pages(gate.FLOOR + 0.01))
-    assert verdict["ask_model"] is True and verdict["decision"] == "answer", verdict
+def the_highest_score_decides() -> None:
+    """Ranking puts the best page first, but the floor must not depend on that."""
+    assert gate.pre_ask(pages(2.0, 90.0, 1.0))["refused"] is False
 
 
-def top_score_wins_not_the_last_page() -> None:
-    assert gate.decide(pages(2.0, 90.0, 1.0))["ask_model"] is True
+def a_custom_floor_is_honoured() -> None:
+    assert gate.pre_ask(pages(40.0), floor=50.0)["refused"] is True
+    assert gate.pre_ask(pages(40.0), floor=10.0)["refused"] is False
 
 
-def custom_floor_is_honoured() -> None:
-    assert gate.decide(pages(40.0), floor=50.0)["decision"] == "not_found"
-    assert gate.decide(pages(40.0), floor=10.0)["decision"] == "answer"
-
-
-def missing_scores_count_as_zero() -> None:
+def a_missing_score_counts_as_zero() -> None:
     assert gate.top_score([{"doc": "a.pdf", "page": 1}]) == 0.0
+    assert gate.pre_ask([{"doc": "a.pdf", "page": 1}])["refused"] is True
 
 
-# ------------------------------------------------------------------- after asking
-def model_refusal_becomes_not_found() -> None:
-    verdict = gate.decide(pages(40.0), {"said_not_found": True, "ok": True, "problems": []})
-    assert verdict["decision"] == "not_found", verdict
-    assert "refused" in verdict["reason"], verdict["reason"]
+# ---------------------------------------------------------------- after the model
+def a_refusal_is_not_found() -> None:
+    decision = gate.resolve({"said_not_found": True, "ok": True, "problems": []})
+    assert decision["decision"] == "not_found", decision
+    assert "refused" in decision["reason"], decision["reason"]
 
 
-def verified_answer_is_an_answer() -> None:
-    verdict = gate.decide(pages(40.0), {"said_not_found": False, "ok": True, "problems": []})
-    assert verdict["decision"] == "answer", verdict
+def a_verified_answer_is_an_answer() -> None:
+    decision = gate.resolve({"said_not_found": False, "ok": True, "problems": []})
+    assert decision["decision"] == "answer", decision
 
 
-def failed_verification_is_not_a_refusal() -> None:
-    verdict = gate.decide(pages(40.0), {"said_not_found": False, "ok": False,
-                                        "problems": ["[1] the quotation is not on a.pdf page 1"]})
-    assert verdict["decision"] == "unverified", verdict
-    assert "not on" in verdict["reason"], verdict["reason"]
-
-
-def a_below_floor_question_is_still_refused_even_if_the_model_answered() -> None:
-    """The floor runs first: a strong answer cannot come from a passage that scored 4."""
-    verdict = gate.decide(pages(4.0), {"said_not_found": False, "ok": True, "problems": []})
-    assert verdict["decision"] == "not_found", verdict
+def a_failed_check_is_unverified_not_a_refusal() -> None:
+    decision = gate.resolve({"said_not_found": False, "ok": False,
+                             "problems": ["[1] the quotation is not on a.pdf page 1"]})
+    assert decision["decision"] == "unverified", decision
+    assert "not on" in decision["reason"], decision["reason"]
 
 
 def main() -> int:
     groups = [
         ("before the model: the floor", [
             ("empty retrieval is refused", empty_retrieval_is_refused),
-            ("a passage below the floor is refused without asking", below_floor_is_refused_without_asking),
-            ("just below the floor is refused", just_below_floor_is_refused),
-            ("just above the floor asks the model", just_above_floor_asks_the_model),
-            ("the highest score decides, not the last page", top_score_wins_not_the_last_page),
-            ("a custom floor is honoured", custom_floor_is_honoured),
-            ("a missing score counts as zero", missing_scores_count_as_zero),
+            ("a passage below the floor is refused", below_floor_is_refused),
+            ("the floor is the boundary", the_floor_is_the_boundary),
+            ("the highest score decides", the_highest_score_decides),
+            ("a custom floor is honoured", a_custom_floor_is_honoured),
+            ("a missing score counts as zero", a_missing_score_counts_as_zero),
         ]),
-        ("after the model: its refusal", [
-            ("a refusal becomes not-found", model_refusal_becomes_not_found),
-            ("a verified answer is an answer", verified_answer_is_an_answer),
-            ("a failed check is unverified, not a refusal", failed_verification_is_not_a_refusal),
-            ("the floor still wins over a confident answer", a_below_floor_question_is_still_refused_even_if_the_model_answered),
+        ("after the model: the verdict", [
+            ("a refusal is not-found", a_refusal_is_not_found),
+            ("a verified answer is an answer", a_verified_answer_is_an_answer),
+            ("a failed check is unverified, not a refusal",
+             a_failed_check_is_unverified_not_a_refusal),
         ]),
     ]
     for heading, cases in groups:

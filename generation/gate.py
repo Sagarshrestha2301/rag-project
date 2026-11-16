@@ -4,31 +4,39 @@ D-058 measured why there is no score threshold here. On the re-based dev set the
 answerable and not-found BM25 ranges overlap on every statistic -- top-1 18.43-80.52
 against 18.01-29.97, margin 0.10-26.93 against 0.01-6.25, ratio 1.01-2.20 against
 1.00-1.39 -- so a threshold that catches all six not-found questions also rejects 12 of
-39 answerable ones. The decision therefore belongs to the model, which reads the
-passages and can tell whether they answer the question; the score is only used to skip
-the model when retrieval produced nothing worth reading.
+39 answerable ones. The decision belongs to the model, which reads the passages and can
+tell whether they answer the question; the score is only used to skip the model when
+retrieval produced nothing worth reading.
 
-Two outcomes, in this order:
+The two steps happen at different times, so they are two functions:
 
-1. **floor** -- if the best passage scores below `FLOOR`, the model is never asked. This
-   catches an empty or off-topic query (a greeting, a one-word noise term), not a
-   near-topic question the corpus cannot answer. At `FLOOR = 15` it cost nothing on the
-   dev set: 0 of 6 not-found questions and 0 of 39 answerable ones. Raising it is a
-   regression unless a measurement says otherwise.
-2. **refusal** -- otherwise the model decides, and its refusal is accepted only in the
-   exact words the prompt demands (`prompt.NOT_FOUND_TEXT`).
+- `pre_ask(passages)` -- before the model: refuse, or say the model decides. Below
+  `FLOOR` the model is never asked. At `FLOOR = 15` that cost nothing on the dev set
+  (0 of 6 not-found caught, 0 of 39 answerable lost), which is the point: it catches an
+  empty or off-topic query, not a near-topic question the corpus cannot answer.
+- `resolve(verdict)` -- after the model, from `generation.verify`'s verdict alone: a
+  refusal in the prompt's exact words is "not found", a verified answer is an answer, and
+  a failed check is `unverified`. A model that drifted is never reported as a corpus that
+  was silent.
 
 Usage:
     from generation import gate
-    verdict = gate.decide(passages)                    # before asking the model
-    if verdict["ask_model"]: ...
-    verdict = gate.decide(passages, verify_result)     # after
+    checked = gate.pre_ask(passages)
+    if checked["refused"]:
+        ...                                  # the answer is the refusal; no model call
+    else:
+        ...                                  # ask, then verify
+        decision = gate.resolve(verdict)
 
 Example:
-    >>> gate.decide([{"doc": "a.pdf", "page": 1, "score": 4.2}])["decision"]
-    'not_found'
-    >>> gate.decide([{"doc": "a.pdf", "page": 1, "score": 40.0}])["ask_model"]
+    >>> gate.pre_ask([{"doc": "a.pdf", "page": 1, "score": 4.2}])["refused"]
     True
+    >>> gate.pre_ask([{"doc": "a.pdf", "page": 1, "score": 40.0}])["refused"]
+    False
+    >>> gate.resolve({"said_not_found": True, "ok": True})["decision"]
+    'not_found'
+    >>> gate.resolve({"said_not_found": False, "ok": False, "problems": ["x"]})["decision"]
+    'unverified'
 """
 
 from __future__ import annotations
@@ -45,44 +53,36 @@ def top_score(passages: list[dict]) -> float:
     return max((float(p.get("score") or 0.0) for p in passages), default=0.0)
 
 
-def decide(passages: list[dict], verdict: dict | None = None,
-           floor: float = FLOOR) -> dict:
-    """Decide `not_found`, `answer` or `unverified`.
+def pre_ask(passages: list[dict], floor: float = FLOOR) -> dict:
+    """Refuse on the floor, or hand the decision to the model.
 
-    With no `verdict`, the answer is either "ask the model" or a refusal made on the
-    floor alone. With a verdict from `generation.verify`, the model has spoken and this
-    resolves what its answer means.
+    `refused` is the only thing the caller must branch on; `decision` is filled in so a
+    refusal record reads like an answered one.
     """
     top = top_score(passages)
-    result = {"floor": floor, "top": round(top, 2), "ask_model": False,
+    result = {"floor": floor, "top": round(top, 2), "refused": True,
               "decision": "not_found", "reason": ""}
 
     if not passages:
         result["reason"] = "retrieval returned no page above zero"
-        return result
-
-    if top < floor:
+    elif top < floor:
         result["reason"] = f"best passage scored {top:.1f}, below the floor of {floor:.0f}"
-        return result
-
-    if verdict is None:
-        result.update(ask_model=True, decision="answer",
+    else:
+        result.update(refused=False, decision="answer",
                       reason=f"best passage scored {top:.1f}, so the model decides")
-        return result
+    return result
 
+
+def resolve(verdict: dict) -> dict:
+    """What the model's answer means, from its verification verdict alone."""
     if verdict.get("said_not_found"):
-        result.update(decision="not_found",
-                      reason="the model refused: the passages do not answer the question")
-        return result
+        return {"decision": "not_found",
+                "reason": "the model refused: the passages do not answer the question"}
 
     if verdict.get("ok"):
-        result.update(decision="answer",
-                      reason="every quotation was found on the page it cites")
-        return result
+        return {"decision": "answer",
+                "reason": "every quotation was found on the page it cites"}
 
-    # A failed answer is not a refusal. Reporting it as "not found" would hide a model
-    # that tried and drifted, so it stays unverified and says why.
-    result.update(decision="unverified",
-                  reason="the answer's quotations could not be verified: "
-                         + "; ".join(verdict.get("problems") or [])[:300])
-    return result
+    problems = "; ".join(verdict.get("problems") or [])[:300]
+    return {"decision": "unverified",
+            "reason": f"the answer's quotations could not be verified: {problems}"}
