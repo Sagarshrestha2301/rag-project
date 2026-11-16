@@ -1,0 +1,229 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Proposed dev questions (25)</title><style>
+:root{--ink:#16202b;--muted:#5d6b7a;--line:#dbe3ea;--bg:#fff;--soft:#f6f8fa;--accent:#1f5fa8}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:32px 22px 80px}
+h1{font-size:26px;margin:0 0 6px} .lead{color:var(--muted);margin:0 0 18px}
+.counts{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 22px}
+.counts span{border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:13px;background:var(--soft)}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:0 0 12px;break-inside:avoid}
+.card--nf{background:#fffaf2;border-color:#e8d5b5}
+.card__head{display:flex;gap:10px;align-items:baseline;font-size:12px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em}
+.card__id{font:600 13px ui-monospace,Consolas,monospace;color:var(--accent)}
+.card__q{margin:8px 0 6px;font-weight:600}
+.card__a{margin:0 0 8px;font-size:14px}
+.card__quote{margin:0;padding:8px 12px;border-left:3px solid var(--line);background:var(--soft);
+  font-size:13.5px;color:#2b3a48}
+.card__links{margin:8px 0 0;font-size:13px}
+.card__note{font-size:13px;color:var(--muted);margin:6px 0 0}
+a{color:var(--accent)}
+</style></head>
+<body><main class="wrap">
+<h1>25 candidate dev questions for approval</h1>
+<p class="lead">Proposed on 2026-11-16 from the two eval source documents. Every quote below
+was found verbatim in the parsed text of the page it cites by
+<code>eval/propose_questions.py</code>; every gold number appears in its quote.
+Nothing here is in <code>eval/questions.jsonl</code> yet - that file is unchanged.</p>
+<p class="counts"><span>22 answerable</span>
+<span>3 not found</span>
+<span>dev split</span><span>added_in_step 5</span></p>
+<article class="card">
+  <header class="card__head"><span class="card__id">q031</span>
+    <span class="card__type">number</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p2</span></header>
+  <p class="card__q">How much rain fell at Ghantemadi over 48 hours during the July 1993 event?</p>
+  <p class="card__a"><strong>Answer:</strong> 600 mm</p>
+  <blockquote class="card__quote">The 48-hour rainfall depth at Ghantemadi was 600 mm.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=2">open PDF at page 2</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q032</span>
+    <span class="card__type">number</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p2</span></header>
+  <p class="card__q">What was the time lag between the two rainfall peaks at Nibuwatar?</p>
+  <p class="card__a"><strong>Answer:</strong> 26 hours</p>
+  <blockquote class="card__quote">The time lag between two rainfall peaks at Nibuwatar is 26 hours.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=2">open PDF at page 2</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q033</span>
+    <span class="card__type">number</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p2</span></header>
+  <p class="card__q">What hourly rainfall intensity was recorded at Nibuwatar in Bhainse during the July 1993 storm?</p>
+  <p class="card__a"><strong>Answer:</strong> 64 mm per hour</p>
+  <blockquote class="card__quote">The hourly rainfall intensities (Figure 2 and 3) during that period were 70 mm per hour in Tistung, 67 mm per hour in Simlang, and 64 mm per hour at Nibuwatar in Bhainse.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=2">open PDF at page 2</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q034</span>
+    <span class="card__type">exact</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p3</span></header>
+  <p class="card__q">What correlation coefficient is reported for the single relationship between specific peaks and catchment areas?</p>
+  <p class="card__a"><strong>Answer:</strong> 0.78</p>
+  <blockquote class="card__quote">The correlation coefficient is found to be 0.78</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=3">open PDF at page 3</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q035</span>
+    <span class="card__type">number</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p3</span></header>
+  <p class="card__q">What correlation coefficient do equations (3) and (4) reach, according to the paper?</p>
+  <p class="card__a"><strong>Answer:</strong> more than 0.91</p>
+  <blockquote class="card__quote">The value of correlation coefficients in both equations is more than 0.91.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=3">open PDF at page 3</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q036</span>
+    <span class="card__type">list</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p1</span></header>
+  <p class="card__q">In which years does the paper list floods in the Sunkosi River?</p>
+  <p class="card__a"><strong>Answer:</strong> 1964, 1981 and 1984</p>
+  <blockquote class="card__quote">Floods of 1964, 1981 and 1984 in the Sunkosi River are some events in the eastern region.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=1">open PDF at page 1</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q037</span>
+    <span class="card__type">number</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p4</span></header>
+  <p class="card__q">What return period does the paper attribute to the 1993 floods?</p>
+  <p class="card__a"><strong>Answer:</strong> approximately 100 years</p>
+  <blockquote class="card__quote">Floods occurred in 1993 are of approximately 100 year recurring period.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=4">open PDF at page 4</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q038</span>
+    <span class="card__type">comparison</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p3</span></header>
+  <p class="card__q">Which river has the lowest coefficient value among those listed by DHM/DPTC (1994)?</p>
+  <p class="card__a"><strong>Answer:</strong> Rapti River at Bhandara, 0.033</p>
+  <blockquote class="card__quote">The coefficient values (DHM/DPTC, 1994) varied from 0.033 for Rapti River at Bhandara, 0.06 for Bagmati, 0.07 for Kyankhola, and 0.07 for Agrakhola.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=3">open PDF at page 3</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q039</span>
+    <span class="card__type">exact</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p3</span></header>
+  <p class="card__q">What 24-hour and 48-hour rainfall depths does the paper use for the study area (P0)?</p>
+  <p class="card__a"><strong>Answer:</strong> 540 mm in 24 hours and 600 mm in 48 hours</p>
+  <blockquote class="card__quote">In the study area, P0 is 540 mm and 600 mm observed in 1993 in 24-h and 48-h durations respectively.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=3">open PDF at page 3</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q040</span>
+    <span class="card__type">number</span>
+    <span class="card__where">1970 Marahatta Relating Hydrological Extremes with A… p2</span></header>
+  <p class="card__q">When did the monsoon enter eastern Nepal in 1993 and by what date had it covered the whole region?</p>
+  <p class="card__a"><strong>Answer:</strong> June 6, and the whole region by June 14</p>
+  <blockquote class="card__quote">In 1993, monsoon entered in the eastern Nepal on June 6, four days earlier than usual, and covered the whole region by June 14.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#page=2">open PDF at page 2</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q041</span>
+    <span class="card__type">exact</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p2</span></header>
+  <p class="card__q">How many households were interviewed in the Terai, the Midhills and Kerabari?</p>
+  <p class="card__a"><strong>Answer:</strong> 199 in the Terai, 208 in the Midhills and 41 in Kerabari</p>
+  <blockquote class="card__quote">Altogether, 199 households in the Terai, 208 in the Midhills and 41 in Kerabari were interviewed with semi-structured and open-ended questions.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=2">open PDF at page 2</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q042</span>
+    <span class="card__type">fact</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p1</span></header>
+  <p class="card__q">How many bamboo species are recorded in Nepal, and in which publication?</p>
+  <p class="card__a"><strong>Answer:</strong> Fifty species, recorded by Das (2004)</p>
+  <blockquote class="card__quote">Fifty species of bamboos are already recorded in Nepal (Das, 2004).</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=1">open PDF at page 1</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q043</span>
+    <span class="card__type">fact</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p1</span></header>
+  <p class="card__q">Why is a small piece of bamboo hung above a grave in Bangladesh?</p>
+  <p class="card__a"><strong>Answer:</strong> To scare away evil spirits</p>
+  <blockquote class="card__quote">In Bangladesh, when a villager is buried a small piece of bamboo is hung above the grave in order to scare away evil spirits (Arens and Beurden, 1978).</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=1">open PDF at page 1</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q044</span>
+    <span class="card__type">fact</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p1</span></header>
+  <p class="card__q">What was bamboo planting associated with among some villagers in the Kakani-Kathmandu area?</p>
+  <p class="card__a"><strong>Answer:</strong> Childlessness</p>
+  <blockquote class="card__quote">Gurung (1989) reported an unwillingness to plant bamboo amongst some villagers in the KakaniKathmandu area, where it was associated with childlessness.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=1">open PDF at page 1</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q045</span>
+    <span class="card__type">number</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p3</span></header>
+  <p class="card__q">What share of households in the Terai believes in taboos and superstitions about bamboo?</p>
+  <p class="card__a"><strong>Answer:</strong> 61.9%</p>
+  <blockquote class="card__quote">Overwhelming majority of households (61.9%) in the Terai believes in tabors and superstitions associated with bamboos.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=3">open PDF at page 3</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q046</span>
+    <span class="card__type">table</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p2</span></header>
+  <p class="card__q">In the Terai, what percentage of households said bamboo reduces the productivity of the land?</p>
+  <p class="card__a"><strong>Answer:</strong> 91.46%</p>
+  <blockquote class="card__quote">Reduces the productivity of the land 182 91.46 172 82.69 39 95.12</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=2">open PDF at page 2</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q047</span>
+    <span class="card__type">table</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p2</span></header>
+  <p class="card__q">According to Table 1, what percentage of Terai households believe in taboos and superstitions?</p>
+  <p class="card__a"><strong>Answer:</strong> 69.85%</p>
+  <blockquote class="card__quote">Believe in taboos and superstitions 139 69.85 79 37.96 16 39.02</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=2">open PDF at page 2</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q048</span>
+    <span class="card__type">fact</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p4</span></header>
+  <p class="card__q">Who may plant bamboo if there are no males over 60 years old in the house?</p>
+  <p class="card__a"><strong>Answer:</strong> A middle-aged man</p>
+  <blockquote class="card__quote">If there are no old males (over 60 years) in the house then it can be carried out by a middle-aged man.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=4">open PDF at page 4</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q049</span>
+    <span class="card__type">fact</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p5</span></header>
+  <p class="card__q">If a household has no elderly members, what age qualifies a member to plant bamboo?</p>
+  <p class="card__a"><strong>Answer:</strong> 40 years or over</p>
+  <blockquote class="card__quote">In the absence of old age members in the family it can be carried out by the middle aged household heads or members (40 years or over).</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=5">open PDF at page 5</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q050</span>
+    <span class="card__type">list</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p3</span></header>
+  <p class="card__q">Which crops can be grown up to 11-15 m from a bamboo row, according to the study cited?</p>
+  <p class="card__a"><strong>Answer:</strong> Ginger, turmeric, large cardamom, orchard grass and dinanath grass</p>
+  <blockquote class="card__quote">The results indicate that agricultural land near bamboos can be effectively utilised for growing ginger, turmeric, large cardamom, orchard grass and dinanath grass up to a distance of 11-15 m from the bamboo row.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=3">open PDF at page 3</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q051</span>
+    <span class="card__type">fact</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p6</span></header>
+  <p class="card__q">According to some households in the Midhills, at what age should males harvest new bamboo shoots?</p>
+  <p class="card__a"><strong>Answer:</strong> Over 50 years of age</p>
+  <blockquote class="card__quote">Some households in the Midhills mentioned that only males over 50 years of age should carry out harvesting of new shoots.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=6">open PDF at page 6</a></p>
+</article><article class="card">
+  <header class="card__head"><span class="card__id">q052</span>
+    <span class="card__type">summary</span>
+    <span class="card__where">1970 Das Beliefs superstitions and taboos associated… p5</span></header>
+  <p class="card__q">Why is Kerabari exposed to elephant damage, and how often does it happen?</p>
+  <p class="card__a"><strong>Answer:</strong> It lies on the migratory route of wild elephants, which roam the area every 2-3 years</p>
+  <blockquote class="card__quote">Kerabari lies on the migratory route of wild elephants and every 2-3 years wild elephants roam around Kerabari and damage crops of the households and sometimes even attack men.</blockquote>
+  <p class="card__links"><a href="file:///C:/Users/sagar/Downloads/project/rag-project/data/corpus/1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#page=5">open PDF at page 5</a></p>
+</article><article class="card card--nf">
+  <header class="card__head"><span class="card__id">q053</span>
+    <span class="card__type">not found</span>
+    <span class="card__where">no page states this</span></header>
+  <p class="card__q">What is the average bamboo yield per hectare in Nepal?</p>
+  <p class="card__a"><strong>Expected:</strong> NOT FOUND</p>
+  <p class="card__note">proposed 2026-11-16, awaiting owner approval; not found: the corpus gives species counts and uses, never a yield per hectare Closest mentions: 1970_Das_Beliefs_superstitions_and_taboo p3, 1970_Das_Beliefs_superstitions_and_taboo p8, 1970_Marahatta_Relating_Hydrological_Ext p1</p>
+</article><article class="card card--nf">
+  <header class="card__head"><span class="card__id">q054</span>
+    <span class="card__type">not found</span>
+    <span class="card__where">no page states this</span></header>
+  <p class="card__q">What was the population of Kerabari VDC at the time of the survey?</p>
+  <p class="card__a"><strong>Expected:</strong> NOT FOUND</p>
+  <p class="card__note">proposed 2026-11-16, awaiting owner approval; not found: the paper reports 41 sampled households in Kerabari, never a population Closest mentions: none</p>
+</article><article class="card card--nf">
+  <header class="card__head"><span class="card__id">q055</span>
+    <span class="card__type">not found</span>
+    <span class="card__where">no page states this</span></header>
+  <p class="card__q">What is the elevation of the Tistung rainfall station in metres?</p>
+  <p class="card__a"><strong>Expected:</strong> NOT FOUND</p>
+  <p class="card__note">proposed 2026-11-16, awaiting owner approval; not found: the paper gives a 300-3000 m elevation band for the region, never a station elevation Closest mentions: 1970_Marahatta_Relating_Hydrological_Ext p1</p>
+</article>
+</main></body></html>
