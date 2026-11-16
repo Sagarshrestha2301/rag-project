@@ -29,7 +29,7 @@ import pathlib
 
 # Bumped whenever SYSTEM_RULES or build_system changes, because the answer cache is
 # keyed on it (D-017): a prompt edit must never serve yesterday's answers.
-PROMPT_VERSION = "s6-1"
+PROMPT_VERSION = "s6-2"
 
 # Written out here, quoted by the prompt, and compared against in answer.py, so the
 # refusal the model is told to produce is exactly the one the code looks for.
@@ -64,6 +64,24 @@ calculate a number that is not printed.
 else: {NOT_FOUND_TEXT}"""
 
 
+# Route-specific rules (task 4). Appended after SYSTEM_RULES so the citation contract
+# never moves; these only change what counts as a complete answer.
+EXTRA_RULES = {
+    "normal": "",
+    "table": (
+        "\n\nThis question is about figures in a table. Copy every number exactly as it "
+        "is printed, including its unit and any thousands separator, and quote the table "
+        "row or header you took it from. If the table gives a range, give the range, not "
+        "the midpoint you calculate."
+    ),
+    "summary": (
+        "\n\nThis question asks for an overview. You may use up to six sentences and "
+        "cite more than one passage, one [n] per claim, but every sentence still needs a "
+        "verified quotation: summarise only what you can quote."
+    ),
+}
+
+
 def file_name(hit: dict) -> str:
     """The passage's file name, without its folders.
 
@@ -73,7 +91,8 @@ def file_name(hit: dict) -> str:
     return hit.get("doc") or pathlib.PurePosixPath(str(hit.get("file", ""))).name
 
 
-def build_system(hits: list[dict], *, context_key: str = "context") -> str:
+def build_system(hits: list[dict], *, context_key: str = "context",
+                 mode: str = "normal") -> str:
     """Number the passages, then append the rules.
 
     The number is printed next to the passage three times -- in the heading, at the
@@ -81,8 +100,9 @@ def build_system(hits: list[dict], *, context_key: str = "context") -> str:
     miscounts which passage a sentence came from, which is how the UI prototype
     ended up citing [2] for text only passage 1 contained (D-044).
     """
+    extra = EXTRA_RULES.get(mode, "")
     if not hits:
-        return ("No passage was retrieved for this question.\n\n" + SYSTEM_RULES)
+        return ("No passage was retrieved for this question.\n\n" + SYSTEM_RULES + extra)
 
     blocks = []
     for number, hit in enumerate(hits, start=1):
@@ -94,7 +114,7 @@ def build_system(hits: list[dict], *, context_key: str = "context") -> str:
             f"(End of passage [{number}]: anything taken from here is cited as "
             f"[{number}] and quoted from {file_name(hit)}, p. {hit['page']}.)"
         )
-    return "\n\n".join(blocks) + "\n\n" + SYSTEM_RULES
+    return "\n\n".join(blocks) + "\n\n" + SYSTEM_RULES + extra
 
 
 def retry_message(problems: list[str]) -> str:

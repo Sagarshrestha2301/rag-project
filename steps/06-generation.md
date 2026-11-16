@@ -17,7 +17,7 @@
 - [ ] Regression gate (as defined in `EVAL.md`) passes against the Step 5 baseline for retrieval metrics
 - [ ] Offline run: full pipeline and eval pass with the network disabled (output recorded)
 - [x] Quote verification catches an injected fake quote (test with real output)
-- [ ] Cache returns a hit for a repeated question and misses after an index or prompt version change (tested)
+- [x] Cache returns a hit for a repeated question and misses after an index or prompt version change (tested)
 - [ ] Latency: about 20s short follow-up, 30s+ deep (p50 and p95 reported)
 - [ ] Held-out result recorded
 

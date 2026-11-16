@@ -1,0 +1,167 @@
+"""Prove the router's rules: five routes, the settings each one changes, and its refusals.
+
+Usage:
+    .venv\\Scripts\\python.exe generation\\test_router.py
+"""
+
+from __future__ import annotations
+
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+
+from generation import router                     # noqa: E402
+
+FAILURES: list[str] = []
+TOTAL = 0
+
+HISTORY = [{"role": "user", "content": "What was the 24-hour rainfall depth at Tistung?"},
+           {"role": "assistant", "content": "540 mm [1]."}]
+
+
+def check(name: str, fn) -> None:
+    global TOTAL
+    TOTAL += 1
+    try:
+        fn()
+        print(f"  PASS  {name}")
+    except AssertionError as exc:
+        FAILURES.append(name)
+        print(f"  FAIL  {name}: {exc}")
+
+
+def expect(name: str, question: str, want: str, history=None) -> None:
+    got = router.route(question, history)["route"]
+    assert got == want, f"{question!r} routed to {got}, wanted {want}"
+
+
+# ------------------------------------------------------------------------- routes
+def greetings() -> None:
+    for text in ("hi", "Hello!", "hey there", "Good morning", "thanks", "ok"):
+        expect(text, text, "greeting")
+
+
+def a_greeting_with_a_question_is_not_a_greeting() -> None:
+    """'hello, what was the rainfall at Tistung?' is a corpus question wearing a hello.
+
+    It is a table question because it asks "how much"; what matters here is only that a
+    long question is never answered with the greeting reply.
+    """
+    question = "hello, what was the rainfall at Tistung in 1970 and how much?"
+    assert router.route(question)["route"] != "greeting", router.route(question)
+
+
+def summaries() -> None:
+    for text in ("Summarise this paper", "give me an overview of the report",
+                 "what are the main findings", "summarize across all documents"):
+        expect(text, text, "summary")
+
+
+def tables() -> None:
+    for text in ("how many households were surveyed", "what percentage of growers",
+                 "the table of flood damage", "average rainfall in July"):
+        expect(text, text, "table")
+
+
+def followup_needs_history() -> None:
+    expect("and in 1990?", "and in 1990?", "followup", HISTORY)
+    expect("what about the other district?", "what about the other district?",
+           "followup", HISTORY)
+    expect("how many were affected there?", "how many were affected there?", "followup",
+           HISTORY)
+
+
+def followup_without_history_is_not_a_followup() -> None:
+    """With no previous turn a pronoun has no referent; condensing cannot invent one."""
+    expect("and in 1990?", "and in 1990?", "normal", None)
+    expect("what about it?", "what about it?", "normal", [])
+
+
+def a_complete_question_with_history_is_not_a_followup() -> None:
+    """History alone never turns a self-contained question into a follow-up.
+
+    This one mentions "the same table of results", so it routes to `table`; the invariant
+    under test is that it is not condensed, because it already names its own subject.
+    """
+    long_question = ("What was the 24-hour rainfall depth recorded at Tistung during the "
+                     "storm described in the Marahatta paper, and how does it compare with "
+                     "the value at Ghantemadi in the same table of results?")
+    routed = router.route(long_question, HISTORY)
+    assert routed["route"] != "followup", routed
+    assert routed["condense"] is False, routed
+
+
+def table_question_with_history_is_still_a_table_question_if_complete() -> None:
+    text = "How many households were surveyed in the lower catchment of the East-Rapti basin?"
+    expect(text, text, "table", HISTORY)
+
+
+# ----------------------------------------------------------------------- settings
+def settings_per_route() -> None:
+    assert router.route("hi")["k"] == 0, "a greeting must not retrieve"
+    assert router.route("summarise this paper")["k"] == 8
+    assert router.route("summarise this paper")["prompt_mode"] == "summary"
+    assert router.route("how many households")["k"] == 6
+    assert router.route("how many households")["prompt_mode"] == "table"
+    assert router.route("what was the rainfall at Tistung")["k"] == 5
+    assert router.route("what was the rainfall at Tistung")["prompt_mode"] == "normal"
+
+
+def only_followups_condense() -> None:
+    assert router.route("and in 1990?", HISTORY)["condense"] is True
+    assert router.route("what was the rainfall at Tistung")["condense"] is False
+    assert router.route("summarise this paper")["condense"] is False
+
+
+def empty_question_is_a_greeting() -> None:
+    """Nothing to retrieve, nothing to ask: the UI sends this when the box is blank."""
+    assert router.route("   ")["route"] == "greeting"
+
+
+def every_route_has_a_reason() -> None:
+    for text in ("hi", "summarise this", "how many rows", "plain question here", ""):
+        assert router.route(text)["reason"], f"no reason for {text!r}"
+
+
+def main() -> int:
+    groups = [
+        ("greetings", [
+            ("hi, hello, thanks, ok", greetings),
+            ("a greeting wrapped around a real question is not a greeting",
+             a_greeting_with_a_question_is_not_a_greeting),
+            ("an empty question is a greeting", empty_question_is_a_greeting),
+        ]),
+        ("summary and table", [
+            ("summarise, overview, main findings", summaries),
+            ("how many, percentage, table, average", tables),
+        ]),
+        ("follow-ups need a previous turn", [
+            ("and/what about/how many ... there", followup_needs_history),
+            ("the same words with no history stay normal", followup_without_history_is_not_a_followup),
+            ("a complete question with history is not a follow-up",
+             a_complete_question_with_history_is_not_a_followup),
+            ("a complete table question stays a table question",
+             table_question_with_history_is_still_a_table_question_if_complete),
+        ]),
+        ("settings", [
+            ("each route sets its own k and prompt mode", settings_per_route),
+            ("only a follow-up condenses", only_followups_condense),
+            ("every route explains itself", every_route_has_a_reason),
+        ]),
+    ]
+    for heading, cases in groups:
+        print(heading)
+        for name, fn in cases:
+            check(name, fn)
+
+    print()
+    if FAILURES:
+        print(f"FAILED: {len(FAILURES)} of {TOTAL} case(s): {FAILURES}")
+        return 1
+    print(f"all {TOTAL} cases pass")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

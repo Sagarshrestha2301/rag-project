@@ -6,10 +6,12 @@ the model is told what failed and asked once more; if the second answer fails to
 is returned marked `unverified` with the reasons, never silently passed off as
 grounded.
 
-This is tasks 1-3 of Step 6. Task 3's gate (`generation/gate.py`, D-058) runs before the
-model: a question whose best passage scores below the floor is refused without asking,
-and otherwise the model's own refusal decides. The intent router (task 4), the condense
-step (task 5) and the cache (task 6) are not here yet.
+This is tasks 1-6 of Step 6. The router (`generation/router.py`) decides the route and
+its retrieval/prompt settings, the condense step (`generation/condense.py`) rewrites a
+follow-up only when there is history, the gate (`generation/gate.py`, D-058) refuses on a
+floor or on the model's own refusal, and the cache (`generation/cache.py`, D-017) is keyed
+on the question, the index, the model file and the prompt version. The full dev eval
+task 7 runs is not here yet.
 
 Usage:
     .venv\\Scripts\\python.exe -m generation.answer "What was the 24-hour rainfall at Tistung?"
@@ -29,7 +31,7 @@ import time
 
 import httpx
 
-from generation import gate, prompt, think, verify
+from generation import cache, condense, gate, prompt, router, think, verify
 from ui import retrieval
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
@@ -39,7 +41,10 @@ KEEP_ALIVE = os.environ.get("CHAT_KEEP_ALIVE", "30m")
 # Thinking stays off: with it on, qwen3.5 spends the answer budget on hidden reasoning
 # and returns an empty string (measured on all 30 questions in Step 2).
 THINK = os.environ.get("CHAT_THINK", "0").lower() in ("1", "true", "yes")
-PASSAGES = 5          # Step 6 asks for 4-6; five fits 4096 tokens with room to answer
+# Step 6 asks for 4-6 passages; the router raises it for an overview (8) or a table (6).
+PASSAGES = router.SETTINGS["normal"]["k"]
+GREETING_REPLY = ("Hello. Ask me about the indexed documents — rainfall, floods, land use "
+                  "and the reports in the corpus.")
 
 _INDEX: dict | None = None
 
@@ -78,42 +83,93 @@ def _ask(messages: list[dict], model: str, temperature: float = 0.0) -> tuple[st
     return text, timing
 
 
-def answer(question: str, *, k: int = PASSAGES, model: str = MODEL,
-           index: dict | None = None, temperature: float = 0.0) -> dict:
-    """Retrieve, ask, verify, retry once if the quotes do not check out.
+def model_digest(model: str) -> str | None:
+    """Ollama's digest for a model tag, so the cache key follows the weights (D-017)."""
+    try:
+        with httpx.Client(timeout=httpx.Timeout(connect=2, read=5, write=5, pool=2)) as client:
+            tags = client.get(f"{OLLAMA_URL}/api/tags").json()
+    except (httpx.HTTPError, ValueError):
+        return None
+    for entry in tags.get("models", []):
+        name = entry.get("name", "")
+        if name == model or name.split(":")[0] == model.split(":")[0]:
+            return entry.get("digest")
+    return None
 
-    Returns a record with the answer, its citations, the verification verdict, how many
-    attempts it took, and the passages that were shown — everything the eval needs and
-    nothing inferred.
+
+def _record(question: str, **fields) -> dict:
+    """One answer record, with the fields every path must fill in."""
+    base = {"question": question, "answer": "", "status": "unverified", "gate": {},
+            "citations": [], "problems": [], "attempts": 0, "passages": [],
+            "model": MODEL, "prompt_version": prompt.PROMPT_VERSION, "timing": {},
+            "seconds": 0.0, "cached": False, "route": {}, "search_question": question,
+            "condensed": False}
+    base.update(fields)
+    return base
+
+
+def answer(question: str, *, k: int | None = None, model: str = MODEL,
+           index: dict | None = None, temperature: float = 0.0,
+           history: list[dict] | None = None, use_cache: bool = True,
+           cache_path: pathlib.Path | None = None) -> dict:
+    """Route, retrieve, ask, verify, retry once, and cache what came back.
+
+    `history` is the chat so far (oldest first). It only matters for a follow-up: it is
+    what lets "and in 1990?" be rewritten into a question worth searching for, and what
+    the router reads to know a pronoun has a referent at all.
     """
     started = time.perf_counter()
     source = index if index is not None else globals()["index"]()
-    passages = retrieval.search(source, question, k=k)
+    routed = router.route(question, history)
+
+    if routed["route"] == "greeting":
+        return _record(question, answer=GREETING_REPLY, status="greeting", route=routed,
+                       seconds=round(time.perf_counter() - started, 2))
+
+    # Task 5: rewrite only a follow-up, and only when there is something to rewrite it
+    # against. A rewrite that fails leaves the question exactly as it was.
+    search_question, condensed = question, False
+    if routed["condense"]:
+        search_question, condensed = condense.condense(
+            question, history, ask=lambda messages: _ask(messages, model, temperature)[0])
+
+    versions = {"index_version": cache.index_version(source),
+                "model_version": cache.model_version(model, model_digest(model)),
+                "prompt_version": prompt.PROMPT_VERSION}
+    path = cache_path or cache.CACHE_PATH
+    if use_cache:
+        hit = cache.get(question, path=path, **versions)
+        if hit is not None:
+            return _record(question, **{**hit, "cached": True,
+                                        "route": routed, "search_question": search_question,
+                                        "condensed": condensed,
+                                        "seconds": round(time.perf_counter() - started, 2)})
+
+    passages = retrieval.search(source, search_question, k=k or routed["k"])
 
     # Task 3's floor: a question nothing scores against is refused without spending a
     # model call, and without giving the model a chance to answer from nothing.
     early = gate.decide(passages)
     early["model_called"] = False
     if not early["ask_model"]:
-        return {
-            "question": question,
-            "answer": prompt.NOT_FOUND_TEXT,
-            "status": "not_found",
-            "gate": early,
-            "citations": [],
-            "problems": [],
-            "attempts": 0,
-            "passages": [{"n": i, "doc": p.get("doc"), "page": p["page"],
-                          "label": p.get("label"), "score": p.get("score")}
-                         for i, p in enumerate(passages, start=1)],
-            "model": model,
-            "prompt_version": prompt.PROMPT_VERSION,
-            "timing": {},
-            "seconds": round(time.perf_counter() - started, 2),
-        }
+        record = _record(question, answer=prompt.NOT_FOUND_TEXT, status="not_found",
+                         gate=early, route=routed, search_question=search_question,
+                         condensed=condensed,
+                         passages=[{"n": i, "doc": p.get("doc"), "page": p["page"],
+                                    "label": p.get("label"), "score": p.get("score")}
+                                   for i, p in enumerate(passages, start=1)],
+                         model=model,
+                         seconds=round(time.perf_counter() - started, 2))
+        if use_cache:
+            cache.put(question, {key: record[key] for key in (
+                "answer", "status", "gate", "citations", "problems", "attempts",
+                "passages", "model", "prompt_version", "timing")},
+                path=path, **versions)
+        return record
 
-    messages = [{"role": "system", "content": prompt.build_system(passages)},
-                {"role": "user", "content": question}]
+    messages = [{"role": "system",
+                 "content": prompt.build_system(passages, mode=routed["prompt_mode"])},
+                {"role": "user", "content": search_question}]
     text, timing = _ask(messages, model, temperature)
     verdict = verify.verify_answer(text, passages)
     attempts = 1
@@ -133,24 +189,26 @@ def answer(question: str, *, k: int = PASSAGES, model: str = MODEL,
     decided = gate.decide(passages, verdict)
     decided["model_called"] = True
     status = {"not_found": "not_found", "answer": "verified"}.get(decided["decision"],
-                                                                   "unverified")
+                                                                  "unverified")
 
-    return {
-        "question": question,
-        "answer": text,
-        "status": status,
-        "gate": decided,
-        "citations": verdict["citations"],
-        "problems": verdict["problems"],
-        "attempts": attempts,
-        "passages": [{"n": i, "doc": p.get("doc"), "page": p["page"],
-                      "label": p.get("label"), "score": p.get("score")}
-                     for i, p in enumerate(passages, start=1)],
-        "model": model,
-        "prompt_version": prompt.PROMPT_VERSION,
-        "timing": timing,
-        "seconds": round(time.perf_counter() - started, 2),
-    }
+    record = _record(question, answer=text, status=status, gate=decided,
+                     citations=verdict["citations"], problems=verdict["problems"],
+                     attempts=attempts, route=routed, search_question=search_question,
+                     condensed=condensed,
+                     passages=[{"n": i, "doc": p.get("doc"), "page": p["page"],
+                                "label": p.get("label"), "score": p.get("score")}
+                               for i, p in enumerate(passages, start=1)],
+                     model=model, timing=timing,
+                     seconds=round(time.perf_counter() - started, 2))
+
+    # An unverified answer is not cached: it is the one outcome that should be retried
+    # rather than replayed.
+    if use_cache and status != "unverified":
+        cache.put(question, {key: record[key] for key in (
+            "answer", "status", "gate", "citations", "problems", "attempts",
+            "passages", "model", "prompt_version", "timing")},
+            path=path, **versions)
+    return record
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -159,16 +217,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--k", type=int, default=PASSAGES, help="passages in context (4-6)")
     parser.add_argument("--model", default=MODEL)
     parser.add_argument("--json", action="store_true", help="print the whole record")
+    parser.add_argument("--history", default="",
+                        help="previous question, so a follow-up can be tested")
+    parser.add_argument("--no-cache", action="store_true", help="ignore the answer cache")
     args = parser.parse_args(argv)
 
-    record = answer(args.question, k=args.k, model=args.model)
+    history = ([{"role": "user", "content": args.history}] if args.history else None)
+    record = answer(args.question, k=args.k, model=args.model, history=history,
+                    use_cache=not args.no_cache)
     if args.json:
         print(json.dumps(record, indent=2, ensure_ascii=False))
         return 0 if record["status"] != "unverified" else 1
 
+    route_info = record.get("route") or {}
     print(f"Q: {record['question']}")
     print(f"model {record['model']} | {record['seconds']} s | attempts {record['attempts']} "
-          f"| prompt {record['prompt_version']}")
+          f"| prompt {record['prompt_version']} | route {route_info.get('route')}"
+          + (" | cached" if record.get("cached") else ""))
+    if record.get("condensed"):
+        print(f"searched as: {record['search_question']}")
     print()
     print(record["answer"] or "(empty answer)")
     print()
