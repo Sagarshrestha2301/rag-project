@@ -1,0 +1,89 @@
+{
+  "label": "rebased-2026-11-16",
+  "retrieval": {
+    "recall@5": {
+      "pass": {
+        "count": 45,
+        "of": 48,
+        "pct": 93.8
+      }
+    },
+    "recall@10": {
+      "pass": {
+        "count": 47,
+        "of": 48,
+        "pct": 97.9
+      }
+    },
+    "recall@30": {
+      "pass": {
+        "count": 47,
+        "of": 48,
+        "pct": 97.9
+      }
+    }
+  },
+  "mrr": 0.829,
+  "by_split": {
+    "dev": {
+      "n": 45,
+      "retrieval": {
+        "recall@5": {
+          "pass": {
+            "count": 37,
+            "of": 39,
+            "pct": 94.9
+          }
+        },
+        "recall@10": {
+          "pass": {
+            "count": 39,
+            "of": 39,
+            "pct": 100.0
+          }
+        },
+        "recall@30": {
+          "pass": {
+            "count": 39,
+            "of": 39,
+            "pct": 100.0
+          }
+        }
+      },
+      "mrr": 0.834
+    },
+    "heldout": {
+      "n": 10,
+      "retrieval": {
+        "recall@5": {
+          "pass": {
+            "count": 8,
+            "of": 9,
+            "pct": 88.9
+          }
+        },
+        "recall@10": {
+          "pass": {
+            "count": 8,
+            "of": 9,
+            "pct": 88.9
+          }
+        },
+        "recall@30": {
+          "pass": {
+            "count": 8,
+            "of": 9,
+            "pct": 88.9
+          }
+        }
+      },
+      "mrr": 0.806
+    }
+  },
+  "corpus": {
+    "documents": 97,
+    "pages": 851,
+    "ocr_pages": 86
+  },
+  "seconds": 0.5
+}

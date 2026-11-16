@@ -17,7 +17,7 @@
 - [x] Ablation table in `EVAL.md` (recall@5/10/30, MRR for each configuration)
 - [x] Final configuration beats or equals every simpler one on dev (otherwise keep the simpler one)
 - [x] Retrieval latency per stage recorded and within budget
-- [ ] Dev set grown toward 50-60 questions, all owner-approved, new baseline logged
+- [x] Dev set grown toward 50-60 questions, all owner-approved, new baseline logged
 - [x] Held-out result recorded
 - [x] Offline run: pass (network disabled, output recorded)
 - [x] Baseline locked for the regression gate
