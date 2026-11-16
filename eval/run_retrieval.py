@@ -32,6 +32,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "eval"))
 
 import score  # noqa: E402  (after the path fix, this is how eval/ modules import)
+import corpus  # noqa: E402
 from corpus import build, search  # noqa: E402
 
 CORPUS = ROOT / "data" / "corpus"
@@ -40,17 +41,7 @@ RUNS = ROOT / "eval" / "runs"
 
 def corpus_paths() -> dict[str, str]:
     """{bare file name: corpus-relative path}, refusing duplicate names."""
-    by_name: dict[str, str] = {}
-    clashes: list[str] = []
-    for pdf in sorted(CORPUS.rglob("*.pdf")):
-        name = pdf.name
-        if name in by_name:
-            clashes.append(f"{name} ({by_name[name]} and {pdf.relative_to(CORPUS).as_posix()})")
-        by_name[name] = pdf.relative_to(CORPUS).as_posix()
-    if clashes:
-        raise SystemExit("duplicate corpus file names, cannot map hits to gold paths:\n  "
-                         + "\n  ".join(clashes))
-    return by_name
+    return corpus.relpaths(CORPUS)
 
 
 def retrieve(questions: list[dict], paths: dict[str, str], k: int) -> tuple[list[dict], dict]:

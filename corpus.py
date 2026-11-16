@@ -79,6 +79,16 @@ def path_for(doc: str, root: pathlib.Path = CORPUS) -> pathlib.Path:
     return matches[0]
 
 
+def relpaths(root: pathlib.Path = CORPUS) -> dict[str, str]:
+    """{bare file name: corpus-relative path in posix form}, for eval records.
+
+    Gold sources and run lines identify a page by `data/corpus/<folder>/<file>.pdf`;
+    a hit identifies it by the bare name the page record carries. This is the one
+    translation between the two, and `files()` has already refused duplicate names.
+    """
+    return {path.name: path.relative_to(root).as_posix() for path in files(root)}
+
+
 def signature(root: pathlib.Path = CORPUS) -> list[dict]:
     """Name, size and mtime of every corpus PDF.
 
