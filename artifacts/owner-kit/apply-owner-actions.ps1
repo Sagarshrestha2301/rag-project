@@ -8,7 +8,7 @@
       1. refuses to run if the working tree is not clean, or if any decision below
          still says 'PENDING';
       2. adds the missing approval lines to APPROVALS.md and commits them: completion
-         for steps 01, 02, 04 and 05, start for steps 02, 03, 04 and 05;
+         for steps 01, 02, 04 and 05, start for steps 02, 03, 04, 05 and 06;
       3. creates step-00-approved, step-01-approved, step-02-approved, step-04-approved
          and step-05-approved (each gated by a switch below);
       4. writes one verdict line for every decision in the table below - 17 APPROVED
@@ -81,6 +81,11 @@ $AcceptStep4 = $true
 # is re-based on the 45-question dev set, and the offline proof passed. Set to $false to
 # leave Step 5 open (for example while you write the last five dev questions).
 $AcceptStep5 = $true
+
+# Opening Step 6 is a start, not a completion: no tag is created for it, because a step
+# is tagged only when its definition of done is finished. Set to $false to keep Step 6
+# closed (for example while you decide the not-found gate and the generator).
+$StartStep6 = $true
 
 # ---------------------------------------------------------------------------
 $Today = (Get-Date).ToString('yyyy-MM-dd')
@@ -198,6 +203,7 @@ try {
         @{ Step = 'step 04'; Action = 'start' },
         @{ Step = 'step 03'; Action = 'start' },
         @{ Step = 'step 02'; Action = 'start' },
+        @{ Step = 'step 06'; Action = 'start' },
         @{ Step = 'step 05'; Action = 'completion' },
         @{ Step = 'step 04'; Action = 'completion' },
         @{ Step = 'step 02'; Action = 'completion' },
@@ -214,7 +220,7 @@ try {
     if ($added.Count -gt 0 -and $PSCmdlet.ShouldProcess('APPROVALS.md', ('add ' + $added.Count + ' approval line(s): ' + ($added -join '; ')))) {
         Write-TextFile -Path $approvals -Lines (Add-LogLine -Lines $lines -NewLines $added)
         Invoke-Git @('add', '--', 'APPROVALS.md') | Out-Null
-        Invoke-Git @('commit', '-m', 'OWNER: record the start of steps 02-05 and the completion of steps 01, 02, 04 and 05') | Out-Null
+        Invoke-Git @('commit', '-m', 'OWNER: record the start of steps 02-06 and the completion of steps 01, 02, 04 and 05') | Out-Null
         Write-Host ('added   ' + ($added -join ', ')) -ForegroundColor Green
         Write-Host 'committed APPROVALS.md'
     }

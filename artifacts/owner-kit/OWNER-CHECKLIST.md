@@ -90,7 +90,10 @@ git status                   # clean
 ```
 
 The run also adds **two `completion` lines** to `APPROVALS.md`, for steps 04 and 05, so
-neither stays a step that was finished but never recorded.
+neither stays a step that was finished but never recorded, and the **start line for
+step 06** (`$StartStep6`, `$true` by default), which is what opens the next step. A start
+creates no tag: Step 6 gets `step-06-approved` only when its own definition of done is
+finished.
 
 Expect **19 verdict lines** in `DECISIONS.md` — 18 `APPROVED` and 1 `SUPERSEDED D-046 by
 D-047` — each placed directly *above* the entry it answers, so the entry keeps its body.
