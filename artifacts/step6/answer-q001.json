@@ -1,0 +1,63 @@
+{
+  "question": "What was the 24-hour rainfall depth at Tistung?",
+  "answer": "The 24-hour rainfall depth recorded at Tistung was 540 mm [1].\n\n[1] 1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf, p. 2: \"The 24-hour rainfall depth of 540 mm at Tistung and 482 mm at Ghantemadi were recorded in morning hours of 20th July.\"",
+  "status": "verified",
+  "citations": [
+    {
+      "n": 1,
+      "file": "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf",
+      "page": 2,
+      "quote": "The 24-hour rainfall depth of 540 mm at Tistung and 482 mm at Ghantemadi were recorded in morning hours of 20th July.",
+      "raw": "[1] 1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf, p. 2: \"The 24-hour rainfall depth of 540 mm at Tistung and 482 mm at Ghantemadi were recorded in morning hours of 20th July.\""
+    }
+  ],
+  "problems": [],
+  "attempts": 1,
+  "passages": [
+    {
+      "n": 1,
+      "doc": "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf",
+      "page": 2,
+      "label": "Marahatta 1970",
+      "score": 36.191
+    },
+    {
+      "n": 2,
+      "doc": "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf",
+      "page": 1,
+      "label": "Marahatta 1970",
+      "score": 24.285
+    },
+    {
+      "n": 3,
+      "doc": "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf",
+      "page": 3,
+      "label": "Marahatta 1970",
+      "score": 23.821
+    },
+    {
+      "n": 4,
+      "doc": "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf",
+      "page": 3,
+      "label": "Dhar 1960",
+      "score": 18.565
+    },
+    {
+      "n": 5,
+      "doc": "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf",
+      "page": 1,
+      "label": "Dhar 1960",
+      "score": 17.127
+    }
+  ],
+  "model": "qwen3.5:4b",
+  "prompt_version": "s6-1",
+  "timing": {
+    "total_ms": 9047.8,
+    "load_ms": 10.3,
+    "ttft_ms": 456.1,
+    "prompt_tokens": 3276,
+    "answer_tokens": 110
+  },
+  "seconds": 9.85
+}

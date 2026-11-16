@@ -24,6 +24,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from generation.think import ThinkFilter
 from ui import retrieval
 
 STATIC = pathlib.Path(__file__).parent / "static"
@@ -78,53 +79,8 @@ def key_for(position: int) -> str:
     return LETTERS[position - 1] if 0 < position <= len(LETTERS) else str(position)
 
 
-class ThinkFilter:
-    """Strip ` thinking...</think>` blocks from a streamed answer.
-
-    qwen3.5 emits those tags as literal text even with `think: false` — usually
-    an empty pair at the very start — so without this the UI shows "<think>".
-    Tags can be split across chunks, so a partial tag at the end of a chunk is
-    held back until it resolves.
-    """
-
-    OPEN = "<think>"
-    CLOSE = "</think>"
-
-    def __init__(self) -> None:
-        self.pending = ""
-        self.inside = False
-
-    def feed(self, text: str) -> str:
-        self.pending += text
-        out: list[str] = []
-        while self.pending:
-            if self.inside:
-                end = self.pending.find(self.CLOSE)
-                if end < 0:
-                    self.pending = self.pending[-(len(self.CLOSE) - 1):]
-                    break
-                self.pending = self.pending[end + len(self.CLOSE):]
-                self.inside = False
-                continue
-            start = self.pending.find(self.OPEN)
-            if start < 0:
-                safe = len(self.pending)
-                for size in range(1, len(self.OPEN)):
-                    if self.pending.endswith(self.OPEN[:size]):
-                        safe = len(self.pending) - size
-                        break
-                out.append(self.pending[:safe])
-                self.pending = self.pending[safe:]
-                break
-            out.append(self.pending[:start])
-            self.pending = self.pending[start + len(self.OPEN):]
-            self.inside = True
-        return "".join(out)
-
-    def flush(self) -> str:
-        rest, self.pending = self.pending, ""
-        return "" if self.inside else rest
-
+# ThinkFilter lives in generation/think.py: Step 6 needs the same stripping, and an
+# answer must be scored on the text the user actually sees.
 
 def build_system(hits: list[dict]) -> str:
     if not hits:

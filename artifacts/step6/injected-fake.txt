@@ -1,0 +1,14 @@
+The answer that generation/answer.py produced and verified:
+
+The 24-hour rainfall depth recorded at Tistung was 540 mm [1].
+
+[1] 1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf, p. 2: "The 24-hour rainfall depth of 540 mm at Tistung and 482 mm at Ghantemadi were recorded in morning hours of 20th July."
+
+Same answer, one number changed inside the quotation (540 -> 720):
+
+The 24-hour rainfall depth recorded at Tistung was 540 mm [1].
+
+[1] 1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf, p. 2: "The 24-hour rainfall depth of 720 mm at Tistung and 482 mm at Ghantemadi were recorded in morning hours of 20th July."
+
+verify.verify_answer verdict: ok=False
+  - [1] the quotation is not on 1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf page 2: "The 24-hour rainfall depth of 720 mm at Tistung and 482 mm at Ghantema"
