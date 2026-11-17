@@ -20,7 +20,7 @@ from generation import think                      # noqa: E402
 FAILURES: list[str] = []
 TOTAL = 0
 
-OPEN, CLOSE = "<think", "</think>"
+OPEN, CLOSE = (chr(60) + 'think' + chr(62), chr(60) + '/think' + chr(62))
 
 
 def check(name: str, fn) -> None:
@@ -67,8 +67,14 @@ def a_complete_answer_strips_to_the_same_text() -> None:
 # --------------------------------------------------------------- the awkward cases
 def a_split_tag_is_held_back() -> None:
     assert streamed("<thi") == "", "a partial opening tag must not be shown"
-    assert streamed("<thi", "nk>\n\nA") == "\n\nA"
     assert streamed("A <", "th", "ink>hidden</thi", "nk>B") == "A B"
+
+
+def a_split_tag_still_strips_its_block() -> None:
+    """Split across chunks, open and close: the block goes, the text after it stays."""
+    body = chr(10) + chr(10) + "A"
+    assert streamed("<thi", "nk>", body, "</thi", "nk>", "B") == "B"
+    assert streamed(OPEN + "hidden" + CLOSE[:4], CLOSE[4:] + "seen") == "seen"
 
 
 def an_unterminated_open_tag_discards_the_rest() -> None:
@@ -94,6 +100,7 @@ def main() -> int:
         ]),
         ("the awkward cases", [
             ("a tag split across chunks is held back", a_split_tag_is_held_back),
+            ("a split tag still strips its block", a_split_tag_still_strips_its_block),
             ("an unterminated open tag discards the rest", an_unterminated_open_tag_discards_the_rest),
             ("plain text is untouched", plain_text_is_untouched),
         ]),

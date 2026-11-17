@@ -16,8 +16,8 @@ from __future__ import annotations
 class ThinkFilter:
     """Feed chunks in, get visible text out; `flush()` at the end."""
 
-    OPEN = "<think"
-    CLOSE = "</think>"
+    OPEN = chr(60) + 'think' + chr(62)
+    CLOSE = chr(60) + '/think' + chr(62)
 
     def __init__(self) -> None:
         self.pending = ""
@@ -30,7 +30,14 @@ class ThinkFilter:
             if self.inside:
                 end = self.pending.find(self.CLOSE)
                 if end < 0:
-                    self.pending = self.pending[-(len(self.CLOSE) - 1):]
+                    # Hide the reasoning, but keep a suffix that may be the start of a
+                    # split closing tag; anything else here is never shown.
+                    keep = 0
+                    for size in range(min(len(self.CLOSE) - 1, len(self.pending)), 0, -1):
+                        if self.pending.endswith(self.CLOSE[:size]):
+                            keep = size
+                            break
+                    self.pending = self.pending[len(self.pending) - keep:] if keep else ""
                     break
                 self.pending = self.pending[end + len(self.CLOSE):]
                 self.inside = False
