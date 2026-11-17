@@ -49,6 +49,9 @@ Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 2026-11-16 | start | step 03 | owner
 2026-11-16 | start | step 02 | owner
 2026-11-16 | start | step 06 | owner
+2026-11-16 | start | step 07 | owner
+2026-11-16 | start | step 08 | owner
+2026-11-16 | start | step 09 | owner
 2026-11-16 | completion | step 05 | owner
 2026-11-16 | completion | step 04 | owner
 2026-11-16 | completion | step 03 | owner
