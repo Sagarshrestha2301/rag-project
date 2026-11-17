@@ -16,6 +16,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 import pymupdf                                  # noqa: E402
 
+from corpus import CORPUS as CORPUS_ROOT          # noqa: E402
 from generation import prompt, verify           # noqa: E402
 
 FAILURES: list[str] = []
@@ -148,7 +149,7 @@ def refusal_with_extra_text_fails() -> None:
 
 def first_readable_page() -> tuple[str, int, str]:
     """Name, page and text of the first corpus page with at least 400 characters."""
-    for path in sorted(pathlib.Path("data/corpus").rglob("*.pdf")):
+    for path in sorted(CORPUS_ROOT.rglob("*.pdf")):
         with pymupdf.open(path) as pdf:
             for number, page in enumerate(pdf, start=1):
                 text = verify.norm(page.get_text())

@@ -34,7 +34,11 @@ import json
 import pathlib
 import re
 
-CACHE_PATH = pathlib.Path("index/answer-cache.json")
+from corpus import ROOT
+
+# Absolute, like `corpus.CORPUS`: a question asked from another folder must find the same
+# answers, not start a second cache beside it.
+CACHE_PATH = ROOT / "index" / "answer-cache.json"
 
 Page = tuple[str, int]
 

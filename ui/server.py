@@ -24,11 +24,12 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from corpus import build as build_pages, search as search_pages
+from corpus import CORPUS, build as build_pages, search as search_pages
 from generation.think import ThinkFilter
 
 STATIC = pathlib.Path(__file__).parent / "static"
-CORPUS = pathlib.Path("data/corpus").resolve()
+# `corpus.CORPUS` is absolute and project-relative, so the PDF route below serves the
+# same files whether the server was started from the project root or anywhere else.
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 # qwen3.5 4B won the Step 2 comparison: 23/30 oracle against 18/30 for the 7B,
 # faster on every latency measure, and inside D-002's 3-4B band (D-047/D-048).

@@ -35,8 +35,13 @@ import re
 
 import pymupdf
 
-CORPUS = pathlib.Path("data/corpus")
-INDEX_CACHE = pathlib.Path("index/pages.json")
+# The project directory, not the working directory: every path below is absolute, so a
+# launch from any folder reads the same corpus and writes the same index. `ROOT` is the
+# one owner of that rule; `generation.cache` and `ui/server.py` import from here instead
+# of re-deriving `data/corpus` against whatever folder they were started in.
+ROOT = pathlib.Path(__file__).resolve().parent
+CORPUS = ROOT / "data" / "corpus"
+INDEX_CACHE = ROOT / "index" / "pages.json"
 MIN_PAGE_CHARS = 40          # shorter than this means no text layer -> try OCR
 OCR_DPI = 200                # render resolution for OCR; 150 is pymupdf4llm's default
 MAX_PAGE_CHARS = 6000        # keep the cached index small; matches Step 1 practice
