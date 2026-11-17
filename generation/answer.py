@@ -117,10 +117,15 @@ _CACHE_FIELDS = ("answer", "status", "gate", "citations", "problems", "attempts"
                  "passages", "model", "prompt_version", "timing")
 
 
-def _remember(record: dict, question: str, path: pathlib.Path, versions: dict) -> None:
-    """Store an answer, so a later identical question is served instead of re-asked."""
+def _remember(record: dict, question: str, path: pathlib.Path, versions: dict,
+              pages: list[dict]) -> None:
+    """Store an answer, so a later identical question is served instead of re-asked.
+
+    `pages` is the index's page list: the cache stores a hash of each cited page's text
+    and re-checks it on a hit, so an answer cannot outlive the text it quoted.
+    """
     cache.put(question, {key: record[key] for key in _CACHE_FIELDS},
-              path=path, **versions)
+              path=path, pages=pages, **versions)
 
 
 def _record(question: str, **fields) -> dict:
@@ -168,7 +173,8 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
         versions = {"index_version": cache.index_version(source),
                     "model_version": cache.model_version(model, model_digest(model)),
                     "prompt_version": prompt.PROMPT_VERSION}
-        hit = cache.get(search_question, path=path, **versions)
+        hit = cache.get(search_question, path=path, pages=source.get("pages") or [],
+                        **versions)
         if hit is not None:
             return _record(question, **{**hit, "cached": True,
                                         "route": routed, "search_question": search_question,
@@ -187,7 +193,8 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
                          model=model,
                          seconds=round(time.perf_counter() - started, 2))
         if use_cache:
-            _remember(record, search_question, path, versions)
+            _remember(record, search_question, path, versions,
+                      source.get("pages") or [])
         return record
 
     messages = [{"role": "system",
@@ -224,7 +231,8 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     # An unverified answer is not cached: it is the one outcome that should be retried
     # rather than replayed.
     if use_cache and status != "unverified":
-        _remember(record, search_question, path, versions)
+        _remember(record, search_question, path, versions,
+                      source.get("pages") or [])
     return record
 
 

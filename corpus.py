@@ -6,13 +6,12 @@ opened PDFs and fell back to that index, `ingest/verify.py` opened PDFs for word
 `generation/cache.py` hashed bare file names. They disagreed about paths (a bare name vs
 a corpus-relative path) and each kept a private cache. Now there is one path rule and one
 page-text rule, and the callers say what they need: a page's text, its words, or a
-fingerprint that changes when the page does.
+search over the pages.
 
 The page index is a cache, not the authority. `page_text()` reads the PDF first, because a
 quotation has to be on the page the reader will open; only a page with no text layer falls
-back to the OCR text stored in `index/pages.json`. `page_fingerprint()` never reads the
-index: it hashes the page text, or the whole file for a scan, so the answer cache can
-notice a page that was removed or edited after the answer was stored.
+back to the OCR text stored in `index/pages.json` — which is the text retrieval showed
+the model and therefore the text worth quoting.
 
 Usage:
     from corpus import build, page_text, page_words, path_for, search
@@ -259,30 +258,6 @@ def page_words(doc: str, page: int, root: pathlib.Path = CORPUS) -> set[str]:
     except Exception as exc:  # noqa: BLE001 - a broken PDF must not crash a check
         print(f"[corpus] cannot read {path.name} p{page}: {exc.__class__.__name__}: {exc}")
         return set()
-
-
-def page_fingerprint(doc: str, page: int, root: pathlib.Path = CORPUS) -> str:
-    """A value that changes when this page is removed or edited; "" when unreadable.
-
-    The answer cache stores one per cited page. A text page is fingerprinted by its text,
-    so a re-saved PDF with the same words still verifies. A page with no text layer is
-    fingerprinted by the whole file instead: the OCR text in the index could otherwise
-    outlive a changed scan and make a stale answer look current.
-    """
-    try:
-        path = path_for(doc, root)
-    except (FileNotFoundError, RuntimeError):
-        return ""
-
-    text = _raw_page_text(path, page)
-    if text is None:
-        return ""
-    if len(re.sub(r"\s+", "", text)) >= MIN_PAGE_CHARS:
-        return "text:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
-    try:
-        return "file:" + hashlib.sha256(path.read_bytes()).hexdigest()
-    except OSError:
-        return ""
 
 
 class BM25:

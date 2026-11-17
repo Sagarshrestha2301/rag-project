@@ -1,29 +1,30 @@
-"""Answer cache keyed by the question and everything that could invalidate it (D-017).
+"""Answer cache: keyed on what invalidates it, re-checked against the pages it cited.
 
 Four things go into the key: the question (normalised), the index version, the model
-version, and the prompt version. A cached answer survives a restart — that is the point —
-but it must never survive a re-parsed corpus, a different model file, or edited prompt
-rules, so each of those changes the key and the old entry simply stops being found.
+version and the prompt version (D-017). A cached answer survives a restart — that is the
+point — but it must never survive a re-parsed corpus, a different model file or edited
+prompt rules, so each of those changes the key and the old entry stops being found.
+
+The key has one blind spot, so there is a second guard: the index version is a hash of
+file names, sizes and mtimes, which does not change when the same files are parsed into
+different text (a re-OCR, a changed extractor) or when a page disappears from a rebuilt
+index. Each entry therefore stores a hash of the text of every page the answer relied on,
+and a hit re-hashes those pages from the index it was handed. That is five short string
+hashes — no PDF is opened and no path is resolved — and it checks the text retrieval and
+the quote verifier actually read, which for a scanned page is the OCR text, not the file.
 
 Normalisation is deliberately conservative: case, whitespace and trailing punctuation.
 It does not stem, reorder or drop words, because "540 mm" and "540 m" are different
 questions and a cached answer to one must not be served for the other.
 
-The key alone is not enough. `index_version` is computed from the corpus signature the
-index holds, which can be stale if the index was loaded before a file changed; and an
-entry can outlive a page inside an otherwise unchanged file. So every entry also stores
-a fingerprint of each page it relied on. `get()` re-reads those pages and treats a
-removed page, an edited page, or an old entry without fingerprints as a miss. The
-fingerprint is the page text for a text page (so a re-save with the same words still
-verifies) and the file hash for a scanned page (where the OCR text is not the file).
-
 Usage:
     from generation import cache
-    version = cache.index_version(index)
-    hit = cache.get(question, index_version=version, model_version="qwen3.5:4b:abc123",
+    pages = index["pages"]
+    hit = cache.get(question, pages=pages, index_version=cache.index_version(index),
+                    model_version="qwen3.5:4b:abc123",
                     prompt_version=prompt.PROMPT_VERSION)
     if hit is None:
-        ...  # answer, then cache.put(...)
+        ...  # answer, then cache.put(..., pages=pages)
 """
 
 from __future__ import annotations
@@ -33,9 +34,9 @@ import json
 import pathlib
 import re
 
-from corpus import CORPUS, page_fingerprint
-
 CACHE_PATH = pathlib.Path("index/answer-cache.json")
+
+Page = tuple[str, int]
 
 
 def norm_question(question: str) -> str:
@@ -71,17 +72,37 @@ def key(question: str, *, index_version: str, model_version: str,
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24]
 
 
-def _sources(record: dict, corpus_root: pathlib.Path) -> list[dict]:
-    """Fingerprints of the pages this answer relied on, one per distinct (doc, page)."""
-    sources = []
-    seen = set()
+def _page_hashes(pages: list[dict]) -> dict[Page, str]:
+    """{(doc, page): hash of the page's text as the index stores it}.
+
+    A page with no text is left out rather than hashed: the hash of "" would look like a
+    fingerprint and make an answer that quotes nothing checkable a permanent hit.
+    """
+    hashes = {}
+    for page in pages or []:
+        text = page.get("text") or ""
+        if text.strip():
+            hashes[(str(page["doc"]), int(page["page"]))] = \
+                hashlib.sha256(text.encode("utf-8")).hexdigest()[:32]
+    return hashes
+
+
+def _sources(record: dict, hashes: dict[Page, str]) -> list[dict]:
+    """The pages this answer relied on, one entry per distinct page.
+
+    A page with no text in the index gets an empty fingerprint on purpose, so the entry
+    can never be served: an answer that cannot be re-checked is not a hit.
+    """
+    sources, seen = [], set()
     for passage in record.get("passages") or []:
-        doc, page = passage.get("doc"), passage.get("page")
-        if not doc or page is None or (doc, page) in seen:
+        if not passage.get("doc") or passage.get("page") is None:
             continue
-        seen.add((doc, page))
-        sources.append({"doc": doc, "page": int(page),
-                        "fingerprint": page_fingerprint(doc, int(page), root=corpus_root)})
+        page = (str(passage["doc"]), int(passage["page"]))
+        if page in seen:
+            continue
+        seen.add(page)
+        sources.append({"doc": page[0], "page": page[1],
+                        "fingerprint": hashes.get(page, "")})
     return sources
 
 
@@ -100,13 +121,13 @@ def save(entries: dict, path: pathlib.Path = CACHE_PATH) -> None:
     path.write_text(json.dumps(entries, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def get(question: str, *, index_version: str, model_version: str,
-        prompt_version: str, path: pathlib.Path = CACHE_PATH,
-        corpus_root: pathlib.Path | None = None) -> dict | None:
+def get(question: str, *, index_version: str, model_version: str, prompt_version: str,
+        pages: list[dict], path: pathlib.Path = CACHE_PATH) -> dict | None:
     """The cached answer, or None when the key is absent or a cited page changed.
 
-    An entry written before page fingerprints existed has no `sources` field; it is a
-    miss rather than an answer nobody can re-check.
+    `pages` is the index's own page list. An entry written before page fingerprints
+    existed has no `sources` field; it is a miss rather than an answer nobody can
+    re-check.
     """
     record = load(path).get(key(question, index_version=index_version,
                                 model_version=model_version,
@@ -117,24 +138,23 @@ def get(question: str, *, index_version: str, model_version: str,
     sources = record.get("sources")
     if sources is None:
         return None
-    root = corpus_root or CORPUS
+
+    current = _page_hashes(pages)
     for source in sources:
-        current = page_fingerprint(source["doc"], source["page"], root=root)
-        if not current or current != source["fingerprint"]:
+        stored = source.get("fingerprint")
+        if not stored or current.get((source["doc"], source["page"])) != stored:
             return None
     return {field: value for field, value in record.items() if field != "sources"}
 
 
 def put(question: str, record: dict, *, index_version: str, model_version: str,
-        prompt_version: str, path: pathlib.Path = CACHE_PATH,
-        corpus_root: pathlib.Path | None = None) -> str:
-    """Store an answer with the fingerprints `get()` will re-check."""
-    root = corpus_root or CORPUS
-    entry = {**record, "sources": _sources(record, root)}
+        prompt_version: str, pages: list[dict],
+        path: pathlib.Path = CACHE_PATH) -> str:
+    """Store an answer with the page fingerprints `get()` will re-check."""
     entries = load(path)
     cache_key = key(question, index_version=index_version,
                     model_version=model_version,
                     prompt_version=prompt_version)
-    entries[cache_key] = entry
+    entries[cache_key] = {**record, "sources": _sources(record, _page_hashes(pages))}
     save(entries, path)
     return cache_key
