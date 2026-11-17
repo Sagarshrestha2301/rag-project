@@ -19,12 +19,10 @@ questions and a cached answer to one must not be served for the other.
 
 Usage:
     from generation import cache
-    pages = index["pages"]
-    hit = cache.get(question, pages=pages, index_version=cache.index_version(index),
-                    model_version="qwen3.5:4b:abc123",
+    hit = cache.get(question, index=index, model_version="qwen3.5:4b:abc123",
                     prompt_version=prompt.PROMPT_VERSION)
     if hit is None:
-        ...  # answer, then cache.put(..., pages=pages)
+        ...  # answer, then cache.put(..., index=index)
 """
 
 from __future__ import annotations
@@ -34,7 +32,7 @@ import json
 import pathlib
 import re
 
-from corpus import ROOT
+from corpus import CORPUS, ROOT, is_current
 
 # Absolute, like `corpus.CORPUS`: a question asked from another folder must find the same
 # answers, not start a second cache beside it.
@@ -125,15 +123,18 @@ def save(entries: dict, path: pathlib.Path = CACHE_PATH) -> None:
     path.write_text(json.dumps(entries, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def get(question: str, *, index_version: str, model_version: str, prompt_version: str,
-        pages: list[dict], path: pathlib.Path = CACHE_PATH) -> dict | None:
+def get(question: str, *, index: dict, model_version: str, prompt_version: str,
+        root: pathlib.Path | None = None, path: pathlib.Path = CACHE_PATH) -> dict | None:
     """The cached answer, or None when the key is absent or a cited page changed.
 
-    `pages` is the index's own page list. An entry written before page fingerprints
-    existed has no `sources` field; it is a miss rather than an answer nobody can
-    re-check.
+    `index` is the page index this process is answering from, and it must still describe
+    the corpus on disk: a long-lived process holding an index from before an edit is a
+    miss even when every page it quotes is unchanged, because retrieval and the verifier
+    would be reading text the files no longer contain. An entry written before page
+    fingerprints existed has no `sources` field; it is a miss rather than an answer nobody
+    can re-check.
     """
-    record = load(path).get(key(question, index_version=index_version,
+    record = load(path).get(key(question, index_version=index_version(index),
                                 model_version=model_version,
                                 prompt_version=prompt_version))
     if record is None:
@@ -143,7 +144,10 @@ def get(question: str, *, index_version: str, model_version: str, prompt_version
     if sources is None:
         return None
 
-    current = _page_hashes(pages)
+    if not is_current(index, root or CORPUS):
+        return None
+
+    current = _page_hashes(index.get("pages") or [])
     for source in sources:
         stored = source.get("fingerprint")
         if not stored or current.get((source["doc"], source["page"])) != stored:
@@ -151,14 +155,14 @@ def get(question: str, *, index_version: str, model_version: str, prompt_version
     return {field: value for field, value in record.items() if field != "sources"}
 
 
-def put(question: str, record: dict, *, index_version: str, model_version: str,
-        prompt_version: str, pages: list[dict],
-        path: pathlib.Path = CACHE_PATH) -> str:
+def put(question: str, record: dict, *, index: dict, model_version: str,
+        prompt_version: str, path: pathlib.Path = CACHE_PATH) -> str:
     """Store an answer with the page fingerprints `get()` will re-check."""
     entries = load(path)
-    cache_key = key(question, index_version=index_version,
+    cache_key = key(question, index_version=index_version(index),
                     model_version=model_version,
                     prompt_version=prompt_version)
-    entries[cache_key] = {**record, "sources": _sources(record, _page_hashes(pages))}
+    entries[cache_key] = {**record,
+                          "sources": _sources(record, _page_hashes(index.get("pages") or []))}
     save(entries, path)
     return cache_key

@@ -265,6 +265,17 @@ def page_words(doc: str, page: int, root: pathlib.Path = CORPUS) -> set[str]:
         return set()
 
 
+def is_current(index: dict, root: pathlib.Path = CORPUS) -> bool:
+    """Whether an index still describes the corpus on disk.
+
+    `build()` compares the same signature to decide whether to re-parse, but a long-lived
+    process holds one index and never asks again, so its pages can be older than the files
+    they came from. This is the one place that question is answered: the answer cache uses
+    it to refuse a hit whose pages retrieval and the verifier would no longer read.
+    """
+    return index.get("signature") == signature(root)
+
+
 class BM25:
     """Small BM25. k1/b are the usual defaults; the corpus is tiny.
 

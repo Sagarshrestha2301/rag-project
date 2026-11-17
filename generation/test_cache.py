@@ -1,13 +1,18 @@
 """Prove the cache: a hit on a repeat, and a miss after anything that invalidates it.
 
-D-017 requires the key to include the index, the model files and the prompt version, so
-each of those is tested as its own miss: a cache that only keyed on the question would
-serve yesterday's answer after a re-parse and nobody would notice.
+Three guards, each tested as its own miss:
 
-The last group tests the second guard, which the key cannot express: an entry stores a
-hash of every page it relied on and a hit re-hashes them from the index. Same files,
-different parsed text — a re-OCR, a changed extractor — is a miss, and so is a page that
-left the index. Pages are plain index records here, because that is what the guard reads.
+1. **The key** (D-017): question, index signature, model file, prompt version. A cache
+   that only keyed on the question would serve yesterday's answer after a re-parse.
+2. **The pages**: each entry hashes the text of every page it relied on, and a hit
+   re-hashes them from the index. Same files, different parsed text — a re-OCR — is a
+   miss.
+3. **The index itself**: a hit is a miss when the index the process is holding no longer
+   matches the corpus on disk (`corpus.is_current`). Without this, a long-lived process
+   would keep re-checking page hashes against text the files no longer contain.
+
+The fixtures are a temporary corpus (empty PDFs: the signature only stats them) and plain
+index records, because that is what the guards read. Nothing here generates a real PDF.
 
 Usage:
     .venv\\Scripts\\python.exe generation\\test_cache.py
@@ -21,13 +26,13 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from generation import cache                      # noqa: E402
+import corpus as corpus_lib                      # noqa: E402
+from generation import cache                     # noqa: E402
 
 FAILURES: list[str] = []
 TOTAL = 0
 
-VERSIONS = {"index_version": "idx-a", "model_version": "qwen3.5:4b:abc123",
-            "prompt_version": "s6-2"}
+VERSIONS = {"model_version": "qwen3.5:4b:abc123", "prompt_version": "s6-2"}
 
 TISTUNG = ("Table 2: Flood damage in the East-Rapti basin. The 24-hour rainfall depth "
            "of 540 mm at Tistung was recorded in July 1970, and 139 households were "
@@ -49,9 +54,19 @@ def temp_path() -> pathlib.Path:
     return pathlib.Path(tempfile.mkdtemp()) / "answer-cache.json"
 
 
-def pages(*items: tuple[str, int, str]) -> list[dict]:
-    """An index page list: (doc, page, text)."""
-    return [{"doc": doc, "page": page, "text": text} for doc, page, text in items]
+def corpus_root(*names: str) -> pathlib.Path:
+    """A corpus folder holding these (empty) PDFs, which is all the signature reads."""
+    root = pathlib.Path(tempfile.mkdtemp())
+    for name in names:
+        (root / name).write_bytes(b"%PDF-1.4 test")
+    return root
+
+
+def index_for(root: pathlib.Path, *pages: tuple[str, int, str]) -> dict:
+    """An index as `corpus.build()` would return it for this folder."""
+    return {"pages": [{"doc": doc, "page": page, "text": text}
+                      for doc, page, text in pages],
+            "signature": corpus_lib.signature(root)}
 
 
 def record(*sources: tuple[str, int]) -> dict:
@@ -62,61 +77,70 @@ def record(*sources: tuple[str, int]) -> dict:
 
 # ---------------------------------------------------------------- the key (D-017)
 def hit_on_repeat() -> None:
-    path = temp_path()
+    root, path = corpus_root(), temp_path()
+    index = index_for(root)
     cache.put("What was the rainfall at Tistung?", {"answer": "540 mm"}, path=path,
-              pages=[], **VERSIONS)
-    got = cache.get("What was the rainfall at Tistung?", path=path, pages=[], **VERSIONS)
+              index=index, **VERSIONS)
+    got = cache.get("What was the rainfall at Tistung?", path=path, index=index,
+                    root=root, **VERSIONS)
     assert got == {"answer": "540 mm"}, got
 
 
 def hit_ignores_case_spacing_and_trailing_punctuation() -> None:
-    path = temp_path()
+    root, path = corpus_root(), temp_path()
+    index = index_for(root)
     cache.put("What was the rainfall at Tistung?", {"answer": "540 mm"}, path=path,
-              pages=[], **VERSIONS)
+              index=index, **VERSIONS)
     for variant in ("what was the rainfall at tistung",
                     "  What was the rainfall   at Tistung ",
                     "What was the rainfall at Tistung"):
-        assert cache.get(variant, path=path, pages=[],
+        assert cache.get(variant, path=path, index=index, root=root,
                          **VERSIONS) == {"answer": "540 mm"}, variant
 
 
 def miss_after_index_change() -> None:
+    first, second = corpus_root("a.pdf"), corpus_root("a.pdf", "b.pdf")
     path = temp_path()
-    cache.put("q", {"answer": "540 mm"}, path=path, pages=[], **VERSIONS)
-    changed = {**VERSIONS, "index_version": "idx-b"}
-    assert cache.get("q", path=path, pages=[], **changed) is None
+    cache.put("q", {"answer": "540 mm"}, path=path, index=index_for(first), **VERSIONS)
+    assert cache.get("q", path=path, index=index_for(second), root=second,
+                     **VERSIONS) is None
 
 
 def miss_after_model_change() -> None:
-    path = temp_path()
-    cache.put("q", {"answer": "540 mm"}, path=path, pages=[], **VERSIONS)
+    root, path = corpus_root(), temp_path()
+    index = index_for(root)
+    cache.put("q", {"answer": "540 mm"}, path=path, index=index, **VERSIONS)
     changed = {**VERSIONS, "model_version": "qwen3.5:4b:def456"}
-    assert cache.get("q", path=path, pages=[], **changed) is None
+    assert cache.get("q", path=path, index=index, root=root, **changed) is None
 
 
 def miss_after_prompt_change() -> None:
-    path = temp_path()
-    cache.put("q", {"answer": "540 mm"}, path=path, pages=[], **VERSIONS)
+    root, path = corpus_root(), temp_path()
+    index = index_for(root)
+    cache.put("q", {"answer": "540 mm"}, path=path, index=index, **VERSIONS)
     changed = {**VERSIONS, "prompt_version": "s6-3"}
-    assert cache.get("q", path=path, pages=[], **changed) is None
+    assert cache.get("q", path=path, index=index, root=root, **changed) is None
 
 
 def miss_on_a_different_question() -> None:
-    path = temp_path()
+    root, path = corpus_root(), temp_path()
+    index = index_for(root)
     cache.put("What was the rainfall at Tistung?", {"answer": "540 mm"}, path=path,
-              pages=[], **VERSIONS)
-    assert cache.get("What was the rainfall at Ghantemadi?", path=path, pages=[],
-                     **VERSIONS) is None
-    assert cache.get("What was the rainfall at Tistung in mm?", path=path, pages=[],
-                     **VERSIONS) is None
+              index=index, **VERSIONS)
+    assert cache.get("What was the rainfall at Ghantemadi?", path=path, index=index,
+                     root=root, **VERSIONS) is None
+    assert cache.get("What was the rainfall at Tistung in mm?", path=path, index=index,
+                     root=root, **VERSIONS) is None
 
 
 def survives_a_reload() -> None:
     """The cache is a file, so a new process must find what the last one wrote."""
-    path = temp_path()
-    cache.put("q", {"answer": "540 mm"}, path=path, pages=[], **VERSIONS)
+    root, path = corpus_root(), temp_path()
+    index = index_for(root)
+    cache.put("q", {"answer": "540 mm"}, path=path, index=index, **VERSIONS)
     assert len(cache.load(path)) == 1
-    assert cache.get("q", path=path, pages=[], **VERSIONS) == {"answer": "540 mm"}
+    assert cache.get("q", path=path, index=index, root=root,
+                     **VERSIONS) == {"answer": "540 mm"}
 
 
 def missing_file_is_an_empty_cache() -> None:
@@ -124,10 +148,11 @@ def missing_file_is_an_empty_cache() -> None:
 
 
 def corrupt_file_is_an_empty_cache() -> None:
-    path = temp_path()
+    root, path = corpus_root(), temp_path()
     path.write_text("{not json", encoding="utf-8")
     assert cache.load(path) == {}
-    assert cache.get("q", path=path, pages=[], **VERSIONS) is None
+    assert cache.get("q", path=path, index=index_for(root), root=root,
+                     **VERSIONS) is None
 
 
 def index_version_follows_the_signature() -> None:
@@ -144,50 +169,89 @@ def model_version_prefers_the_digest() -> None:
 
 # ------------------------------------------------- the page fingerprints (re-verify)
 def unchanged_pages_are_a_hit() -> None:
-    path = temp_path()
-    index_pages = pages(("a.pdf", 1, TISTUNG))
-    cache.put("q", record(("a.pdf", 1)), path=path, pages=index_pages, **VERSIONS)
-    assert cache.get("q", path=path, pages=index_pages, **VERSIONS) is not None
+    root, path = corpus_root("a.pdf"), temp_path()
+    index = index_for(root, ("a.pdf", 1, TISTUNG))
+    cache.put("q", record(("a.pdf", 1)), path=path, index=index, **VERSIONS)
+    assert cache.get("q", path=path, index=index, root=root, **VERSIONS) is not None
 
 
 def an_altered_page_is_a_miss() -> None:
     """Same file name and size on purpose: the key cannot see this, the text hash can."""
-    path = temp_path()
+    root, path = corpus_root("a.pdf"), temp_path()
     cache.put("q", record(("a.pdf", 1)), path=path,
-              pages=pages(("a.pdf", 1, TISTUNG)), **VERSIONS)
-    altered = pages(("a.pdf", 1, TISTUNG.replace("540 mm", "482 mm")))
-    assert cache.get("q", path=path, pages=altered, **VERSIONS) is None
+              index=index_for(root, ("a.pdf", 1, TISTUNG)), **VERSIONS)
+    altered = index_for(root, ("a.pdf", 1, TISTUNG.replace("540 mm", "482 mm")))
+    assert cache.get("q", path=path, index=altered, root=root, **VERSIONS) is None
 
 
 def a_page_missing_from_the_index_is_a_miss() -> None:
-    path = temp_path()
+    root, path = corpus_root("a.pdf"), temp_path()
     cache.put("q", record(("a.pdf", 2)), path=path,
-              pages=pages(("a.pdf", 1, TISTUNG), ("a.pdf", 2, TISTUNG)), **VERSIONS)
-    assert cache.get("q", path=path, pages=pages(("a.pdf", 1, TISTUNG)),
-                     **VERSIONS) is None
+              index=index_for(root, ("a.pdf", 1, TISTUNG), ("a.pdf", 2, TISTUNG)),
+              **VERSIONS)
+    assert cache.get("q", path=path, index=index_for(root, ("a.pdf", 1, TISTUNG)),
+                     root=root, **VERSIONS) is None
 
 
 def an_unrelated_page_changing_is_not_a_miss() -> None:
-    path = temp_path()
-    before = pages(("a.pdf", 1, TISTUNG), ("b.pdf", 1, TISTUNG))
-    after = pages(("a.pdf", 1, TISTUNG), ("b.pdf", 1, TISTUNG.replace("540", "482")))
-    cache.put("q", record(("a.pdf", 1)), path=path, pages=before, **VERSIONS)
-    assert cache.get("q", path=path, pages=after, **VERSIONS) is not None
+    root, path = corpus_root("a.pdf", "b.pdf"), temp_path()
+    before = index_for(root, ("a.pdf", 1, TISTUNG), ("b.pdf", 1, TISTUNG))
+    after = index_for(root, ("a.pdf", 1, TISTUNG), ("b.pdf", 1, TISTUNG.replace("540", "482")))
+    cache.put("q", record(("a.pdf", 1)), path=path, index=before, **VERSIONS)
+    assert cache.get("q", path=path, index=after, root=root, **VERSIONS) is not None
 
 
 def a_page_without_index_text_is_never_a_hit() -> None:
     """A page the index has no text for cannot be re-checked, so it is not served."""
-    path = temp_path()
-    empty = pages(("a.pdf", 1, ""))
-    cache.put("q", record(("a.pdf", 1)), path=path, pages=empty, **VERSIONS)
-    assert cache.get("q", path=path, pages=empty, **VERSIONS) is None
+    root, path = corpus_root("a.pdf"), temp_path()
+    index = index_for(root, ("a.pdf", 1, ""))
+    cache.put("q", record(("a.pdf", 1)), path=path, index=index, **VERSIONS)
+    assert cache.get("q", path=path, index=index, root=root, **VERSIONS) is None
 
 
 def an_entry_without_fingerprints_is_a_miss() -> None:
     """Entries written before this guard cannot be re-checked, so they are not served."""
-    path = temp_path()
-    cache.save({cache.key("q", **VERSIONS): {"answer": "540 mm"}}, path)
-    assert cache.get("q", path=path, pages=[], **VERSIONS) is None
+    root, path = corpus_root(), temp_path()
+    cache.save({cache.key("q", index_version="v1", **VERSIONS): {"answer": "540 mm"}}, path)
+    assert cache.get("q", path=path, index={"signature": [], "pages": []},
+                     root=root, **VERSIONS) is None
+
+
+# ------------------------------------------------ the index against the disk (stale)
+def a_stale_index_is_a_miss() -> None:
+    """The process has been up since before a document arrived; the files say otherwise."""
+    root, path = corpus_root("a.pdf"), temp_path()
+    index = index_for(root, ("a.pdf", 1, TISTUNG))
+    cache.put("q", record(("a.pdf", 1)), path=path, index=index, **VERSIONS)
+    assert cache.get("q", path=path, index=index, root=root, **VERSIONS) is not None
+
+    (root / "b.pdf").write_bytes(b"%PDF-1.4 new document")
+    assert cache.get("q", path=path, index=index, root=root, **VERSIONS) is None, \
+        "a hit was served from an index that no longer matches the corpus"
+
+
+def a_removed_document_makes_the_index_stale() -> None:
+    root, path = corpus_root("a.pdf", "b.pdf"), temp_path()
+    index = index_for(root, ("a.pdf", 1, TISTUNG))
+    cache.put("q", record(("a.pdf", 1)), path=path, index=index, **VERSIONS)
+    (root / "b.pdf").unlink()
+    assert cache.get("q", path=path, index=index, root=root, **VERSIONS) is None
+
+
+def a_rebuilt_index_needs_its_own_entry() -> None:
+    """A rebuild changes the key, so the question is answered once more and then cached.
+
+    This is D-017 working as intended: a new document makes every old answer provisional,
+    so it is re-computed rather than replayed, and the next identical question is fast.
+    """
+    root, path = corpus_root("a.pdf"), temp_path()
+    cache.put("q", record(("a.pdf", 1)), path=path,
+              index=index_for(root, ("a.pdf", 1, TISTUNG)), **VERSIONS)
+    (root / "b.pdf").write_bytes(b"%PDF-1.4 new document")
+    rebuilt = index_for(root, ("a.pdf", 1, TISTUNG), ("b.pdf", 1, TISTUNG))
+    assert cache.get("q", path=path, index=rebuilt, root=root, **VERSIONS) is None
+    cache.put("q", record(("a.pdf", 1)), path=path, index=rebuilt, **VERSIONS)
+    assert cache.get("q", path=path, index=rebuilt, root=root, **VERSIONS) is not None
 
 
 def main() -> int:
@@ -212,6 +276,10 @@ def main() -> int:
          an_unrelated_page_changing_is_not_a_miss),
         ("a page with no index text is never a hit", a_page_without_index_text_is_never_a_hit),
         ("an entry without fingerprints is a miss", an_entry_without_fingerprints_is_a_miss),
+        ("a hit is a miss when the index is stale", a_stale_index_is_a_miss),
+        ("a removed document makes the index stale", a_removed_document_makes_the_index_stale),
+        ("a rebuilt index needs its own entry, then hits",
+         a_rebuilt_index_needs_its_own_entry),
     ]
     for name, fn in cases:
         check(name, fn)
