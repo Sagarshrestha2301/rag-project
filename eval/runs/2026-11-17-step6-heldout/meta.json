@@ -1,0 +1,26 @@
+{
+  "label": "step6-heldout",
+  "date": "2026-11-17 09:18:01",
+  "model": "qwen3.5:4b",
+  "model_digest": "d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04",
+  "prompt_version": "s6-2",
+  "num_ctx": 4096,
+  "temperature": 0.0,
+  "seed": 0,
+  "think": false,
+  "cache": "off",
+  "questions": 10,
+  "questions_sha256": "7888e4dc2cdc29d9",
+  "corpus": {
+    "documents": 97,
+    "pages": 851,
+    "ocr_pages": 86
+  },
+  "routes": {
+    "greeting": 0,
+    "followup": 5,
+    "summary": 6,
+    "table": 6,
+    "normal": 5
+  }
+}

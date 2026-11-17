@@ -1,0 +1,444 @@
+{
+  "label": "step6-heldout",
+  "summary": {
+    "n": 10,
+    "retrieval": {
+      "recall@5": {
+        "pass": {
+          "count": 8,
+          "of": 9,
+          "pct": 88.9
+        }
+      },
+      "recall@10": {
+        "pass": {
+          "count": 8,
+          "of": 9,
+          "pct": 88.9
+        }
+      },
+      "recall@30": {
+        "pass": {
+          "count": 8,
+          "of": 9,
+          "pct": 88.9
+        }
+      }
+    },
+    "mrr": 0.806,
+    "citation": {
+      "count": 5,
+      "of": 9,
+      "pct": 55.6
+    },
+    "numeric": {
+      "count": 7,
+      "of": 8,
+      "pct": 87.5
+    },
+    "notfound_a": {
+      "count": 0,
+      "of": 0,
+      "pct": 0.0
+    },
+    "notfound_a_scope": "dev",
+    "notfound_b": {
+      "count": 8,
+      "of": 9,
+      "pct": 88.9
+    },
+    "passed": {
+      "count": 5,
+      "of": 10,
+      "pct": 50.0
+    },
+    "points_per_question": null,
+    "by_split": {
+      "dev": {
+        "n": 0,
+        "retrieval": {
+          "recall@5": {
+            "pass": {
+              "count": 0,
+              "of": 0,
+              "pct": 0.0
+            }
+          },
+          "recall@10": {
+            "pass": {
+              "count": 0,
+              "of": 0,
+              "pct": 0.0
+            }
+          },
+          "recall@30": {
+            "pass": {
+              "count": 0,
+              "of": 0,
+              "pct": 0.0
+            }
+          }
+        },
+        "mrr": 0.0,
+        "citation": {
+          "count": 0,
+          "of": 0,
+          "pct": 0.0
+        },
+        "numeric": {
+          "count": 0,
+          "of": 0,
+          "pct": 0.0
+        },
+        "notfound_a": {
+          "count": 0,
+          "of": 0,
+          "pct": 0.0
+        },
+        "notfound_a_scope": "dev",
+        "notfound_b": {
+          "count": 0,
+          "of": 0,
+          "pct": 0.0
+        },
+        "passed": {
+          "count": 0,
+          "of": 0,
+          "pct": 0.0
+        },
+        "points_per_question": 0.0
+      },
+      "heldout": {
+        "n": 10,
+        "retrieval": {
+          "recall@5": {
+            "pass": {
+              "count": 8,
+              "of": 9,
+              "pct": 88.9
+            }
+          },
+          "recall@10": {
+            "pass": {
+              "count": 8,
+              "of": 9,
+              "pct": 88.9
+            }
+          },
+          "recall@30": {
+            "pass": {
+              "count": 8,
+              "of": 9,
+              "pct": 88.9
+            }
+          }
+        },
+        "mrr": 0.806,
+        "citation": {
+          "count": 5,
+          "of": 9,
+          "pct": 55.6
+        },
+        "numeric": {
+          "count": 7,
+          "of": 8,
+          "pct": 87.5
+        },
+        "notfound_a": {
+          "count": 1,
+          "of": 1,
+          "pct": 100.0
+        },
+        "notfound_a_scope": "heldout",
+        "notfound_b": {
+          "count": 8,
+          "of": 9,
+          "pct": 88.9
+        },
+        "passed": {
+          "count": 5,
+          "of": 10,
+          "pct": 50.0
+        },
+        "points_per_question": 10.0
+      }
+    },
+    "points_per_question_by_split": {
+      "dev": 0.0,
+      "heldout": 10.0
+    }
+  },
+  "results": [
+    {
+      "id": "q005",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 4,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.25,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q007",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q010",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q012",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q015",
+      "type": "summary",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": null,
+      "recall": {
+        "5": [
+          0.0,
+          false
+        ],
+        "10": [
+          0.0,
+          false
+        ],
+        "30": [
+          0.0,
+          false
+        ]
+      },
+      "mrr": 0.0,
+      "citation_ok": false,
+      "numeric_ok": null,
+      "notfound_correct": false,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q018",
+      "type": "comparison",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q022",
+      "type": "notfound",
+      "answerable": false,
+      "retrieval_scored": false,
+      "first_rank": 2,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.5,
+      "citation_ok": null,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "a",
+      "passed": true
+    },
+    {
+      "id": "q024",
+      "type": "followup",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q029",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": false,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q030",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    }
+  ],
+  "diff": null
+}
