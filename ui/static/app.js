@@ -113,6 +113,43 @@
     return blocks(chunk);
   }).join("");
 
+  const answerBody = (text) => (text || "")
+    .replace(/^[ \t]*\[\d+\][ \t]+[^\n]*\.pdf,[ \t]*p\.?[ \t]*\d+[ \t]*[:\-–—][^\n]*(?:\n|$)/gim, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  const sourceKey = (source, sources) => {
+    const key = source.key ?? source.n;
+    return String(key ?? sources.indexOf(source) + 1);
+  };
+
+  const sourceNumber = (source, sources) => {
+    const value = String(source.n ?? source.key ?? "");
+    if (/^\d+$/.test(value)) return Number(value);
+    if (/^[A-H]$/.test(value)) return value.charCodeAt(0) - 64;
+    return sources.indexOf(source) + 1;
+  };
+
+  const sourceForMarker = (sources, marker) => {
+    const direct = sources.find((source) =>
+      String(source.key ?? "") === marker || String(source.n ?? "") === marker);
+    if (direct) return direct;
+    const position = /^[A-H]$/.test(marker)
+      ? marker.charCodeAt(0) - 65
+      : Number(marker) - 1;
+    const candidate = sources[position];
+    return candidate && candidate.key == null && candidate.n == null ? candidate : null;
+  };
+
+  const citedSources = (text, sources) => {
+    const keys = new Set();
+    for (const match of (text || "").matchAll(/\[([1-9]\d*|[A-H])\]/g)) {
+      const source = sourceForMarker(sources, match[1]);
+      if (source) keys.add(sourceKey(source, sources));
+    }
+    return sources.filter((source) => keys.has(sourceKey(source, sources)));
+  };
+
   // ------------------------------------------------------------------ render
 
   const el2 = (tag, cls, text) => {
@@ -144,8 +181,10 @@
 
     const body = el2("div", "message__body");
     if (msg.role === "assistant") {
-      body.innerHTML = markdown(msg.content || "");
-      linkCitations(body, msg.sources, index);
+      const content = answerBody(msg.content || "");
+      const sources = citedSources(content, msg.sources || []);
+      body.innerHTML = markdown(content);
+      linkCitations(body, sources, index);
       if (msg.pending) body.append(el2("span", "cursor"));
       if (!msg.content && msg.pending) {
         const typing = el2("span", "typing");
@@ -159,7 +198,8 @@
 
     if (msg.error) wrap.append(el2("div", "message__error", msg.error));
     if (msg.role === "assistant" && msg.sources && msg.sources.length) {
-      wrap.append(sourcesNode(msg.sources));
+      const sources = citedSources(answerBody(msg.content || ""), msg.sources);
+      if (sources.length) wrap.append(sourcesNode(sources));
     }
 
     if (msg.role === "assistant" && !msg.pending) {
@@ -182,19 +222,32 @@
     const wrap = el2("div", "sources");
     wrap.append(el2("span", "sources__label", "Sources"));
     for (const s of sources) {
-      const chip = el2("button", "source");
-      chip.dataset.action = "open-source";
-      chip.dataset.doc = s.doc;
-      chip.dataset.page = String(s.page);
-      chip.title = s.snippet || "";
-      chip.append(el2("span", "source__n", s.key || String(s.n)));
-      chip.append(el2("span", "source__label", `${s.label} · p${s.page}${s.ocr ? " · OCR" : ""}`));
-      wrap.append(chip);
+      const key = sourceKey(s, sources);
+      const source = el2("div", "source");
+      source.dataset.key = key;
+
+      const number = el2("button", "source__cite", `[${sourceNumber(s, sources)}]`);
+      number.type = "button";
+      number.dataset.action = "toggle-citation";
+      number.dataset.key = key;
+      number.setAttribute("aria-expanded", "false");
+      number.title = "Show cited quote";
+
+      const label = el2("span", "source__label", `${s.doc}, p. ${s.page}${s.ocr ? " · OCR" : ""}`);
+      const pdf = el2("a", "source__pdf", "Open PDF");
+      pdf.href = `/pdf/${encodeURIComponent(s.doc)}#page=${s.page}`;
+      pdf.target = "_blank";
+      pdf.rel = "noopener";
+
+      const quote = el2("blockquote", "source__quote", s.quote || s.snippet || "No quoted text was returned.");
+      quote.hidden = true;
+      source.append(number, label, pdf, quote);
+      wrap.append(source);
     }
     return wrap;
   };
 
-  /* Turn [1] markers into buttons, skipping code blocks. */
+  /* Turn citation markers into numbered quote toggles, skipping code blocks. */
   const linkCitations = (container, sources, index) => {
     if (!sources || !sources.length) return;
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
@@ -202,20 +255,26 @@
     while (walker.nextNode()) {
       const node = walker.currentNode;
       if (node.parentElement && node.parentElement.closest("pre, code")) continue;
-            if (/\[[A-H]\]/.test(node.nodeValue)) nodes.push(node);
+      if (/\[(?:[1-9]\d*|[A-H])\]/.test(node.nodeValue)) nodes.push(node);
     }
     for (const node of nodes) {
       const text = node.nodeValue;
       const frag = document.createDocumentFragment();
       let last = 0;
-      for (const match of text.matchAll(/\[([A-H])\]/g)) {
+      for (const match of text.matchAll(/\[([1-9]\d*|[A-H])\]/g)) {
+        const cited = sourceForMarker(sources, match[1]);
         frag.append(document.createTextNode(text.slice(last, match.index)));
-        const btn = el2("button", "cite", match[1]);
-        btn.dataset.action = "open-source";
-        btn.dataset.index = String(index);
-        btn.dataset.key = match[1];
-        btn.title = "Open the cited page";
-        frag.append(btn);
+        if (cited) {
+          const btn = el2("button", "cite", `[${sourceNumber(cited, sources)}]`);
+          btn.type = "button";
+          btn.dataset.action = "toggle-citation";
+          btn.dataset.key = sourceKey(cited, sources);
+          btn.setAttribute("aria-expanded", "false");
+          btn.title = "Show cited quote";
+          frag.append(btn);
+        } else {
+          frag.append(document.createTextNode(match[0]));
+        }
         last = match.index + match[0].length;
       }
       frag.append(document.createTextNode(text.slice(last)));
@@ -223,28 +282,17 @@
     }
   };
 
-  /* A real anchor beats window.open here: browsers treat it as a normal
-     navigation, so no popup blocker gets in the way. */
-  const openSource = (doc, page) => {
-    if (!doc) return;
-    const link = document.createElement("a");
-    link.href = `/pdf/${encodeURIComponent(doc)}#page=${page}`;
-    link.target = "_blank";
-    link.rel = "noopener";
-    document.body.append(link);
-    link.click();
-    link.remove();
-  };
-
   const exportChat = () => {
     const convo = active();
     const lines = [`# ${convo.title}`, "", `_Exported ${new Date().toLocaleString()}_`, ""];
     for (const msg of convo.messages) {
-      lines.push(`## ${msg.role === "user" ? "You" : "Assistant"}`, "", msg.content, "");
-      if (msg.sources && msg.sources.length) {
+      const content = msg.role === "assistant" ? answerBody(msg.content) : msg.content;
+      const sources = msg.role === "assistant" ? citedSources(content, msg.sources || []) : [];
+      lines.push(`## ${msg.role === "user" ? "You" : "Assistant"}`, "", content, "");
+      if (sources.length) {
         lines.push("**Sources**", "");
-        for (const s of msg.sources) {
-          lines.push(`- [${s.key || s.n}] ${s.label}, page ${s.page} (${s.doc}) — ${s.snippet}`);
+        for (const s of sources) {
+          lines.push(`- [${sourceNumber(s, sources)}] ${s.doc}, page ${s.page} — ${s.quote || s.snippet}`);
         }
         lines.push("");
       }
@@ -389,7 +437,9 @@
     const index = convo.messages.indexOf(msg);
     const node = el.thread.querySelector(`.message[data-index="${index}"] .message__body`);
     if (!node) return;
-    node.innerHTML = markdown(msg.content || "");
+    const content = answerBody(msg.content || "");
+    node.innerHTML = markdown(content);
+    linkCitations(node, citedSources(content, msg.sources || []), index);
     if (msg.pending) node.append(el2("span", "cursor"));
   };
 
@@ -471,15 +521,19 @@
       regenerate();
     } else if (action === "export-chat") {
       exportChat();
-    } else if (action === "open-source") {
-      if (target.dataset.doc) {
-        openSource(target.dataset.doc, target.dataset.page);
-      } else {
-        const msg = active().messages[Number(target.dataset.index)];
-        const src = (msg.sources || []).find(
-          (s) => (s.key || String(s.n)) === target.dataset.key
-        );
-        if (src) openSource(src.doc, src.page);
+    } else if (action === "toggle-citation") {
+      const message = target.closest(".message");
+      const source = [...message.querySelectorAll(".source")]
+        .find((item) => item.dataset.key === target.dataset.key);
+      if (source) {
+        const quote = source.querySelector(".source__quote");
+        const expanded = quote.hidden;
+        quote.hidden = !expanded;
+        source.classList.toggle("source--expanded", expanded);
+        source.querySelectorAll(".source__cite").forEach((button) => {
+          button.setAttribute("aria-expanded", String(expanded));
+        });
+        target.setAttribute("aria-expanded", String(expanded));
       }
     }
   });

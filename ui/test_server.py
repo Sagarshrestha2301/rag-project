@@ -40,15 +40,27 @@ class ServerTests(unittest.TestCase):
     def test_chat_calls_generation_answer_with_prior_history(self) -> None:
         page = server.INDEX["pages"][0]
         record = {
-            "answer": "The figure is 540 mm [1].",
+            "answer": (
+                f"The figure is 540 mm [1].\n\n"
+                f'[1] {page["doc"]}, p. {page["page"]}: '
+                '"A quoted line from this source."'
+            ),
             "status": "verified",
             "seconds": 1.25,
             "timing": {"prompt_tokens": 12, "answer_tokens": 4},
             "cached": False,
             "search_question": "and in 1990?",
+            "citations": [{
+                "n": 1, "file": page["doc"], "page": page["page"],
+                "quote": "A quoted line from this source.",
+            }],
             "passages": [{
                 "n": 1, "doc": page["doc"], "page": page["page"],
                 "label": page["label"], "score": 2.5,
+            }, {
+                "n": 2, "doc": server.INDEX["pages"][1]["doc"],
+                "page": server.INDEX["pages"][1]["page"],
+                "label": server.INDEX["pages"][1]["label"], "score": 1.5,
             }],
         }
         messages = [
@@ -68,8 +80,10 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(event["message"]["content"], record["answer"])
         self.assertTrue(event["done"])
         self.assertEqual(event["status"], "verified")
+        self.assertEqual(len(event["sources"]), 1)
         self.assertEqual(event["sources"][0]["n"], 1)
         self.assertEqual(event["sources"][0]["doc"], page["doc"])
+        self.assertEqual(event["sources"][0]["quote"], "A quoted line from this source.")
 
         answer.assert_called_once()
         self.assertEqual(answer.call_args.args, ("and in 1990?",))

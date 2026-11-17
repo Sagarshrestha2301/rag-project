@@ -14,7 +14,7 @@
 7. Code rules for the UI: BEM class names (`block__element--modifier`), one shared event handler per event type (event delegation), shared helper functions, no duplicated handlers (see `AGENTS.md`, Code rules).
 
 ## Definition of done
-- [ ] UI spec approved by the owner before any UI code
+- [x] UI spec approved by the owner before any UI code
 - [ ] UI code follows the BEM and shared-handler rules (a search finds no duplicated handlers)
 - [ ] Works with the network disabled (tested with Wi-Fi off)
 - [ ] Citation click opens the right PDF page for 10 tested answers

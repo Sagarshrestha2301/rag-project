@@ -40,9 +40,12 @@ remain in place.
   `error`. A failed streamed answer is replaced on retry; if the final attempt remains
   unverified, show it marked as retracted with its verification problems. A greeting
   uses the verified presentation without sources; a cache hit skips the streaming state.
-- Citation numbers link to the matching source and open the stored corpus PDF at its
-  physical page. A not-found answer shows the D-021 unreadable-page counts from the
-  index: corpus totals and counts for retrieved documents with unreadable pages.
+- Citation numbers use the answer's source mapping; legacy letter markers display as
+  numbers without changing the model-facing citation keys. Only cited sources appear.
+  Clicking a number reveals the quotation for that citation, with a link to the stored
+  corpus PDF at its physical page. A not-found answer shows the D-021 unreadable-page
+  counts from the index: corpus totals and counts for retrieved documents with unreadable
+  pages.
 
 ## Debug contract
 
