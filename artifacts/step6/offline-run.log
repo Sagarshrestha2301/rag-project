@@ -1,0 +1,178 @@
+firewall rules active during test: 6 (6 = inbound + outbound for 3 programs)
+blocked programs: C:\Users\sagar\Downloads\project\rag-project\.venv\Scripts\python.exe ; C:\Users\sagar\AppData\Local\Programs\Ollama\ollama.exe ; C:\Users\sagar\Downloads\project\rag-project\tools\python312\python.exe
+model: qwen3.5:4b (digest d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04)
+started: 2026-11-17T10:19:34
+interpreter: C:\Users\sagar\Downloads\project\rag-project\.venv\Scripts\python.exe
+base interpreter: C:\Users\sagar\Downloads\project\rag-project\tools\python312\python.exe
+  1.1.1.1:443 blocked (PermissionError)
+  8.8.8.8:53 blocked (PermissionError)
+BLOCKED: no external connection succeeded
+offline-check exit code: 0 (0 = every external connection was refused)
+[1/55] q001 verified    13.9 s  route=normal attempts=1
+[2/55] q002 verified    20.9 s  route=normal attempts=1
+[3/55] q003 verified    14.8 s  route=normal attempts=2
+[4/55] q004 verified    29.9 s  route=normal attempts=1
+[5/55] q005 verified     9.3 s  route=normal attempts=1
+[6/55] q006 verified    19.8 s  route=normal attempts=1
+[7/55] q007 verified    12.0 s  route=normal attempts=1
+[8/55] q008 verified    24.7 s  route=normal attempts=1
+[9/55] q009 verified    11.0 s  route=normal attempts=1
+[10/55] q010 verified    10.6 s  route=normal attempts=1
+[11/55] q011 verified    18.2 s  route=normal attempts=1
+[12/55] q012 verified    30.9 s  route=normal attempts=1
+[13/55] q013 verified    21.7 s  route=normal attempts=1
+[14/55] q014 verified    22.1 s  route=normal attempts=1
+[15/55] q015 not_found    5.3 s  route=normal attempts=1
+[16/55] q016 verified    17.6 s  route=normal attempts=1
+[17/55] q017 verified    17.8 s  route=normal attempts=1
+[18/55] q018 verified    17.1 s  route=normal attempts=1
+[19/55] q019 not_found    4.8 s  route=normal attempts=1
+[20/55] q020 verified    25.0 s  route=normal attempts=2
+[21/55] q021 unverified   9.0 s  route=normal attempts=2
+[22/55] q022 not_found    4.1 s  route=normal attempts=1
+[23/55] q023 verified    15.4 s  route=followup attempts=1
+[24/55] q024 verified    25.0 s  route=followup attempts=1
+[25/55] q025 verified    12.8 s  route=table attempts=1
+[26/55] q026 not_found    5.7 s  route=table attempts=1
+[27/55] q027 unverified  27.4 s  route=table attempts=2
+[28/55] q028 unverified  17.9 s  route=table attempts=2
+[29/55] q029 verified    16.0 s  route=table attempts=1
+[30/55] q030 verified    13.1 s  route=table attempts=1
+[31/55] q031 verified    11.8 s  route=table attempts=1
+[32/55] q032 verified    11.7 s  route=normal attempts=1
+[33/55] q033 verified    15.0 s  route=normal attempts=1
+[34/55] q034 verified    14.4 s  route=normal attempts=1
+[35/55] q035 verified    12.8 s  route=normal attempts=1
+[36/55] q036 not_found    4.1 s  route=normal attempts=1
+[37/55] q037 verified     9.5 s  route=normal attempts=1
+[38/55] q038 unverified  37.9 s  route=normal attempts=2
+[39/55] q039 verified    23.4 s  route=normal attempts=1
+[40/55] q040 verified    14.0 s  route=normal attempts=1
+[41/55] q041 verified    15.0 s  route=table attempts=1
+[42/55] q042 verified    12.1 s  route=table attempts=1
+[43/55] q043 verified    14.8 s  route=normal attempts=1
+[44/55] q044 unverified  67.9 s  route=normal attempts=2
+[45/55] q045 verified    35.4 s  route=normal attempts=1
+[46/55] q046 unverified  59.1 s  route=table attempts=2
+[47/55] q047 verified    12.9 s  route=table attempts=1
+[48/55] q048 unverified  56.0 s  route=normal attempts=2
+[49/55] q049 verified    34.0 s  route=normal attempts=1
+[50/55] q050 verified    16.2 s  route=table attempts=1
+[51/55] q051 verified    15.5 s  route=normal attempts=1
+[52/55] q052 verified    15.8 s  route=normal attempts=1
+[53/55] q053 not_found    5.5 s  route=table attempts=1
+[54/55] q054 not_found    4.8 s  route=normal attempts=1
+[55/55] q055 verified    37.9 s  route=normal attempts=2
+
+# Generation run: offline-step6
+
+- Model: `qwen3.5:4b` (digest `d8b0f5e9760c`), prompt `s6-2`, temperature 0, num_ctx 4096, think False
+- Corpus: **97 documents, 851 pages** (86 OCR pages)
+- Questions: 55 (55 in the set), cache off
+
+## End-to-end latency (seconds per question, retries and condense included)
+
+| n | p50 | p95 | min | max | mean | over 20 s | over 30 s |
+|---|---|---|---|---|---|---|---|
+| 55 | 15.4 | 43.3 | 4.1 | 67.9 | 19.1 | 17 | 8 |
+
+Target: about 20 s for a short follow-up, 30 s+ acceptable for a deep or long question. Measured p50 **15.4 s**, p95 **43.3 s**.
+
+Slowest questions: `q044` 67.9 s, `q046` 59.1 s, `q048` 56.0 s. A single stalled question moves the mean, not the p50/p95.
+
+## How the questions were handled
+
+| | count |
+|---|---|
+| status `not_found` | 7 |
+| status `unverified` | 7 |
+| status `verified` | 41 |
+| route `followup` | 2 |
+| route `normal` | 40 |
+| route `table` | 13 |
+| attempts 1 | 45 |
+| attempts 2 | 10 |
+
+## Scores (from eval/score.py on the same run.jsonl)
+
+- citation: 31/48
+- numeric: 35/43
+- not-found (a): 3/6
+- not-found (b): 45/48
+- passed: 33/55
+
+| id | split | type | seconds | route | attempts | citations | status |
+|---|---|---|---|---|---|---|---|
+| q001 | dev | fact | 13.9 | normal | 1 | 1 | verified |
+| q002 | dev | fact | 20.9 | normal | 1 | 1 | verified |
+| q003 | dev | fact | 14.8 | normal | 2 | 1 | verified |
+| q004 | dev | fact | 29.9 | normal | 1 | 2 | verified |
+| q005 | heldout | fact | 9.3 | normal | 1 | 1 | verified |
+| q006 | dev | fact | 19.8 | normal | 1 | 1 | verified |
+| q007 | heldout | fact | 12.0 | normal | 1 | 1 | verified |
+| q008 | dev | exact | 24.7 | normal | 1 | 2 | verified |
+| q009 | dev | exact | 11.0 | normal | 1 | 1 | verified |
+| q010 | heldout | exact | 10.6 | normal | 1 | 1 | verified |
+| q011 | dev | exact | 18.2 | normal | 1 | 1 | verified |
+| q012 | heldout | exact | 30.9 | normal | 1 | 3 | verified |
+| q013 | dev | summary | 21.7 | normal | 1 | 1 | verified |
+| q014 | dev | summary | 22.1 | normal | 1 | 1 | verified |
+| q015 | heldout | summary | 5.3 | normal | 1 | 0 | not_found |
+| q016 | dev | comparison | 17.6 | normal | 1 | 1 | verified |
+| q017 | dev | comparison | 17.8 | normal | 1 | 1 | verified |
+| q018 | heldout | comparison | 17.1 | normal | 1 | 1 | verified |
+| q019 | dev | notfound | 4.8 | normal | 1 | 0 | not_found |
+| q020 | dev | notfound | 25.0 | normal | 2 | 1 | verified |
+| q021 | dev | notfound | 9.0 | normal | 2 | 0 | unverified |
+| q022 | heldout | notfound | 4.1 | normal | 1 | 0 | not_found |
+| q023 | dev | followup | 15.4 | followup | 1 | 1 | verified |
+| q024 | heldout | followup | 25.0 | followup | 1 | 2 | verified |
+| q025 | dev | table | 12.8 | table | 1 | 1 | verified |
+| q026 | dev | table | 5.7 | table | 1 | 0 | not_found |
+| q027 | dev | table | 27.4 | table | 2 | 0 | unverified |
+| q028 | dev | table | 17.9 | table | 2 | 0 | unverified |
+| q029 | heldout | table | 16.0 | table | 1 | 1 | verified |
+| q030 | heldout | table | 13.1 | table | 1 | 1 | verified |
+| q031 | dev | number | 11.8 | table | 1 | 1 | verified |
+| q032 | dev | number | 11.7 | normal | 1 | 1 | verified |
+| q033 | dev | number | 15.0 | normal | 1 | 1 | verified |
+| q034 | dev | exact | 14.4 | normal | 1 | 1 | verified |
+| q035 | dev | number | 12.8 | normal | 1 | 1 | verified |
+| q036 | dev | list | 4.1 | normal | 1 | 0 | not_found |
+| q037 | dev | number | 9.5 | normal | 1 | 1 | verified |
+| q038 | dev | comparison | 37.9 | normal | 2 | 0 | unverified |
+| q039 | dev | exact | 23.4 | normal | 1 | 2 | verified |
+| q040 | dev | number | 14.0 | normal | 1 | 1 | verified |
+| q041 | dev | exact | 15.0 | table | 1 | 1 | verified |
+| q042 | dev | fact | 12.1 | table | 1 | 1 | verified |
+| q043 | dev | fact | 14.8 | normal | 1 | 1 | verified |
+| q044 | dev | fact | 67.9 | normal | 2 | 4 | unverified |
+| q045 | dev | number | 35.4 | normal | 1 | 3 | verified |
+| q046 | dev | table | 59.1 | table | 2 | 0 | unverified |
+| q047 | dev | table | 12.9 | table | 1 | 1 | verified |
+| q048 | dev | fact | 56.0 | normal | 2 | 0 | unverified |
+| q049 | dev | fact | 34.0 | normal | 1 | 4 | verified |
+| q050 | dev | list | 16.2 | table | 1 | 1 | verified |
+| q051 | dev | fact | 15.5 | normal | 1 | 1 | verified |
+| q052 | dev | summary | 15.8 | normal | 1 | 1 | verified |
+| q053 | dev | notfound | 5.5 | table | 1 | 0 | not_found |
+| q054 | dev | notfound | 4.8 | normal | 1 | 0 | not_found |
+| q055 | dev | notfound | 37.9 | normal | 2 | 2 | verified |
+
+wrote C:\Users\sagar\Downloads\project\rag-project\eval\runs\2026-11-17-offline-step6\run.jsonl, C:\Users\sagar\Downloads\project\rag-project\eval\runs\2026-11-17-offline-step6\meta.json, C:\Users\sagar\Downloads\project\rag-project\eval\runs\2026-11-17-offline-step6\report.md
+next: .venv\Scripts\python.exe eval\score.py --run C:\Users\sagar\Downloads\project\rag-project\eval\runs\2026-11-17-offline-step6\run.jsonl --out C:\Users\sagar\Downloads\project\rag-project\eval\runs\2026-11-17-offline-step6
+generation eval exit code: 0
+offline-step6: 55 questions (dev 2.22 pts each, held-out 10.0 pts each)
+  recall@5  45/48
+  MRR       0.826
+  citation  31/48
+  numeric   35/43
+  nf(a) dev 3/6
+  nf(b)     45/48
+  passed    33/55
+  dev       28/45 passed
+  heldout   5/10 passed
+  wrote C:\Users\sagar\Downloads\project\rag-project\eval\runs\2026-11-17-offline-step6\scores.json and C:\Users\sagar\Downloads\project\rag-project\eval\runs\2026-11-17-offline-step6\scores.md
+score exit code: 0
+firewall rules left after the run: 0 (0 = cleaned up)
+finished: 2026-11-17T10:37:13

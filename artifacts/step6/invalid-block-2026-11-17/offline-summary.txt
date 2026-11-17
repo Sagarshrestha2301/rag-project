@@ -1,0 +1,9 @@
+offline run: PASS
+label: offline-step6
+rules active during the run: 4, left after: 0
+generation eval exit: 0, score exit: 0
+citation: 31/48
+numeric: 35/43
+not-found (a): 3/6
+passed: 33/55
+log: C:\Users\sagar\Downloads\project\rag-project\artifacts\step6\offline-run.log

@@ -11,6 +11,14 @@
     local model is the runtime by design (D-029). What this proves is that no *external*
     network is used.
 
+    A Windows venv's .venv\Scripts\python.exe is a trampoline: it starts the base
+    interpreter named in pyvenv.cfg, and that child is what opens sockets. Blocking only
+    the trampoline blocked nothing - found on 2026-11-17, when a probe from the "blocked"
+    interpreter still reached 1.1.1.1:443 while four rules were active. Both interpreter
+    paths are now blocked, and the script proves its own block before spending the eval:
+    scripts\offline-check.py runs under the rules and the eval only starts if every
+    external connection fails. A run that cannot block the network reports FAIL.
+
     The rules are removed in a finally block, so they never outlive a run, and only the
     named programs are blocked - not the whole machine.
 
@@ -31,6 +39,19 @@ $ErrorActionPreference = 'Stop'
 $root   = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $root '.venv\Scripts\python.exe'
 $ollama = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe'
+$check  = Join-Path $PSScriptRoot 'offline-check.py'
+
+# The interpreter that actually opens sockets: .venv\Scripts\python.exe starts this one
+# (pyvenv.cfg `home`), so the firewall has to block the base image too.
+$basePython = $null
+$pyvenv = Join-Path $root '.venv\pyvenv.cfg'
+if (Test-Path -LiteralPath $pyvenv) {
+    # $HOME is a read-only PowerShell automatic variable, hence $venvHome.
+    $venvHome = Get-Content -LiteralPath $pyvenv | Where-Object { $_ -match '^home\s*=' } | Select-Object -First 1
+    if ($venvHome) { $basePython = Join-Path (($venvHome -replace '^home\s*=\s*', '').Trim()) 'python.exe' }
+}
+$programs = @($python, $ollama)
+if ($basePython -and (Test-Path -LiteralPath $basePython)) { $programs += $basePython }
 $outDir = Join-Path $root 'artifacts\step6'
 $log    = Join-Path $outDir 'offline-run.log'
 $summ   = Join-Path $outDir 'offline-summary.txt'
@@ -40,6 +61,7 @@ $runDir = Join-Path $root ('eval\runs\' + (Get-Date).ToString('yyyy-MM-dd') + '-
 
 if (-not (Test-Path -LiteralPath $python)) { throw ("missing interpreter: " + $python) }
 if (-not (Test-Path -LiteralPath $ollama)) { throw ("missing Ollama binary: " + $ollama) }
+if (-not (Test-Path -LiteralPath $check)) { throw ("missing block probe: " + $check) }
 
 # The model must already be served locally, or the blocked run would fail for the wrong
 # reason (an unreachable server, not a network call).
@@ -84,34 +106,45 @@ $lines = @()
 $started = Get-Date
 $evalExit = $null
 $scoreExit = $null
+$blockCheckExit = $null
 $active = 0
 try {
     Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
-    foreach ($program in @($python, $ollama)) {
+    foreach ($program in $programs) {
         New-NetFirewallRule -DisplayName $rule -Direction Outbound -Program $program -Action Block -Profile Any | Out-Null
         New-NetFirewallRule -DisplayName $rule -Direction Inbound  -Program $program -Action Block -Profile Any | Out-Null
     }
     $active = (Get-NetFirewallRule -DisplayName $rule | Measure-Object).Count
-    $lines += ("firewall rules active during test: " + $active + " (4 = inbound + outbound for python and ollama)")
-    $lines += ("blocked programs: " + $python + " ; " + $ollama)
+    $lines += ("firewall rules active during test: " + $active + " (" + ($programs.Count * 2) + " = inbound + outbound for " + $programs.Count + " programs)")
+    $lines += ("blocked programs: " + ($programs -join ' ; '))
     $lines += ("model: " + $Model + " (digest " + ($tags.models | Where-Object { $_.name -eq $Model }).digest + ")")
     $lines += ("started: " + $started.ToString('s'))
 
-    $eval = Invoke-Blocked -Arguments @(
-        (Join-Path $root 'eval\run_generation.py'), '--label', $Label, '--model', $Model)
-    $evalExit = $eval.exit
-    $lines += $eval.output
-    $lines += ("generation eval exit code: " + $evalExit)
+    # Prove the block before spending twenty minutes on an eval that would prove nothing.
+    $checkRun = Invoke-Blocked -Arguments @($check)
+    $blockCheckExit = $checkRun.exit
+    $lines += $checkRun.output
+    $lines += ("offline-check exit code: " + $blockCheckExit + " (0 = every external connection was refused)")
 
-    $runFile = Join-Path $runDir 'run.jsonl'
-    if (Test-Path -LiteralPath $runFile) {
-        $score = Invoke-Blocked -Arguments @(
-            (Join-Path $root 'eval\score.py'), '--run', $runFile, '--out', $runDir, '--label', $Label)
-        $scoreExit = $score.exit
-        $lines += $score.output
-        $lines += ("score exit code: " + $scoreExit)
+    if ($blockCheckExit -eq 0) {
+        $eval = Invoke-Blocked -Arguments @(
+            (Join-Path $root 'eval\run_generation.py'), '--label', $Label, '--model', $Model)
+        $evalExit = $eval.exit
+        $lines += $eval.output
+        $lines += ("generation eval exit code: " + $evalExit)
+
+        $runFile = Join-Path $runDir 'run.jsonl'
+        if (Test-Path -LiteralPath $runFile) {
+            $score = Invoke-Blocked -Arguments @(
+                (Join-Path $root 'eval\score.py'), '--run', $runFile, '--out', $runDir, '--label', $Label)
+            $scoreExit = $score.exit
+            $lines += $score.output
+            $lines += ("score exit code: " + $scoreExit)
+        } else {
+            $lines += ("no run.jsonl written: " + $runFile)
+        }
     } else {
-        $lines += ("no run.jsonl written: " + $runFile)
+        $lines += 'eval skipped: the firewall block is not effective for this interpreter'
     }
 } finally {
     Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
@@ -126,11 +159,13 @@ $scores = if (Test-Path -LiteralPath $scoresPath) {
     Get-Content -LiteralPath $scoresPath -Raw | ConvertFrom-Json
 } else { $null }
 
-$verdict = if ($evalExit -eq 0 -and $scoreExit -eq 0 -and $scores) { 'PASS' } else { 'FAIL' }
+$verdict = if ($blockCheckExit -eq 0 -and $evalExit -eq 0 -and $scoreExit -eq 0 -and $scores) { 'PASS' } else { 'FAIL' }
 $summary = @()
 $summary += ("offline run: " + $verdict)
 $summary += ("label: " + $Label)
 $summary += ("rules active during the run: " + $active + ", left after: " + $left)
+$summary += ("blocked programs: " + ($programs -join ' ; '))
+$summary += ("block self-test (offline-check.py): exit " + $blockCheckExit + " (0 = network refused)")
 $summary += ("generation eval exit: " + $evalExit + ", score exit: " + $scoreExit)
 if ($scores) {
     $summary += ("citation: " + $scores.summary.citation.count + "/" + $scores.summary.citation.of)
@@ -147,6 +182,8 @@ Write-TextNoBom -Path $summ -Text ($summary -join "`n")
     model = $Model
     rules_active = $active
     rules_left = $left
+    programs = $programs
+    block_check_exit = $blockCheckExit
     eval_exit = $evalExit
     score_exit = $scoreExit
     citation = if ($scores) { $scores.summary.citation } else { $null }

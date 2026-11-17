@@ -15,7 +15,7 @@
 ## Definition of done
 - [x] Citation correctness, numeric exact match and not-found accuracy (a and b) recorded in `EVAL.md`
 - [x] Regression gate (as defined in `EVAL.md`) passes against the Step 5 baseline for retrieval metrics
-- [ ] Offline run: full pipeline and eval pass with the network disabled (output recorded)
+- [x] Offline run: full pipeline and eval pass with the network disabled (output recorded)
 - [x] Quote verification catches an injected fake quote (test with real output)
 - [x] Cache returns a hit for a repeated question and misses after an index or prompt version change (tested)
 - [x] Latency: about 20s short follow-up, 30s+ deep (p50 and p95 reported)

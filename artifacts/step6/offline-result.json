@@ -1,0 +1,37 @@
+{
+    "verdict":  "PASS",
+    "label":  "offline-step6",
+    "model":  "qwen3.5:4b",
+    "rules_active":  6,
+    "rules_left":  0,
+    "programs":  [
+                     "C:\\Users\\sagar\\Downloads\\project\\rag-project\\.venv\\Scripts\\python.exe",
+                     "C:\\Users\\sagar\\AppData\\Local\\Programs\\Ollama\\ollama.exe",
+                     "C:\\Users\\sagar\\Downloads\\project\\rag-project\\tools\\python312\\python.exe"
+                 ],
+    "block_check_exit":  0,
+    "eval_exit":  0,
+    "score_exit":  0,
+    "citation":  {
+                     "count":  31,
+                     "of":  48,
+                     "pct":  64.6
+                 },
+    "numeric":  {
+                    "count":  35,
+                    "of":  43,
+                    "pct":  81.4
+                },
+    "notfound_a":  {
+                       "count":  3,
+                       "of":  6,
+                       "pct":  50.0
+                   },
+    "passed":  {
+                   "count":  33,
+                   "of":  55,
+                   "pct":  60.0
+               },
+    "run":  "C:\\Users\\sagar\\Downloads\\project\\rag-project\\eval\\runs\\2026-11-17-offline-step6",
+    "log":  "C:\\Users\\sagar\\Downloads\\project\\rag-project\\artifacts\\step6\\offline-run.log"
+}
