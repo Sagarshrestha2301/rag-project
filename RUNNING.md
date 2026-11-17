@@ -136,64 +136,123 @@ citations 20/30, numeric 23/24, not-found 3/3 and 26/26, median 4.9 s.
 `--no-think` is required for qwen3.5; drop `--model`/`--no-think` to re-run the
 7B fallback as `qwen2.5:latest`.
 
-## 5. Parse the corpus
+## 5. Build the page index
+
+`corpus.build()` parses every PDF under `data/corpus/`, OCRs any page with no text layer,
+and caches the result in `index/pages.json`. It is the only step between a PDF and being
+searchable:
 
 ```powershell
-.venv\Scripts\python.exe -c "import pymupdf4llm, glob; print(len(pymupdf4llm.to_markdown(glob.glob('data/corpus/*.pdf')[0])))"
+.venv\Scripts\python.exe -c "import corpus; i=corpus.build(); print(len(i['docs']), 'documents', len(i['pages']), 'pages,', i['ocr_pages'], 'OCR pages')"
 ```
 
-Scanned documents are OCR'd with RapidOCR (`rapidocr==3.10.0`). The one scan in
-the corpus, `0_NARAYAN_...pdf`, yields 0 characters by plain extraction and about
-7,000 characters per run through OCR. Throughput is 0.64 s/page for text pages;
-OCR is far slower.
+Measured on the current corpus: **97 documents / 851 pages, 86 OCR pages, 996 s (~17 min)**
+— about 51 pages/min, with OCR at roughly 4 s/page. Every rebuild re-parses every
+document, so after adding files run this once from the terminal instead of letting a
+user's first question pay for it.
 
-## 6. Open the chat UI
+- **The index is a cache, not the authority.** It stores a *signature* (file name, size and
+  mtime per document) and `build()` re-parses when the signature changes, so a new or
+  edited PDF is picked up on the next build by itself. Deleting `index/pages.json` is never
+  required; `corpus.build(force=True)` is the explicit way to force a full re-parse.
+- **Adding documents:** put the PDF in `data/corpus/` (same relative folder as its
+  original in `data/raw/`), then run the command above. PDFs only — convert Word files
+  with the pinned LibreOffice to `<name>.docx.pdf` first. File names must be unique: two
+  documents with the same name raise an error rather than being guessed apart. The new
+  file is ranked against the old ones in the same pass; there is one index, not one per
+  document.
+- **Scans are fine:** a page with under 40 characters of text is OCR'd at build time and
+  marked `source: "ocr"` in the index (86 pages here). Pages that stay empty are listed in
+  `i["unreadable"]` — 8 documents have at least one — and `/api/health` reports the count.
+- **No working-directory dependency:** `corpus.CORPUS` and `corpus.INDEX_CACHE` are
+  absolute and derived from the project folder, so this works from any directory.
+
+## 6. Ask a question
+
+Two front ends sit on the same page index. They do **not** yet share the same answer path:
+the pipeline below is Step 6, and the chat UI is still the older prototype. Step 7 replaces
+the prototype's answer path with the pipeline.
+
+### 6a. The generation pipeline (router, gate, verified citations, cache)
 
 ```powershell
-.venv\Scripts\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8000
+# one question
+.venv\Scripts\python.exe -m generation.answer "What was the 24-hour rainfall depth at Tistung?"
+
+# a follow-up: the previous question lets "and at Ghantemadi?" be rewritten before search
+.venv\Scripts\python.exe -m generation.answer "and at Ghantemadi?" --history "What was the 24-hour rainfall depth at Tistung?"
+
+# the whole record as JSON (route, gate, passages, citations, timings), or a fresh answer
+.venv\Scripts\python.exe -m generation.answer "Summarise this paper" --json
+.venv\Scripts\python.exe -m generation.answer "…" --no-cache
 ```
 
-Then open **http://127.0.0.1:8000**.
+What happens, in order:
 
-Streaming answers, conversations kept in the browser, stop mid-answer, copy,
-regenerate, light/dark theme, and live tokens/second under each reply.
+| Step | Module | What it decides |
+|---|---|---|
+| 1 | `generation/router.py` | route: `greeting` (no retrieval, no model), `followup` (condense first, 5 passages), `summary` (6 passages, summary rules), `table` (6 passages, table rules) or `normal` (5 passages) |
+| 2 | `generation/condense.py` | only for a follow-up, and only when there is a previous turn: rewrite the question so a pronoun has a subject |
+| 3 | `generation/cache.py` | answer already known for this question, index, model and prompt? (see below) |
+| 4 | `corpus.search` | BM25 over pages: the top `k` passages for the route |
+| 5 | `generation/gate.py` | `pre_ask`: best score below 15 → refuse without calling the model |
+| 6 | `generation/prompt.py` | number the passages `[1]…[n]`, add the citation rules and the route's extra rules |
+| 7 | Ollama `qwen3.5:4b` | temperature 0, thinking off, 4096-token context |
+| 8 | `generation/verify.py` | every `[n]` must be a passage that was shown; every quotation must exist, character for character, on the page it cites; one retry, then `unverified` |
+| 9 | `generation/gate.py` | `resolve`: `verified`, `not_found` or `unverified` |
 
-**Answers are grounded in the corpus.** Before the model sees a question,
-`corpus.py` scores every page with BM25 and passes the four best to
-qwen3.5 4B, which cites them by letter. Each reply ends with **Sources** chips
-(document and page); click a chip or an inline citation like [A] to open that PDF
-page in a new tab. The model is told to answer `NOT FOUND` when the passages do
-not contain the answer, so a miss looks like a miss instead of a guess.
+Answers use **`[1]…[n]` passage numbers** and end with one citation line per number, which
+is what makes them checkable:
 
-**Save chat** downloads the current conversation as Markdown, including the
-sources used for each answer.
+```
+540 mm fell in 24 hours at Tistung [1].
 
-qwen3.5 wraps its (empty) reasoning in literal ` thinking` tags even with thinking
-off; the server strips them from the stream, so you should never see one.
+[1] 1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf, p. 2: "the 24-hour rainfall depth of 540 mm at Tistung"
+```
 
-The page index is cached in `index/pages.json` (regenerated, not committed).
-After changing the corpus, delete that file and restart the server above.
+When the passages do not answer the question the reply is exactly
+`Not found in the indexed documents.` — from the floor with no model call, or from the
+model itself. The command exits 1 when the status is `unverified`, so a script can tell.
 
-**The scanned NARAYAN paper is searchable too.** Its four pages have no text layer,
-so the index runs OCR on them once through the pinned parser (about 20 s, RapidOCR)
-and stores the text with the page. Source chips from those pages are marked `· OCR`,
-and `/api/health` reports `ocr_pages` and an empty `unreadable`.
+**The answer cache** (`index/answer-cache.json`) is a hit only when *all* of these still
+match: the normalised question, the index signature, the model digest, the prompt version,
+a hash of the text of every cited page, and the index the process holds against the corpus
+on disk (`corpus.is_current`). Measured: **0.4-0.6 s for a hit against 19.1 s to generate**.
+An `unverified` answer is never cached, and `--no-cache` bypasses the cache entirely.
 
-Two honest limits. This is *page-level* retrieval — a prototype for the chunking
-and hybrid search of Steps 4-5, not those steps finished — so it can rank a page
-but not part of one. And OCR occasionally loses a hyphen inside a numeric range:
-the paper's `calcite (5-10 %)` comes back as `(510 %)`. Treat numbers from
-scanned pages as needing a glance at the PDF, which the citation link makes easy.
+### 6b. The chat UI (prototype: streaming, letter citations, no verification)
+
+```powershell
+.\scripts\open-chat.ps1 -Start        # Ctrl+C stops it
+```
+
+Then open **http://127.0.0.1:8000**. Streaming answers, conversations kept in the browser,
+stop mid-answer, copy, regenerate, light/dark theme, and live tokens/second under each
+reply. **Save chat** downloads the conversation as Markdown with its sources.
+
+What it does today: BM25 over pages with `CHAT_TOP_K` passages (4 by default), **letter
+citations `[A]`-`[D]`**, no router, no not-found floor, no quotation verification and no
+answer cache. It is the prototype from before Step 6, and Step 7 replaces its answer path
+with 6a — until then, use 6a when an answer has to be checked.
+
+Operational details that still apply to it: source chips open the corpus PDF at the cited
+page (OCR pages are marked `· OCR`), `/api/health` reports documents, pages, OCR pages and
+unreadable pages, and `qwen3.5`'s literal ` thinking` tags are stripped from the stream.
+One honest limit survives from the prototype: OCR occasionally loses a hyphen inside a
+numeric range — the paper's `calcite (5-10 %)` comes back as `(510 %)` — so numbers from a
+scanned page deserve a glance at the PDF, which the citation link makes easy.
 
 Options, if you want a different port or model:
 
 ```powershell
 $env:CHAT_MODEL = "qwen3.5:4b"   # or "qwen2.5" for the 7B fallback
 $env:CHAT_THINK = "0"           # keep 0 for qwen3.5, or the replies come back empty
+$env:CHAT_TOP_K = "4"           # passages the prototype puts in front of the model
 .venv\Scripts\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8001
 ```
 
-Stop it with `Ctrl+C` in that terminal (or stop the python process on that port).
+Stop it with `Ctrl+C` in that terminal (or stop the python process on that port). The
+prototype builds its index once at import, so **after a corpus change, restart it**.
 
 ## 7. Check the environment
 
@@ -213,13 +272,16 @@ git status
 | Answers are empty strings | Thinking was left on for qwen3.5. Start the UI with `CHAT_THINK=0` and the launcher without `-Think`; with it on, the model spends the budget reasoning and emits nothing. |
 | First answer takes ~10 s longer | The model was unloaded. `ollama ps` shows `UNTIL`; the launcher sets 30 minutes. |
 | Answers crawl | `ollama ps` shows the CPU/GPU split. Our 7.6B model runs at 55%/45% on 4 GB VRAM; close other GPU apps (`ollama stop`, browsers with hardware acceleration). |
-| Prompt rejected as too long | Context is 4096 tokens. Retrieved chunks plus history must stay under roughly 3.5k. |
+| Prompt rejected as too long | Context is 4096 tokens. Retrieved passages plus history must stay under roughly 3.5k. |
+| `status: unverified` (exit 1) | The answer's quotations were not found on the pages they cite, after one retry. Re-ask, or open the cited page: the verifier is meant to fail here rather than pass a claim nobody can check. |
+| A question answers in well under a second every time | It is a cache hit: same question, index, model and prompt. Use `--no-cache` to force a fresh answer. |
 
 ## Notes and limits
 
 - **Context is 4096 tokens.** A prompt of 4226 tokens is rejected outright. Keep
-  retrieved chunks plus history under about 3.5k tokens, and leave room for the
-  answer.
+  retrieved passages plus history under about 3.5k tokens, and leave room for the
+  answer. Routes ask for 5 passages (normal, follow-up), 6 (table, summary) or none
+  (greeting), which is why `--k` stays inside that budget rather than free.
 - **Generation is about 10.5 tok/s** at 4B, and first token at 3.64 s for a
   2,323-token prompt, so a 120-token answer lands inside the 20 s target. Long
   answers are the slow case: 343 tokens took 44.8 s.
