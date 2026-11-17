@@ -1,4 +1,4 @@
-"""Check that an answer's quotations actually exist on the pages it cites.
+"""Check that an answer's quotations exist on the pages it cites, and so do its numbers.
 
 This is the half of D-010 that survives (D-058): a citation is not accepted because
 it looks plausible, only because the quoted words are on that page. The comparison
@@ -6,6 +6,14 @@ is deliberately the plain one the eval scorer uses (`eval/score.py`) — collaps
 whitespace and folding typographic quotation marks — and nothing looser: no stemming,
 no case folding, no accepting a quote split by "...". If the model will not copy the
 page, the answer is retried and then reported as unverified.
+
+A second check covers the numbers in the prose. Every number a sentence states must
+appear on a page that same sentence cites, so "which is 54 mm [1]" fails when page 1
+says 540 mm and the quotation happens to be genuine. Measured on the 55 saved answers
+of 2026-11-16 before it was added: 114 numbers checked, 1 flagged (q039, a real
+misstatement), so it costs 1 of 55 answers and bought a caught error. It ignores digits
+glued to letters (`P0`, `m3`), `[n]` markers, and sentences with no marker, where the
+separate "no [n] marker" rule already speaks.
 
 Usage:
     from generation import prompt, verify
@@ -30,12 +38,6 @@ import re
 from corpus import page_text
 from generation.prompt import NOT_FOUND_TEXT
 
-# TODO(step-06): the verifier checks quotations, not the numbers in the answer prose. A
-# sentence can read "720 mm [1]" while quoting "540 mm" from page 2, and this module
-# passes it because the quotation is genuine; only the numeric metric in EVAL.md sees
-# that. Task 3 (the gate, D-058) is where a prose check belongs, before the answer is
-# returned as grounded.
-
 # One citation line: [2] name.pdf, p. 12: "quote"  (the quote may be unquoted)
 # Every dash a model has been seen to type before the quotation is accepted here --
 # colon, hyphen, en dash, em dash -- because the prompt's own headings use an em dash.
@@ -44,6 +46,14 @@ _CITATION = re.compile(
     re.MULTILINE,
 )
 _INLINE = re.compile(r"\[(\d+)\]")
+# A number a sentence states: not glued to a letter or a decimal point of a variable
+# (P0, m3, h-1), thousands separators allowed. "24-hour" is 24; "0.033" is one number.
+_NUMBER = re.compile(r"(?<![A-Za-z0-9_.])\d[\d,]*(?:\.\d+)?(?![A-Za-z0-9])")
+_SENTENCE = re.compile(r"(?<=[.!?])\s+|\n+")
+# "p. 3" and "et al." are not sentence ends; a full stop inside them is parked on a
+# look-alike character while the text is split.
+_ABBREVIATION = re.compile(r"\b(p|pp|e\.g|i\.e|al|No|vs|Fig|approx|cf)\.", re.IGNORECASE)
+_PARKED_STOP = "\u2024"
 _WRAPPING = "\"'“”‘’"
 _FOLD = {"“": '"', "”": '"', "‘": "'", "’": "'", "\u00a0": " "}
 
@@ -84,6 +94,51 @@ def inline_numbers(answer: str) -> list[int]:
     """Passage numbers mentioned in the answer body, citations excluded."""
     body = _CITATION.sub("", answer or "")
     return [int(n) for n in _INLINE.findall(body)]
+
+
+def sentences(text: str) -> list[str]:
+    """Split prose into sentences without breaking on 'p.' or 'et al.'."""
+    protected = _ABBREVIATION.sub(lambda m: m.group(0)[:-1] + _PARKED_STOP, text or "")
+    return [part.replace(_PARKED_STOP, ".") for part in _SENTENCE.split(protected) if part.strip()]
+
+
+def stated_numbers(text: str) -> list[str]:
+    """The numbers a piece of text states, thousands separators removed."""
+    return [raw.replace(",", "") for raw in _NUMBER.findall(text or "")]
+
+
+def prose_number_problems(answer: str, citations: list[dict], read_page) -> list[str]:
+    """Every number a sentence states must be on a page that sentence cites.
+
+    The page read is the one the citation line names, not the passage's page, so a
+    citation that already points at the wrong page is judged on what it actually claims.
+    """
+    body = _CITATION.sub("", answer or "")
+    by_number = {c["n"]: (c["file"], c["page"]) for c in citations}
+    numbers_on: dict[tuple[str, int], set[str]] = {}
+    problems: list[str] = []
+
+    def page_numbers(name: str, page: int) -> set[str]:
+        key = (name, page)
+        if key not in numbers_on:
+            numbers_on[key] = set(stated_numbers(read_page(name, page)))
+        return numbers_on[key]
+
+    for sentence in sentences(body):
+        markers = sorted({int(n) for n in _INLINE.findall(sentence)})
+        numbers = stated_numbers(_INLINE.sub(" ", sentence))
+        targets = [by_number[n] for n in markers if n in by_number]
+        if not numbers or not targets:
+            continue
+        for number in dict.fromkeys(numbers):
+            if any(number in page_numbers(pathlib.PurePosixPath(str(file).replace("\\", "/")).name, int(page))
+                   for file, page in targets):
+                continue
+            file, page = targets[0]
+            name = pathlib.PurePosixPath(str(file).replace("\\", "/")).name
+            problems.append(f"[{markers[0]}] the sentence states {number}, but that number is "
+                            f"not on {name} page {page}")
+    return problems
 
 
 def said_not_found(answer: str) -> bool:
@@ -162,6 +217,9 @@ def verify_answer(answer: str, passages: list[dict], *, check_page=None) -> dict
             continue
         result["problems"].append(
             f'[{n}] the quotation is not on {want_file} page {cite_page}: "{quote[:70]}"')
+
+    if citations:
+        result["problems"].extend(prose_number_problems(answer, citations, read_page))
 
     missing = sorted({c["n"] for c in citations if 1 <= c["n"] <= len(passages)} - seen)
     if citations and missing and not result["problems"]:

@@ -241,7 +241,7 @@ What happens, in order:
 | 5 | `generation/gate.py` | `pre_ask`: best score below 15 → refuse without calling the model |
 | 6 | `generation/prompt.py` | number the passages `[1]…[n]`, add the citation rules and the route's extra rules |
 | 7 | Ollama `qwen3.5:4b` | temperature 0, thinking off, 4096-token context |
-| 8 | `generation/verify.py` | every `[n]` must be a passage that was shown; every quotation must exist, character for character, on the page it cites; one retry, then `unverified` |
+| 8 | `generation/verify.py` | every `[n]` must be a passage that was shown; every quotation must exist, character for character, on the page it cites; every number a sentence states must be on a page that same sentence cites; one retry, then `unverified` |
 | 9 | `generation/gate.py` | `resolve`: `verified`, `not_found` or `unverified` |
 
 Answers use **`[1]…[n]` passage numbers** and end with one citation line per number, which
@@ -316,7 +316,7 @@ git status
 | First answer takes ~10 s longer | The model was unloaded. `ollama ps` shows `UNTIL`; the launcher sets 30 minutes. |
 | Answers crawl | `ollama ps` shows the CPU/GPU split. Our 7.6B model runs at 55%/45% on 4 GB VRAM; close other GPU apps (`ollama stop`, browsers with hardware acceleration). |
 | Prompt rejected as too long | Context is 4096 tokens. Retrieved passages plus history must stay under roughly 3.5k. |
-| `status: unverified` (exit 1) | The answer's quotations were not found on the pages they cite, after one retry. Re-ask, or open the cited page: the verifier is meant to fail here rather than pass a claim nobody can check. |
+| `status: unverified` (exit 1) | The answer's quotations, or a number a sentence states, were not found on the pages they cite, after one retry. Re-ask, or open the cited page: the verifier is meant to fail here rather than pass a claim nobody can check. |
 | A question answers in well under a second every time | It is a cache hit: same question, index, model and prompt. Use `--no-cache` to force a fresh answer. |
 
 ## Notes and limits

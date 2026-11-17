@@ -26,6 +26,8 @@ PAGE = ("Table 2: Flood damage in the East-Rapti basin. The 24-hour rainfall dep
         "540 mm at Tistung was recorded in July 1970, and 139 households were surveyed "
         "in the lower catchment. Of these, 71 were growers.")
 OTHER = "Annual report of the department, 1988. Nothing about rainfall appears here."
+THIRD = "Flood damage reached 12,000 rupees in 1993 across the district."
+THIRD_PASSAGE = [{"doc": "1972_Third_Paper_W3.pdf", "page": 4, "label": "Third 1972"}]
 QUOTE = "The 24-hour rainfall depth of 540 mm at Tistung was recorded in July 1970"
 
 PASSAGES = [
@@ -40,6 +42,8 @@ def fake_page(doc: str, page: int) -> str:
         return PAGE
     if doc == "1971_Other_Paper_W2.pdf" and page == 7:
         return OTHER
+    if doc == "1972_Third_Paper_W3.pdf" and page == 4:
+        return THIRD
     return ""
 
 
@@ -147,6 +151,38 @@ def refusal_with_extra_text_fails() -> None:
     assert not result["ok"] and result["said_not_found"], result
 
 
+def number_not_on_cited_page_fails() -> None:
+    """A genuine quotation does not excuse a number the page never states."""
+    expect_fail("bad", 'The depth is 54 mm [1].\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: "' + QUOTE + '"',
+                "states 54")
+
+
+def number_on_cited_page_passes() -> None:
+    expect_ok("good", 'It rained 540 mm in 24 hours [1].\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: "' + QUOTE + '"')
+
+
+def thousands_separators_are_the_same_number() -> None:
+    """'12000' in the prose is the page's '12,000'."""
+    expect_ok("good", 'Damage reached 12000 rupees in 1993 [1].\n\n[1] 1972_Third_Paper_W3.pdf, p. 4: '
+              '"Flood damage reached 12,000 rupees in 1993"', THIRD_PASSAGE)
+
+
+def digits_glued_to_letters_are_not_numbers() -> None:
+    """P0, m3 and h-1 are names, not quantities to look up on a page."""
+    expect_ok("good", 'P0 is defined there [1].\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: "' + QUOTE + '"')
+
+
+def markers_are_not_numbers() -> None:
+    """[1] is a pointer; only the digits outside the brackets are looked for."""
+    expect_ok("good", 'The depth was 540 mm [1].\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: "' + QUOTE + '"')
+
+
+def number_without_a_marker_is_another_rules_business() -> None:
+    """A sentence with no [n] has nothing to check the number against; the marker rule speaks."""
+    expect_ok("good", '540 mm fell in 24 hours. The report records it [1].\n\n[1] '
+              '1970_Test_Paper_W1.pdf, p. 2: "' + QUOTE + '"')
+
+
 def first_readable_page() -> tuple[str, int, str]:
     """Name, page and text of the first corpus page with at least 400 characters."""
     for path in sorted(CORPUS_ROOT.rglob("*.pdf")):
@@ -196,6 +232,15 @@ def main() -> int:
             ("citation number that was never supplied", missing_number_fails),
             ("answer with no citation line", no_citation_line_fails),
             ("empty answer", empty_answer_fails),
+        ]),
+        ("numbers stated in the prose", [
+            ("a number the cited page does not state is refused", number_not_on_cited_page_fails),
+            ("a number the page states passes", number_on_cited_page_passes),
+            ("thousands separators are the same number", thousands_separators_are_the_same_number),
+            ("digits glued to letters are not numbers", digits_glued_to_letters_are_not_numbers),
+            ("citation markers are not numbers", markers_are_not_numbers),
+            ("a number in a sentence with no marker is left to the marker rule",
+             number_without_a_marker_is_another_rules_business),
         ]),
         ("the refusal is its own case", [
             ("exact refusal is accepted", refusal_passes),
