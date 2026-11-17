@@ -158,18 +158,19 @@ user's first question pay for it.
 - **Adding a document, in one command:**
 
   ```powershell
-  .\scriptsdd-document.ps1 -Path C:\inbox9_report.pdf            # corpus root
-  .\scriptsdd-document.ps1 -Path C:\inbox\scan.pdf -Folder reports   # keeps a folder
+  .\scripts\add-document.ps1 -Path C:\inbox\2019_report.pdf            # corpus root
+  .\scripts\add-document.ps1 -Path C:\inbox\scan.pdf -Folder reports   # keeps a folder
   ```
 
   It hardlinks the PDF into `data\corpus\<folder>\` (copying when the volumes differ),
   refuses a file name the corpus already has — the loader identifies a document by name,
   so two `report.pdf` are an error, not two documents — then rebuilds the index and
   prints the document and page counts before and after, with the rebuild time. A file
-  under `dataaw\` keeps its folder relative to `dataaw`; `dataaw` itself is never
+  under `data\raw\` keeps its folder relative to `data\raw`; `data\raw` itself is never
   modified. It exits 1 on any refusal. PDFs only: convert Word files with the pinned
   LibreOffice to `<name>.docx.pdf` first. The new file is ranked against the old ones in
   the same pass; there is one index, not one per document.
+
 - **Scans are fine:** a page with under 40 characters of text is OCR'd at build time and
   marked `source: "ocr"` in the index (86 pages here). Pages that stay empty are listed in
   `i["unreadable"]` — 8 documents have at least one — and `/api/health` reports the count.
