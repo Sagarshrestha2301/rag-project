@@ -100,7 +100,7 @@ Owner approved the 30 questions and the scorer spec in chat; the scorer was then
 - Embedding speed (pages/min): not measured.
 
 ## Proposals for owner (agents add here; owner decides)
-- **Step 7 needs the owner's approval line on disk (nothing was recorded by the agent).** You approved step 07's start in chat on 2026-11-17; `AGENTS.md` rule 3 and `APPROVALS.md` itself say only you write there, in an `OWNER:` commit. To unblock the step, add the line `2026-11-17 | start | step 07 | owner` under the log's newest entry and commit it as `OWNER: approve start of step 07`. Until then the spec is written but Step 7 is not started, and no UI code will be written.
+- **Step 7 is started and its spec is approved (2026-11-17).** `APPROVALS.md` carries `2026-11-16 | start | step 07 | owner` from the owner's own commit, so the step is approved; an earlier version of this line said it was missing and was wrong. `ui/SPEC.md` section 12 records all six choices as approved (recommended options), of which the first two are D-061 and D-062. No UI code exists yet.
 - **Six UI choices await your verdict (`ui/SPEC.md` section 12).** Code stays in `ui/` rather than `src/ui/`; stage timings get added to the `generation.answer` record; a streamed answer that fails verification is retracted in place rather than hidden; the terracotta accent stays; Debug is a tab in the evidence rail; the rail is open by default above 1280px. Each has a recommended default, so "approve all recommended" answers all six.
 - **PROPOSED D-060 needs a verdict (refusal format).** The full run shows the model refusing in prose instead of the exact line, costing not-found (a) three of six. The proposal is in `DECISIONS.md`; it needs a test and a re-run before it is built.
 - **Step 7 should unify the two answer paths.** `generation/answer.py` is what the eval measures, but `ui/server.py` still has its own prompt and no router, gate, verifier or cache. Shipping the measured pipeline means the UI calls `generation.answer` (a streaming wrapper), not a second copy.
@@ -204,7 +204,7 @@ Owner approved the 30 questions and the scorer spec in chat; the scorer was then
 
    One more finding for the record: Step 3's `tables.jsonl` has cells and a `bbox` but **no caption, units or footnotes**, and Step 4 task 2 requires all three. They are recoverable from the page text by geometry (Ahasan p3 literally contains `table-1:`, lowercase and hyphenated, so the caption regex must be case-insensitive), but only by reading the PDF again — which is another consequence of Decision A.
 
-16. **Filename years against printed years (needs your ruling).** Many corpus file names start
+16. **APPROVED 2026-11-17: the printed page date wins over the file-name year where the page prints one.** Recorded on the owner's instruction ("approve all the remaining"). Not yet built: `chunk/meta.py` still keeps the file-name year authoritative, so this needs the precedence flip, a re-index and a retrieval re-measure before it ships. Detail as it stood: Many corpus file names start
    with a year that the page contradicts: `1970_Ahasan_...` prints *December 2010* in its masthead,
    `1970_Marahatta_...` prints *August 2009*, and `1976_Watanabe_...` has no date on page 1 at all.
    Three of those `1970_` documents are from the same journal and that prefix looks like a placeholder
@@ -212,7 +212,7 @@ Owner approved the 30 questions and the scorer spec in chat; the scorer was then
    fills a *missing* year from the page, so nothing was silently changed. If the printed dates are
    right, the fix is a one-line precedence flip plus a re-measure; it also decides whether the two
    documents that now carry `2026` (from an `April 2026` masthead) should keep it.
-17. **A journal-name registry for the 58 documents with no publisher (needs your decision).** Their
+17. **APPROVED 2026-11-17: build the curated outlet registry** for the 58 documents whose page 1 prints no publisher, with the evidence for each entry recorded next to it. Recorded on the owner's instruction ("approve all the remaining"); not yet built. Detail as it stood: Their
    page-1 heads print title and author only, for example `Beliefs, superstitions and taboos associated
    with bamboos in Nepal A.N. Das`, so no rule can read a publisher off the page. The only route left is
    a curated list of outlet names ("Banko Janakari", "Journal of Hydrology and Meteorology", ...) matched

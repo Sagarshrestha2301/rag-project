@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-17 | completion | step 06 | owner
 2026-11-16 | start | step 05 | owner
 2026-11-16 | start | step 04 | owner
 2026-11-16 | start | step 03 | owner
@@ -66,3 +67,8 @@ Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 instruction in chat, not written by hand by the owner. The step 01 approval records the
 owner's chat approval of the 30 questions and the scorer spec. Recorded here rather than
 omitted so the log matches what happened; see "Proposals for owner" in `STATUS.md`.)
+
+(2026-11-17: the step 06 completion line above was typed by the coding agent on the owner's
+explicit instruction in chat - "approve all the remaining" - and committed in an `OWNER:`
+commit, the same way the 2026-11-13 lines were. The owner has not yet created the
+`step-06-approved` tag; rule 12 leaves that to the owner.)

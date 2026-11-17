@@ -372,6 +372,7 @@ the labels in the sources rail say so.
 
 ## 12. Decisions needed from the owner
 
+**Approved by the owner on 2026-11-17: all six recommended options** (instruction in chat, "approve all the remaining"). Code stays in `ui/`; stage timings go into the `generation.answer` record; a streamed answer that fails verification is retracted in place; the terracotta accent stays; Debug is a tab in the evidence rail; the rail is open above 1280px and closed below it, remembered per browser. Decisions D-061 and D-062 in `DECISIONS.md` carry the first two.
 Recommended answers are first; "approve all recommended" is enough.
 
 1. **Code location.** Keep `ui/` (recommended, see §2) or move it to `src/ui/` as the
