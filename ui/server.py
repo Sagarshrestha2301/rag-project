@@ -50,42 +50,26 @@ class ChatRequest(BaseModel):
     temperature: float = 0.0
 
 
-def public_sources(passages: list[dict], question: str,
-                   citations: list[dict]) -> list[dict]:
-    """Return only cited passages, paired with their citation-line quotations."""
+def public_sources(passages: list[dict], question: str) -> list[dict]:
+    """Adapt evaluated passages to the source shape used by the existing client."""
     query = tokens(question)
-    citations_by_number = {}
-    for citation in citations:
-        citations_by_number.setdefault(int(citation["n"]), citation)
-
     sources = []
     for passage in passages:
-        number = int(passage["n"])
-        citation = citations_by_number.get(number)
-        if citation is None:
-            continue
-
-        cited_doc = pathlib.PurePosixPath(
-            str(citation["file"]).replace("\\", "/")).name
-        cited_page = int(citation["page"])
-        page = PAGE_BY_ID.get((cited_doc, cited_page))
-        if page is None:
-            page = PAGE_BY_ID.get((passage["doc"], passage["page"]))
+        page = PAGE_BY_ID.get((passage["doc"], passage["page"]))
         if page is None:
             raise RuntimeError(
                 f"generation returned a passage outside the page index: "
                 f"{passage['doc']} page {passage['page']}")
-
+        number = passage["n"]
         sources.append({
             "n": number,
             "key": str(number),
-            "doc": cited_doc,
-            "page": cited_page,
-            "label": page["label"],
+            "doc": passage["doc"],
+            "page": passage["page"],
+            "label": passage["label"],
             "score": passage["score"],
             "snippet": snippet(page["text"], query),
             "ocr": page.get("source") == "ocr",
-            "quote": citation["quote"],
         })
     return sources
 
@@ -183,8 +167,7 @@ async def chat(payload: ChatRequest) -> StreamingResponse:
         "status": record["status"],
         "cached": record["cached"],
         "record": record,
-        "sources": public_sources(
-            record["passages"], record["search_question"], record["citations"]),
+        "sources": public_sources(record["passages"], record["search_question"]),
     }
 
     async def relay():
