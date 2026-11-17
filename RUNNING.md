@@ -121,6 +121,39 @@ then writes `run.jsonl`, `meta.json` and `report.md` (latency, routes, refusals)
 `--only q001,q023` runs a smoke subset; `--resume` keeps finished lines and answers the
 rest. It stops before the first question if Ollama is down or the model is not pulled.
 
+## 3c. Enforce the regression gate
+
+`eval/gate.py` is EVAL.md's gate as a script: the last accepted baseline and the
+start-of-step baseline are compared with the current run on the dev set, and the exit
+code is the verdict.
+
+```powershell
+.venv\Scripts\python.exe eval\gate.py `
+  --current  eval\runs\2026-11-16-step6-full `
+  --baseline eval\runs\2026-11-16-rebased-2026-11-16 `
+  --start    eval\runs\2026-11-16-rebased-2026-11-16
+```
+
+- **Exit 0** every rule holds, **1** a rule is broken, **2** the runs cannot be compared
+  (different question sets, missing run file, unreadable explanations file).
+- Rules, in EVAL.md's numbering: 1 no pass-to-fail question without a written
+  explanation, 2 and 3 no count metric down by two or more questions and MRR down by
+  more than 1/N against either baseline, 4 not-found (a) down at all.
+- A pass-to-fail question is accepted only with a reason: `--explain "q029=table row
+  absent from the six passages"`, or `--explanations notes.txt` with one `qID: reason`
+  per line.
+- The gate **re-scores the raw runs** with `eval/score.py` and never trusts a stored
+  `scores.json`, so all three runs are measured by today's scorer.
+- It compares only what both runs measured. A retrieval-only run has no answers, so its
+  citation, numeric, not-found and passed figures print as `unmeasured` rather than 0,
+  and the gate says `SKIP` instead of inventing a regression.
+- `--milestone` gates the held-out split instead (end of Steps 5, 6 and 8).
+
+Measured on 2026-11-17: the pair above passes (recall@5 37/39 both sides, MRR 0.831 vs
+0.834, one question = 0.026), and the same check fails on a deliberately regressed copy
+of that run in every rule it breaks. Proof logs: `artifacts/gate-demo/` and
+`artifacts/gate-demo-one/`.
+
 ## 4. Run the oracle benchmark
 
 Gives the model the gold page for every question and scores its answers — the
