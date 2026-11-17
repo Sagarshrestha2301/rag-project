@@ -1,43 +1,63 @@
-"""Local chat UI server: `generation.answer`, localhost only, offline.
+"""Local chat UI server: retrieval + Ollama, localhost only, offline.
 
-Every answer uses the same routed, verified pipeline as the generation eval. The chat
-route returns its final record in the existing newline-delimited response shape; token
-streaming is Step 7 task 2.
+Every answer is built from pages of `data/corpus/` found by `corpus.py` and comes
+back with the pages it used, so a citation can be checked by opening the PDF at
+that page. This is page-level retrieval, a prototype for the chunking and hybrid
+search of Steps 4-5, not a substitute for them.
 
 Usage:
     .venv\\Scripts\\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8000
 
-Environment: OLLAMA_URL, CHAT_MODEL, CHAT_NUM_CTX, CHAT_THINK (see D-048).
+Environment: OLLAMA_URL, CHAT_MODEL, CHAT_NUM_CTX, CHAT_TOP_K, CHAT_KEEP_ALIVE,
+CHAT_THINK (leave at 0 for qwen3.5:4b — see D-048).
 """
 
 from __future__ import annotations
 
-import asyncio
 import json
+import os
 import pathlib
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from corpus import CORPUS, build as build_pages, snippet, tokens
-from generation import answer as generation
+from corpus import CORPUS, build as build_pages, search as search_pages
+from generation.think import ThinkFilter
 
 STATIC = pathlib.Path(__file__).parent / "static"
 # `corpus.CORPUS` is absolute and project-relative, so the PDF route below serves the
 # same files whether the server was started from the project root or anywhere else.
-OLLAMA_URL = generation.OLLAMA_URL
-MODEL = generation.MODEL
-NUM_CTX = generation.NUM_CTX
-TOP_K = generation.router.SETTINGS["normal"]["k"]
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+# qwen3.5 4B won the Step 2 comparison: 23/30 oracle against 18/30 for the 7B,
+# faster on every latency measure, and inside D-002's 3-4B band (D-047/D-048).
+MODEL = os.environ.get("CHAT_MODEL", "qwen3.5:4b")
+KEEP_ALIVE = os.environ.get("CHAT_KEEP_ALIVE", "30m")
+# Thinking must stay off. With it on, qwen3.5 spends the whole answer budget on
+# hidden reasoning and returns an empty string, which looks like a broken model.
+THINK = os.environ.get("CHAT_THINK", "0").lower() in ("1", "true", "yes")
+NUM_CTX = int(os.environ.get("CHAT_NUM_CTX", "4096"))
+TOP_K = int(os.environ.get("CHAT_TOP_K", "4"))
+
+# Instructions sit after the passages on purpose: the model follows a rule that
+# follows the text more reliably, and repeating the reminder next to each passage
+# stops it miscounting which passage a sentence came from.
+SYSTEM_RULES = (
+    "Answer using only the passages above, in at most four sentences.\n"
+    "After every factual sentence, put the letter of the passage it came from in"
+    " square brackets, copying the letter shown next to that passage — for example"
+    " [A] or [C]. Do not count passages and do not renumber them.\n"
+    "Never use outside knowledge. Never invent a number, name or date.\n"
+    "If the passages do not contain the answer, reply exactly NOT FOUND and then,\n"
+    "on the next line, name what is missing in one short sentence."
+)
 
 app = FastAPI(title="RAG project chat", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 INDEX = build_pages()
-PAGE_BY_ID = {(page["doc"], page["page"]): page for page in INDEX["pages"]}
 
 
 class Message(BaseModel):
@@ -50,28 +70,38 @@ class ChatRequest(BaseModel):
     temperature: float = 0.0
 
 
-def public_sources(passages: list[dict], question: str) -> list[dict]:
-    """Adapt evaluated passages to the source shape used by the existing client."""
-    query = tokens(question)
-    sources = []
-    for passage in passages:
-        page = PAGE_BY_ID.get((passage["doc"], passage["page"]))
-        if page is None:
-            raise RuntimeError(
-                f"generation returned a passage outside the page index: "
-                f"{passage['doc']} page {passage['page']}")
-        number = passage["n"]
-        sources.append({
-            "n": number,
-            "key": str(number),
-            "doc": passage["doc"],
-            "page": passage["page"],
-            "label": passage["label"],
-            "score": passage["score"],
-            "snippet": snippet(page["text"], query),
-            "ocr": page.get("source") == "ocr",
-        })
-    return sources
+# Numbers were mis-copied by the model (it answered with [2] for text that only
+# passage 1 contained), so passages carry a letter and the letter maps back to a
+# page here, not in the model's head.
+LETTERS = "ABCDEFGH"
+
+
+def key_for(position: int) -> str:
+    return LETTERS[position - 1] if 0 < position <= len(LETTERS) else str(position)
+
+
+# ThinkFilter lives in generation/think.py: Step 6 needs the same stripping, and an
+# answer must be scored on the text the user actually sees.
+
+def build_system(hits: list[dict]) -> str:
+    if not hits:
+        return "No passage matched this question.\n\n" + SYSTEM_RULES
+    blocks = []
+    for i, hit in enumerate(hits, start=1):
+        key = key_for(i)
+        blocks.append(
+            f"PASSAGE [{key}] — {hit['label']}, page {hit['page']}\n"
+            f"{hit['context']}\n"
+            f"(End of passage [{key}]: anything taken from here is cited as [{key}].)"
+        )
+    return "\n\n".join(blocks) + "\n\n" + SYSTEM_RULES
+
+
+def public_sources(hits: list[dict]) -> list[dict]:
+    return [{"n": i, "key": key_for(i), "doc": h["doc"], "page": h["page"],
+             "label": h["label"], "score": h["score"], "snippet": h["snippet"],
+             "ocr": bool(h.get("ocr"))}
+            for i, h in enumerate(hits, start=1)]
 
 
 @app.get("/")
@@ -137,41 +167,59 @@ def pdf(name: str) -> FileResponse:
 
 
 @app.post("/api/chat")
-async def chat(payload: ChatRequest) -> StreamingResponse:
-    user_positions = [i for i, message in enumerate(payload.messages)
-                      if message.role == "user"]
-    question_position = user_positions[-1] if user_positions else len(payload.messages)
-    question = (payload.messages[question_position].content
-                if user_positions else "")
-    history = [message.model_dump()
-               for message in payload.messages[:question_position]][-6:]
+async def chat(payload: ChatRequest, request: Request) -> StreamingResponse:
+    question = next((m.content for m in reversed(payload.messages) if m.role == "user"), "")
+    hits = search_pages(INDEX, question, k=TOP_K)
 
-    try:
-        record = await asyncio.to_thread(
-            generation.answer, question, index=INDEX, model=MODEL,
-            temperature=payload.temperature, history=history or None)
-    except (httpx.HTTPError, OSError, RuntimeError, ValueError) as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Generation failed ({exc.__class__.__name__}): {exc}",
-        ) from exc
+    history = [m.model_dump() for m in payload.messages][-6:]
+    messages = [{"role": "system", "content": build_system(hits)}] + history
 
-    timing = record.get("timing") or {}
-    chunk = {
-        "message": {"role": "assistant", "content": record["answer"]},
-        "done": True,
-        "total_duration": int(record["seconds"] * 1e9),
-        "eval_duration": 0,
-        "prompt_eval_count": timing.get("prompt_tokens"),
-        "eval_count": timing.get("answer_tokens"),
-        "status": record["status"],
-        "cached": record["cached"],
-        "record": record,
-        "sources": public_sources(record["passages"], record["search_question"]),
+    body = {
+        "model": MODEL,
+        "messages": messages,
+        "stream": True,
+        "think": THINK,
+        "keep_alive": KEEP_ALIVE,
+        "options": {"temperature": payload.temperature, "num_ctx": NUM_CTX},
     }
+    sources = public_sources(hits)
 
     async def relay():
-        yield json.dumps(chunk, ensure_ascii=False) + "\n"
+        think = ThinkFilter()
+        timeout = httpx.Timeout(connect=5, read=600, write=30, pool=5)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            try:
+                async with client.stream("POST", f"{OLLAMA_URL}/api/chat", json=body) as upstream:
+                    if upstream.status_code != 200:
+                        detail = (await upstream.aread()).decode("utf-8", "replace")[:400]
+                        yield json.dumps({"error": f"Ollama {upstream.status_code}: {detail}"}) + "\n"
+                        return
+                    async for line in upstream.aiter_lines():
+                        if await request.is_disconnected():
+                            return
+                        if not line.strip():
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        message = chunk.get("message") or {}
+                        if message.get("content"):
+                            cleaned = think.feed(message["content"])
+                            if not cleaned:
+                                if not chunk.get("done"):
+                                    continue
+                            message["content"] = cleaned
+                            chunk["message"] = message
+                        if chunk.get("done"):
+                            tail = think.flush()
+                            if tail:
+                                message["content"] = (message.get("content") or "") + tail
+                                chunk["message"] = message
+                            chunk["sources"] = sources
+                        yield json.dumps(chunk) + "\n"
+            except httpx.HTTPError as exc:
+                yield json.dumps({"error": f"{exc.__class__.__name__}: {exc}"}) + "\n"
 
     return StreamingResponse(relay(), media_type="application/x-ndjson",
                              headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
