@@ -89,6 +89,19 @@ def plain_text_is_untouched() -> None:
     assert streamed("Bag", "mati ", "and East-Rapti") == "Bagmati and East-Rapti"
 
 
+def prose_and_tags_keep_every_word() -> None:
+    """The ordinary word, a lone '<', and the text after a tag all survive."""
+    prose = "The model is thinking about 540 mm, and thinking is not a tag."
+    assert streamed(prose) == prose, "the ordinary word must be shown in full"
+    assert streamed("think", "ing") == "thinking", "the word split across chunks must survive"
+    assert streamed("if a <") == "if a <", "a lone '<' is text, not a tag prefix"
+    assert streamed(OPEN, CLOSE, "540 mm") == "540 mm", "text after a tag pair is kept"
+    assert streamed(OPEN, "r", CLOSE[:4], CLOSE[4:] + "540 mm") == "540 mm"
+    assert streamed(CLOSE, "540 mm") == "540 mm", "a stray closing tag is a tag, not prose"
+    assert streamed(CLOSE[:4], CLOSE[4:] + "540 mm") == "540 mm"
+    assert streamed(OPEN, "r", CLOSE, "thinking continues") == "thinking continues"
+
+
 def main() -> int:
     groups = [
         ("what the model sends", [
@@ -103,6 +116,7 @@ def main() -> int:
             ("a split tag still strips its block", a_split_tag_still_strips_its_block),
             ("an unterminated open tag discards the rest", an_unterminated_open_tag_discards_the_rest),
             ("plain text is untouched", plain_text_is_untouched),
+            ("the prose around a tag is never swallowed", prose_and_tags_keep_every_word),
         ]),
     ]
     for heading, cases in groups:

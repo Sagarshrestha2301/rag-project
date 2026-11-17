@@ -44,11 +44,22 @@ class ThinkFilter:
                 continue
             start = self.pending.find(self.OPEN)
             if start < 0:
-                safe = len(self.pending)
-                for size in range(min(len(self.OPEN) - 1, len(self.pending)), 0, -1):
-                    if self.pending.endswith(self.OPEN[:size]):
-                        safe = len(self.pending) - size
-                        break
+                closed = self.pending.find(self.CLOSE)
+                if closed >= 0:
+                    # A closing tag with no opening tag is still a tag, not prose: drop it
+                    # and keep every word after it.
+                    out.append(self.pending[:closed])
+                    self.pending = self.pending[closed + len(self.CLOSE):]
+                    continue
+                # Hold back only a suffix that may be the start of a tag. Both tokens count,
+                # and the longest such suffix wins, so text after a tag is never lost.
+                keep = 0
+                for token in (self.OPEN, self.CLOSE):
+                    for size in range(min(len(token) - 1, len(self.pending)), 0, -1):
+                        if self.pending.endswith(token[:size]):
+                            keep = max(keep, size)
+                            break
+                safe = len(self.pending) - keep
                 out.append(self.pending[:safe])
                 self.pending = self.pending[safe:]
                 break
@@ -60,7 +71,11 @@ class ThinkFilter:
     def flush(self) -> str:
         """Whatever is left at the end. A half-received tag is dropped, not shown."""
         rest, self.pending = self.pending, ""
-        if self.inside or (rest and self.OPEN.startswith(rest)):
+        if self.inside:
+            return ""
+        # A single '<' is as likely a comparison sign as a cut tag, so it is kept; two or
+        # more characters that only a tag could start with ("<t", "</") are not prose.
+        if len(rest) > 1 and any(token.startswith(rest) for token in (self.OPEN, self.CLOSE)):
             return ""
         return rest
 
