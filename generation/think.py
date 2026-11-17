@@ -16,7 +16,7 @@ from __future__ import annotations
 class ThinkFilter:
     """Feed chunks in, get visible text out; `flush()` at the end."""
 
-    OPEN = " thinking"
+    OPEN = "<think"
     CLOSE = "</think>"
 
     def __init__(self) -> None:
@@ -38,7 +38,7 @@ class ThinkFilter:
             start = self.pending.find(self.OPEN)
             if start < 0:
                 safe = len(self.pending)
-                for size in range(1, len(self.OPEN)):
+                for size in range(min(len(self.OPEN) - 1, len(self.pending)), 0, -1):
                     if self.pending.endswith(self.OPEN[:size]):
                         safe = len(self.pending) - size
                         break
@@ -51,8 +51,11 @@ class ThinkFilter:
         return "".join(out)
 
     def flush(self) -> str:
+        """Whatever is left at the end. A half-received tag is dropped, not shown."""
         rest, self.pending = self.pending, ""
-        return "" if self.inside else rest
+        if self.inside or (rest and self.OPEN.startswith(rest)):
+            return ""
+        return rest
 
 
 def strip(text: str) -> str:
