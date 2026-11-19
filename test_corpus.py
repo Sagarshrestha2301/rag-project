@@ -95,11 +95,24 @@ def a_document_still_resolves_from_elsewhere() -> None:
         assert found.name == name, found
 
 
-def the_ui_serves_the_same_root() -> None:
-    """The PDF route guards `CORPUS in path.parents`, so a second root would break links."""
-    import ui.server                                   # noqa: F401 - builds the app
+def the_ui_serves_the_same_documents() -> None:
+    """A citation chip's file name resolves through the same root the pages were read from.
 
-    assert ui.server.CORPUS == corpus.CORPUS, (ui.server.CORPUS, corpus.CORPUS)
+    `ui.pipeline.pdf_path` is the PDF route's only resolver (Step 7), so this checks the
+    real function instead of a module constant that no longer exists.
+    """
+    from ui import pipeline
+
+    documents = corpus.files()
+    if not documents:
+        assert pipeline.pdf_path("anything.pdf") is None, "no corpus, but a PDF resolved"
+        return
+    name = documents[0].name
+    assert pipeline.pdf_path(name) == corpus.path_for(name).resolve(), name
+    # A name that is not a plain corpus file name is refused, not joined onto the root.
+    assert pipeline.pdf_path("../outside.pdf") is None
+    assert pipeline.pdf_path("..\\outside.pdf") is None
+    assert pipeline.pdf_path("not-in-the-corpus.pdf") is None
 
 
 def main() -> int:
@@ -110,7 +123,7 @@ def main() -> int:
         ("the index cache default follows the project", the_index_cache_default_follows_the_project),
         ("the same documents from any folder", the_same_documents_from_anywhere),
         ("a document still resolves from elsewhere", a_document_still_resolves_from_elsewhere),
-        ("the UI serves the same root", the_ui_serves_the_same_root),
+        ("the UI serves the same documents", the_ui_serves_the_same_documents),
     ]
     for name, fn in cases:
         check(name, fn)
