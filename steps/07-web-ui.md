@@ -17,9 +17,9 @@
 - [x] UI spec approved by the owner before any UI code
 - [x] UI code follows the BEM and shared-handler rules (a search finds no duplicated handlers)
 - [ ] Works with the network disabled (tested with Wi-Fi off)
-- [ ] Citation click opens the right PDF page for 10 tested answers
+- [x] Citation click opens the right PDF page for 10 tested answers
 - [x] Debug view shows chunks, scores and timings
-- [ ] A "not found" answer shows the unreadable-pages warning with correct counts (tested on a document with known unreadable pages)
+- [x] A "not found" answer shows the unreadable-pages warning with correct counts (tested on a document with known unreadable pages)
 - [x] Server not reachable from another machine on the network
 - [x] Eval results unchanged by the UI (the UI only calls the pipeline)
 
