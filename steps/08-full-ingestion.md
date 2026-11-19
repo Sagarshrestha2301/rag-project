@@ -15,16 +15,16 @@
 9. Offline proof: run the full pipeline and eval once with the network disabled.
 
 ## Definition of done
-- [ ] All files in the manifest are `done` or `failed` with a reason; failures listed
+- [x] All files in the manifest are `done` or `failed` with a reason; failures listed
 - [ ] Unreadable pages counted over the full corpus and compared with the 1-2% threshold (D-020); result reported to the owner
-- [ ] Kill-and-resume test passed
-- [ ] Incremental add test passed
+- [x] Kill-and-resume test passed
+- [x] Incremental add test passed
 - [ ] Index size and RAM use at full scale recorded; query latency at full scale within budget
-- [ ] Every not-found question re-checked against the full corpus; result listed (still absent / replaced with owner approval)
+- [x] Every not-found question re-checked against the full corpus; result listed (still absent / replaced with owner approval)
 - [ ] Eval on full index recorded; compared with the sample-scale results; any drop analyzed
 - [ ] Offline run: pass (network disabled, output recorded)
-- [ ] All corpus files in `data/corpus/` have a recorded SHA-256 in the manifest
-- [ ] Backup of the index and manifest made and a restore tested
+- [x] All corpus files in `data/corpus/` have a recorded SHA-256 in the manifest
+- [x] Backup of the index and manifest made and a restore tested
 
 ## Context to read
 This file, `ARCHITECTURE.md` (manifest fields), `DECISIONS.md` (D-020, D-023, D-027, D-030), `EVAL.md`, the parsing, chunking and embedding modules, `STATUS.md` (speed measurements from Steps 3 and 4).

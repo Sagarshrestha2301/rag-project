@@ -26,3 +26,6 @@ __pycache__/
 
 # Verification outputs
 /artifacts/
+
+# Index backups (manifest + artifacts, restorable)
+/backups/

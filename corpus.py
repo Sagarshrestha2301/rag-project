@@ -144,6 +144,49 @@ def ocr_document(pdf: pathlib.Path) -> dict[int, str]:
     return out
 
 
+def parse_document(pdf: pathlib.Path) -> dict:
+    """One corpus PDF's searchable pages, OCR'd where the text layer is missing.
+
+    Split out of `build()` so Step 8's ingestion pipeline can parse one document at a
+    time and cache the result by its SHA-256, instead of re-reading all 97 PDFs when one
+    file arrives. `build()` assembles exactly these records, so the two cannot drift.
+
+    Returns {name, label, page_count, pages, unreadable, ocr_pages}.
+
+    Example:
+        >>> doc = parse_document(CORPUS / "1970_Marahatta_...pdf")
+        >>> doc["pages"][1]["text"][:20]
+        '24-hour rainfall dep'
+    """
+    bad: list[int] = []
+    with pymupdf.open(pdf) as doc:
+        texts = [re.sub(r"\s+", " ", page.get_text()).strip() for page in doc]
+        page_count = doc.page_count
+
+    ocr_text: dict[int, str] = {}
+    if any(len(t) < MIN_PAGE_CHARS for t in texts):
+        ocr_text = ocr_document(pdf)
+
+    pages: list[dict] = []
+    ocr_pages = 0
+    for number, text in enumerate(texts, start=1):
+        source = "text"
+        if len(text) < MIN_PAGE_CHARS and ocr_text.get(number):
+            text, source = ocr_text[number], "ocr"
+            ocr_pages += 1
+        if len(text) < MIN_PAGE_CHARS:
+            bad.append(number)
+        pages.append({
+            "doc": pdf.name,
+            "page": number,
+            "label": label_for(pdf.name),
+            "text": text[:MAX_PAGE_CHARS],
+            "source": source,
+        })
+    return {"name": pdf.name, "label": label_for(pdf.name), "page_count": page_count,
+            "pages": pages, "unreadable": bad, "ocr_pages": ocr_pages}
+
+
 def build(force: bool = False, root: pathlib.Path = CORPUS,
           cache: pathlib.Path = INDEX_CACHE) -> dict:
     """Read every corpus PDF and return {pages, unreadable, docs, signature}.
@@ -166,32 +209,13 @@ def build(force: bool = False, root: pathlib.Path = CORPUS,
     ocr_pages = 0
 
     for pdf in files(root):
-        bad: list[int] = []
-        with pymupdf.open(pdf) as doc:
-            texts = [re.sub(r"\s+", " ", page.get_text()).strip() for page in doc]
-            page_count = doc.page_count
-
-        ocr_text: dict[int, str] = {}
-        if any(len(t) < MIN_PAGE_CHARS for t in texts):
-            ocr_text = ocr_document(pdf)
-
-        for number, text in enumerate(texts, start=1):
-            source = "text"
-            if len(text) < MIN_PAGE_CHARS and ocr_text.get(number):
-                text, source = ocr_text[number], "ocr"
-                ocr_pages += 1
-            if len(text) < MIN_PAGE_CHARS:
-                bad.append(number)
-            pages.append({
-                "doc": pdf.name,
-                "page": number,
-                "label": label_for(pdf.name),
-                "text": text[:MAX_PAGE_CHARS],
-                "source": source,
-            })
-        docs.append({"doc": pdf.name, "label": label_for(pdf.name), "pages": page_count})
-        if bad:
-            unreadable[pdf.name] = bad
+        parsed = parse_document(pdf)
+        pages.extend(parsed["pages"])
+        docs.append({"doc": parsed["name"], "label": parsed["label"],
+                     "pages": parsed["page_count"]})
+        if parsed["unreadable"]:
+            unreadable[parsed["name"]] = parsed["unreadable"]
+        ocr_pages += parsed["ocr_pages"]
 
     index = {"pages": pages, "unreadable": unreadable, "docs": docs,
              "signature": fingerprint, "ocr_pages": ocr_pages}

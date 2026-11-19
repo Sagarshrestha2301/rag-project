@@ -58,9 +58,14 @@ def load_pages(parsed: pathlib.Path = PARSED) -> dict[str, list[ParsedPage]]:
     return docs
 
 
-def corpus_paths() -> dict[str, pathlib.Path]:
-    """{bare file name: corpus path}, refusing duplicate names."""
-    return {path.name: path for path in corpus_files()}
+def corpus_paths(root: pathlib.Path | None = None) -> dict[str, pathlib.Path]:
+    """{bare file name: corpus path}, refusing duplicate names.
+
+    `root` lets Step 8's ingestion pipeline chunk a temporary corpus copy without
+    touching `data/corpus`; the default is the real one.
+    """
+    paths = corpus_files() if root is None else corpus_files(root)
+    return {path.name: path for path in paths}
 
 
 def document_meta(name: str, paths: dict[str, pathlib.Path],
@@ -83,9 +88,10 @@ def document_meta(name: str, paths: dict[str, pathlib.Path],
 
 
 def build_chunks(parsed: pathlib.Path = PARSED,
-                 contexts: pathlib.Path = doc_context.CACHE) -> list:
+                 contexts: pathlib.Path = doc_context.CACHE,
+                 root: pathlib.Path | None = None) -> list:
     """Every chunk of every document, metadata included, in document order."""
-    paths = corpus_paths()
+    paths = corpus_paths(root)
     known = doc_context.load(contexts)
     chunks = []
     for name, pages in sorted(load_pages(parsed).items()):
