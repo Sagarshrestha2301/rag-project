@@ -1,15 +1,21 @@
-"""Local chat UI server: retrieval + Ollama, localhost only, offline.
+"""Local UI server: the Step 6 pipeline, localhost only, no external request.
 
-Every answer is built from pages of `data/corpus/` found by `corpus.py` and comes
-back with the pages it used, so a citation can be checked by opening the PDF at
-that page. This is page-level retrieval, a prototype for the chunking and hybrid
-search of Steps 4-5, not a substitute for them.
+Every answer comes from `generation.answer` through `ui/pipeline.py` -- router,
+condensation, cache, retrieval, gate, prompt, verifier and the one retry are the code
+`eval/` measures (D-061). The server adds transport only: an NDJSON event stream, the
+`debug_version` 1 payload, the corpus PDF route and the static files. It has no prompt
+of its own; if this file grows answer logic again, the eval and the reader diverge.
 
 Usage:
     .venv\\Scripts\\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8000
 
-Environment: OLLAMA_URL, CHAT_MODEL, CHAT_NUM_CTX, CHAT_TOP_K, CHAT_KEEP_ALIVE,
-CHAT_THINK (leave at 0 for qwen3.5:4b — see D-048).
+Environment: OLLAMA_URL, CHAT_MODEL, CHAT_NUM_CTX, CHAT_KEEP_ALIVE, CHAT_THINK.
+
+Event stream on `POST /api/chat` (one JSON object per line):
+    {"event": "start", "model": {...}}
+    {"event": "token", "text": "540 mm"}
+    {"event": "done",  "payload": {...}}   # ui/SPEC.md section 7
+    {"event": "error", "message": "..."}
 """
 
 from __future__ import annotations
@@ -24,40 +30,22 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from corpus import CORPUS, build as build_pages, search as search_pages
-from generation.think import ThinkFilter
+from generation import answer as generator
+from ui import pipeline
 
 STATIC = pathlib.Path(__file__).parent / "static"
-# `corpus.CORPUS` is absolute and project-relative, so the PDF route below serves the
-# same files whether the server was started from the project root or anywhere else.
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-# qwen3.5 4B won the Step 2 comparison: 23/30 oracle against 18/30 for the 7B,
-# faster on every latency measure, and inside D-002's 3-4B band (D-047/D-048).
-MODEL = os.environ.get("CHAT_MODEL", "qwen3.5:4b")
-KEEP_ALIVE = os.environ.get("CHAT_KEEP_ALIVE", "30m")
-# Thinking must stay off. With it on, qwen3.5 spends the whole answer budget on
-# hidden reasoning and returns an empty string, which looks like a broken model.
-THINK = os.environ.get("CHAT_THINK", "0").lower() in ("1", "true", "yes")
-NUM_CTX = int(os.environ.get("CHAT_NUM_CTX", "4096"))
-TOP_K = int(os.environ.get("CHAT_TOP_K", "4"))
+MODEL = generator.MODEL
+NUM_CTX = generator.NUM_CTX
 
-# Instructions sit after the passages on purpose: the model follows a rule that
-# follows the text more reliably, and repeating the reminder next to each passage
-# stops it miscounting which passage a sentence came from.
-SYSTEM_RULES = (
-    "Answer using only the passages above, in at most four sentences.\n"
-    "After every factual sentence, put the letter of the passage it came from in"
-    " square brackets, copying the letter shown next to that passage — for example"
-    " [A] or [C]. Do not count passages and do not renumber them.\n"
-    "Never use outside knowledge. Never invent a number, name or date.\n"
-    "If the passages do not contain the answer, reply exactly NOT FOUND and then,\n"
-    "on the next line, name what is missing in one short sentence."
-)
+# Every asset is local, so the browser is told it may not fetch anything else: no CDN,
+# no webfont, and no direct call to Ollama. The policy is the rule, not the convention
+# (ui/SPEC.md section 9).
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; "
+       "img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
 
-app = FastAPI(title="RAG project chat", docs_url=None, redoc_url=None)
+app = FastAPI(title="Local RAG chat", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
-
-INDEX = build_pages()
 
 
 class Message(BaseModel):
@@ -67,41 +55,18 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[Message] = Field(min_length=1)
-    temperature: float = 0.0
+    temperature: float = generator.TEMPERATURE
+    use_cache: bool = True
 
 
-# Numbers were mis-copied by the model (it answered with [2] for text that only
-# passage 1 contained), so passages carry a letter and the letter maps back to a
-# page here, not in the model's head.
-LETTERS = "ABCDEFGH"
-
-
-def key_for(position: int) -> str:
-    return LETTERS[position - 1] if 0 < position <= len(LETTERS) else str(position)
-
-
-# ThinkFilter lives in generation/think.py: Step 6 needs the same stripping, and an
-# answer must be scored on the text the user actually sees.
-
-def build_system(hits: list[dict]) -> str:
-    if not hits:
-        return "No passage matched this question.\n\n" + SYSTEM_RULES
-    blocks = []
-    for i, hit in enumerate(hits, start=1):
-        key = key_for(i)
-        blocks.append(
-            f"PASSAGE [{key}] — {hit['label']}, page {hit['page']}\n"
-            f"{hit['context']}\n"
-            f"(End of passage [{key}]: anything taken from here is cited as [{key}].)"
-        )
-    return "\n\n".join(blocks) + "\n\n" + SYSTEM_RULES
-
-
-def public_sources(hits: list[dict]) -> list[dict]:
-    return [{"n": i, "key": key_for(i), "doc": h["doc"], "page": h["page"],
-             "label": h["label"], "score": h["score"], "snippet": h["snippet"],
-             "ocr": bool(h.get("ocr"))}
-            for i, h in enumerate(hits, start=1)]
+@app.middleware("http")
+async def local_only_headers(request: Request, call_next):
+    """Add the CSP to every response, including static files and PDFs."""
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = CSP
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
 
 
 @app.get("/")
@@ -111,12 +76,14 @@ def index_page() -> FileResponse:
 
 @app.get("/api/health")
 def health() -> dict:
+    source = pipeline.index()
     try:
         with httpx.Client(timeout=5) as client:
             tags = client.get(f"{OLLAMA_URL}/api/tags").json()
             running = client.get(f"{OLLAMA_URL}/api/ps").json()
     except httpx.HTTPError as exc:
-        return {"ok": False, "model": MODEL, "error": f"Ollama unreachable: {exc.__class__.__name__}"}
+        return {"ok": False, "model": MODEL,
+                "error": f"Ollama unreachable: {exc.__class__.__name__}"}
 
     names = [m.get("name", "") for m in tags.get("models", [])]
     loaded = [m for m in running.get("models", []) if m.get("name", "").startswith(MODEL)]
@@ -125,110 +92,62 @@ def health() -> dict:
         "model": MODEL,
         "loaded": bool(loaded),
         "context": NUM_CTX,
-        "pages": len(INDEX["pages"]),
-        "documents": len(INDEX["docs"]),
-        "ocr_pages": INDEX.get("ocr_pages", 0),
-        "unreadable": {k: v for k, v in INDEX["unreadable"].items()},
+        "prompt_version": generator.prompt.PROMPT_VERSION,
+        "pages": len(source["pages"]),
+        "documents": len(source["docs"]),
+        "ocr_pages": source.get("ocr_pages", 0),
+        "unreadable": {k: v for k, v in (source.get("unreadable") or {}).items()},
     }
 
 
 @app.get("/api/docs")
 def docs() -> dict:
-    return {"docs": INDEX["docs"], "unreadable": INDEX["unreadable"]}
-
-
-def corpus_by_name() -> dict[str, pathlib.Path]:
-    """{file name: resolved path} for the whole corpus, subfolders included.
-
-    The corpus mirrors `data/raw`'s folders (D-030), so 92 of 97 PDFs sit one or
-    two levels down and `CORPUS / name` finds nothing for them — clicking a
-    citation on any of those papers returned 404 until this map existed.
-    """
-    found: dict[str, pathlib.Path] = {}
-    for path in sorted(CORPUS.rglob("*.pdf")):
-        if path.name in found:
-            print(f"[ui.server] duplicate corpus name, keeping the first: {path.name}")
-            continue
-        found[path.name] = path.resolve()
-    return found
-
-
-BY_NAME = corpus_by_name()
+    source = pipeline.index()
+    return {"docs": source["docs"], "unreadable": source.get("unreadable") or {}}
 
 
 @app.get("/pdf/{name}")
 def pdf(name: str) -> FileResponse:
-    """Serve a corpus PDF so a citation can open at its page (#page=N)."""
-    path = BY_NAME.get(name)
-    if path is None or CORPUS not in path.parents or not path.exists():
+    """Serve a corpus PDF so a citation opens at its page (#page=N)."""
+    path = pipeline.pdf_path(name)
+    if path is None:
         raise HTTPException(status_code=404, detail="not a corpus document")
     return FileResponse(path, media_type="application/pdf",
-                        headers={"Content-Disposition": f'inline; filename="{name}"'})
+                        headers={"Content-Disposition": f'inline; filename="{path.name}"'})
 
 
 @app.post("/api/chat")
-async def chat(payload: ChatRequest, request: Request) -> StreamingResponse:
-    question = next((m.content for m in reversed(payload.messages) if m.role == "user"), "")
-    hits = search_pages(INDEX, question, k=TOP_K)
+def chat(payload: ChatRequest) -> StreamingResponse:
+    """Answer the last user turn, streaming the pipeline's events as NDJSON.
 
-    history = [m.model_dump() for m in payload.messages][-6:]
-    messages = [{"role": "system", "content": build_system(hits)}] + history
+    No disconnect polling in the generator: `request.is_disconnected()` is a coroutine,
+    and a plain `if` on its return value was always true, which truncated every stream
+    to zero events. Starlette closes this generator when the client goes away, and the
+    worker thread in `pipeline.stream` is a daemon, so the model call simply finishes
+    into nothing.
+    """
+    messages = [m.model_dump() for m in payload.messages]
+    question = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    history = messages[:-1][-6:] if messages else []
 
-    body = {
-        "model": MODEL,
-        "messages": messages,
-        "stream": True,
-        "think": THINK,
-        "keep_alive": KEEP_ALIVE,
-        "options": {"temperature": payload.temperature, "num_ctx": NUM_CTX},
-    }
-    sources = public_sources(hits)
-
-    async def relay():
-        think = ThinkFilter()
-        timeout = httpx.Timeout(connect=5, read=600, write=30, pool=5)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            try:
-                async with client.stream("POST", f"{OLLAMA_URL}/api/chat", json=body) as upstream:
-                    if upstream.status_code != 200:
-                        detail = (await upstream.aread()).decode("utf-8", "replace")[:400]
-                        yield json.dumps({"error": f"Ollama {upstream.status_code}: {detail}"}) + "\n"
-                        return
-                    async for line in upstream.aiter_lines():
-                        if await request.is_disconnected():
-                            return
-                        if not line.strip():
-                            continue
-                        try:
-                            chunk = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-                        message = chunk.get("message") or {}
-                        if message.get("content"):
-                            cleaned = think.feed(message["content"])
-                            if not cleaned:
-                                if not chunk.get("done"):
-                                    continue
-                            message["content"] = cleaned
-                            chunk["message"] = message
-                        if chunk.get("done"):
-                            tail = think.flush()
-                            if tail:
-                                message["content"] = (message.get("content") or "") + tail
-                                chunk["message"] = message
-                            chunk["sources"] = sources
-                        yield json.dumps(chunk) + "\n"
-            except httpx.HTTPError as exc:
-                yield json.dumps({"error": f"{exc.__class__.__name__}: {exc}"}) + "\n"
+    def relay():
+        try:
+            for event in pipeline.stream(question, history, use_cache=payload.use_cache):
+                yield json.dumps(event, ensure_ascii=False) + "\n"
+        except Exception as exc:  # noqa: BLE001 - the browser must see the failure
+            yield json.dumps({"event": "error",
+                              "message": f"{exc.__class__.__name__}: {exc}"}) + "\n"
 
     return StreamingResponse(relay(), media_type="application/x-ndjson",
-                             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+                             headers={"Cache-Control": "no-store",
+                                      "X-Accel-Buffering": "no"})
 
 
 @app.get("/api/config")
 def config() -> dict:
-    return {"model": MODEL, "context": NUM_CTX, "top_k": TOP_K, "endpoint": OLLAMA_URL,
-            "pages": len(INDEX["pages"])}
+    source = pipeline.index()
+    return {"model": MODEL, "context": NUM_CTX, "prompt_version": generator.prompt.PROMPT_VERSION,
+            "temperature": generator.TEMPERATURE, "pages": len(source["pages"])}
 
 
 if __name__ == "__main__":

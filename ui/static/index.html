@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RAG project chat</title>
+<title>Local RAG chat</title>
 <link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/step7.css">
 </head>
 <body>
-<div class="app" id="app">
+<div class="app app--evidence-hidden" id="app">
 
   <aside class="sidebar" id="sidebar">
     <div class="sidebar__header">
@@ -32,19 +33,20 @@
       <button class="chat__icon chat__icon--menu" data-action="toggle-sidebar" aria-label="Show sidebar">&#9776;</button>
       <div class="chat__title" id="chat-title">New chat</div>
       <div class="chat__status" id="chat-status"></div>
+      <button class="chat__save" data-action="toggle-evidence" title="Show or hide the sources rail">Evidence</button>
       <button class="chat__save" data-action="export-chat" title="Download this conversation as Markdown">Save chat</button>
     </header>
 
     <div class="chat__scroll" id="chat-scroll">
-      <div class="chat__thread" id="thread">
+      <div class="chat__thread" id="thread" aria-live="polite">
         <section class="empty" id="empty-state">
           <h1 class="empty__title">Ask about the corpus</h1>
-          <p class="empty__sub">Answers are searched from <strong>5 documents in data/corpus</strong> and cite the page they came from. Click a citation to open that PDF page.</p>
+          <p class="empty__sub">Answers are searched from <strong id="corpus-line">the indexed documents</strong> and cite the page they came from. Click a citation to open that PDF page.</p>
           <div class="empty__grid" id="suggestions">
             <button class="empty__card" data-action="suggest">What was the 24-hour rainfall at Tistung in July 1993?</button>
-            <button class="empty__card" data-action="suggest">How much did bamboo taboos affect planting in the Terai?</button>
-            <button class="empty__card" data-action="suggest">Explain soil liquefaction in Kathmandu Valley.</button>
-            <button class="empty__card" data-action="suggest">Compare the Bagmati and East-Rapti peak floods.</button>
+            <button class="empty__card" data-action="suggest">How many households in the Terai believe in bamboo taboos, and what percentage is that?</button>
+            <button class="empty__card" data-action="suggest">Into which two types does Watanabe classify glaciers in the Nepal Himalayas?</button>
+            <button class="empty__card" data-action="suggest">What is the average bamboo yield per hectare in Nepal?</button>
           </div>
         </section>
       </div>
@@ -62,6 +64,17 @@
       <div class="composer__hint" id="composer-hint">Local model &middot; 4k context &middot; nothing leaves this machine</div>
     </div>
   </main>
+
+  <aside class="evidence" id="evidence" aria-label="Evidence">
+    <div class="evidence__head">
+      <button class="evidence__tab evidence__tab--active" data-action="show-tab" data-tab="sources">Sources</button>
+      <button class="evidence__tab" data-action="show-tab" data-tab="debug">Debug</button>
+      <button class="evidence__icon" data-action="toggle-evidence" aria-label="Hide evidence">&#10005;</button>
+    </div>
+    <div class="evidence__body" id="evidence-body">
+      <p class="evidence__empty">Answers put their sources and their debug record here.</p>
+    </div>
+  </aside>
 </div>
 
 <script src="/static/app.js"></script>

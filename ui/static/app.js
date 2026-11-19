@@ -1,8 +1,19 @@
-/* Chat UI. One delegated listener per event type (D-036): no per-element handlers. */
+/* Step 7 chat client. One delegated listener per event type (D-036): five listeners in
+   total for the whole app, all at the bottom of this file. Nothing here decides an
+   answer: the server streams events from the measured pipeline (D-061). */
 (() => {
   "use strict";
 
-  const STORAGE = "rag-chat-v1";
+  const STORAGE = "rag-chat-v2";
+  const STATES = {
+    streaming: { glyph: "…", label: "streaming" },
+    verified: { glyph: "✓", label: "verified" },
+    unverified: { glyph: "!", label: "unverified — retracted" },
+    not_found: { glyph: "∅", label: "not found" },
+    error: { glyph: "×", label: "error" },
+    greeting: { glyph: "·", label: "no lookup" },
+  };
+
   const el = {
     app: document.getElementById("app"),
     thread: document.getElementById("thread"),
@@ -15,6 +26,8 @@
     send: document.getElementById("send-button"),
     empty: document.getElementById("empty-state"),
     model: document.getElementById("model-badge"),
+    evidence: document.getElementById("evidence-body"),
+    corpusLine: document.getElementById("corpus-line"),
   };
 
   const state = {
@@ -23,9 +36,17 @@
     streaming: false,
     controller: null,
     autoScroll: true,
+    evidenceIndex: null,
+    tab: "sources",
   };
 
   // ------------------------------------------------------------ persistence
+
+  const makeConversation = () => ({
+    id: `c${Date.now()}${Math.floor(Math.random() * 1000)}`,
+    title: "New chat",
+    messages: [],
+  });
 
   const load = () => {
     try {
@@ -34,6 +55,9 @@
       state.activeId = saved.activeId || null;
       if (saved.theme) document.documentElement.dataset.theme = saved.theme;
       if (saved.collapsed) el.app.classList.add("app--collapsed");
+      if (saved.evidenceHidden) el.app.classList.add("app--evidence-hidden");
+      if (typeof saved.evidenceIndex === "number") state.evidenceIndex = saved.evidenceIndex;
+      if (saved.tab) state.tab = saved.tab;
     } catch {
       state.conversations = [];
     }
@@ -49,20 +73,17 @@
       activeId: state.activeId,
       theme: document.documentElement.dataset.theme,
       collapsed: el.app.classList.contains("app--collapsed"),
+      evidenceHidden: el.app.classList.contains("app--evidence-hidden"),
+      evidenceIndex: state.evidenceIndex,
+      tab: state.tab,
     }));
   };
-
-  const makeConversation = () => ({
-    id: `c${Date.now()}${Math.floor(Math.random() * 1000)}`,
-    title: "New chat",
-    messages: [],
-  });
 
   const active = () => state.conversations.find((c) => c.id === state.activeId);
 
   // ---------------------------------------------------------------- markdown
 
-  const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) =>
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   const inline = (t) => t
@@ -105,7 +126,7 @@
     return out.join("");
   };
 
-  const markdown = (src) => src.split("```").map((chunk, i) => {
+  const markdown = (src) => String(src || "").split("```").map((chunk, i) => {
     if (i % 2 === 1) {
       const body = chunk.replace(/^[^\n]*\n/, "").replace(/\n$/, "");
       return `<pre><code>${escapeHtml(body)}</code></pre>`;
@@ -113,7 +134,7 @@
     return blocks(chunk);
   }).join("");
 
-  // ------------------------------------------------------------------ render
+  // ------------------------------------------------------------ shared nodes
 
   const el2 = (tag, cls, text) => {
     const node = document.createElement(tag);
@@ -122,100 +143,59 @@
     return node;
   };
 
-  const formatStats = (meta) => {
-    if (!meta) return "";
+  const formatStats = (meta, payload) => {
     const bits = [];
-    if (meta.tokensPerSecond) bits.push(`${meta.tokensPerSecond.toFixed(1)} tok/s`);
-    if (meta.seconds) bits.push(`${meta.seconds.toFixed(1)}s`);
-    if (meta.promptTokens) bits.push(`${meta.promptTokens} prompt`);
+    if (meta && meta.seconds) bits.push(`${meta.seconds.toFixed(1)} s`);
+    if (payload && payload.tokens && payload.tokens.answer) {
+      const seconds = (payload.timings_ms.model_total || 0) / 1000;
+      if (seconds > 0) bits.push(`${(payload.tokens.answer / seconds).toFixed(1)} tok/s`);
+    }
+    if (payload && payload.tokens && payload.tokens.prompt) {
+      bits.push(`${payload.tokens.prompt} prompt`);
+    }
+    if (payload && payload.cached) bits.push("cached");
     return bits.join(" · ");
   };
 
-  const messageNode = (msg, index) => {
-    const wrap = el2("article", `message message--${msg.role}`);
-    wrap.dataset.index = String(index);
-
-    if (msg.role === "assistant") {
-      const meta = el2("div", "message__meta");
-      meta.append(el2("span", null, "assistant"));
-      if (msg.meta) meta.append(el2("span", null, formatStats(msg.meta)));
-      wrap.append(meta);
+  const stateBadge = (name, payload) => {
+    const info = STATES[name] || { glyph: "·", label: name || "unknown" };
+    let label = info.label;
+    if (name === "verified" && payload) {
+      const quotes = (payload.verification && payload.verification.verified_quotes) || 0;
+      label = `verified · ${quotes} quote${quotes === 1 ? "" : "s"}`;
     }
-
-    const body = el2("div", "message__body");
-    if (msg.role === "assistant") {
-      body.innerHTML = markdown(msg.content || "");
-      linkCitations(body, msg.sources, index);
-      if (msg.pending) body.append(el2("span", "cursor"));
-      if (!msg.content && msg.pending) {
-        const typing = el2("span", "typing");
-        for (let i = 0; i < 3; i++) typing.append(el2("span", "typing__dot"));
-        body.append(typing);
-      }
-    } else {
-      body.textContent = msg.content;
-    }
-    wrap.append(body);
-
-    if (msg.error) wrap.append(el2("div", "message__error", msg.error));
-    if (msg.role === "assistant" && msg.sources && msg.sources.length) {
-      wrap.append(sourcesNode(msg.sources));
-    }
-
-    if (msg.role === "assistant" && !msg.pending) {
-      const actions = el2("div", "message__actions");
-      const copy = el2("button", "message__action", "Copy");
-      copy.dataset.action = "copy";
-      copy.dataset.index = String(index);
-      actions.append(copy);
-      if (index === active().messages.length - 1) {
-        const again = el2("button", "message__action", "Regenerate");
-        again.dataset.action = "regenerate";
-        actions.append(again);
-      }
-      wrap.append(actions);
-    }
-    return wrap;
+    const badge = el2("span", `state-badge state-badge--${name}`, `${info.glyph} ${label}`);
+    badge.dataset.role = "state";
+    return badge;
   };
 
-  const sourcesNode = (sources) => {
-    const wrap = el2("div", "sources");
-    wrap.append(el2("span", "sources__label", "Sources"));
-    for (const s of sources) {
-      const chip = el2("button", "source");
-      chip.dataset.action = "open-source";
-      chip.dataset.doc = s.doc;
-      chip.dataset.page = String(s.page);
-      chip.title = s.snippet || "";
-      chip.append(el2("span", "source__n", s.key || String(s.n)));
-      chip.append(el2("span", "source__label", `${s.label} · p${s.page}${s.ocr ? " · OCR" : ""}`));
-      wrap.append(chip);
-    }
-    return wrap;
+  const chipNode = (n, source, disabled) => {
+    const chip = el2("button", "cite", String(n));
+    chip.dataset.action = "open-source";
+    chip.dataset.n = String(n);
+    if (source) chip.dataset.doc = source.doc;
+    chip.title = disabled ? "Unverified: the citation is not trusted" : "Open the cited page";
+    if (disabled) chip.classList.add("cite--disabled");
+    return chip;
   };
 
-  /* Turn [1] markers into buttons, skipping code blocks. */
-  const linkCitations = (container, sources, index) => {
-    if (!sources || !sources.length) return;
+  /* Turn [1] markers into chips. Numbers, not letters: prompt s6-2 numbers passages. */
+  const linkCitations = (container, sources, disabled) => {
+    const byN = new Map((sources || []).map((s) => [String(s.n), s]));
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walker.nextNode()) {
       const node = walker.currentNode;
       if (node.parentElement && node.parentElement.closest("pre, code")) continue;
-            if (/\[[A-H]\]/.test(node.nodeValue)) nodes.push(node);
+      if (/\[\d{1,2}\]/.test(node.nodeValue)) nodes.push(node);
     }
     for (const node of nodes) {
       const text = node.nodeValue;
       const frag = document.createDocumentFragment();
       let last = 0;
-      for (const match of text.matchAll(/\[([A-H])\]/g)) {
+      for (const match of text.matchAll(/\[(\d{1,2})\]/g)) {
         frag.append(document.createTextNode(text.slice(last, match.index)));
-        const btn = el2("button", "cite", match[1]);
-        btn.dataset.action = "open-source";
-        btn.dataset.index = String(index);
-        btn.dataset.key = match[1];
-        btn.title = "Open the cited page";
-        frag.append(btn);
+        frag.append(chipNode(match[1], byN.get(match[1]), disabled));
         last = match.index + match[0].length;
       }
       frag.append(document.createTextNode(text.slice(last)));
@@ -223,38 +203,165 @@
     }
   };
 
-  /* A real anchor beats window.open here: browsers treat it as a normal
-     navigation, so no popup blocker gets in the way. */
-  const openSource = (doc, page) => {
-    if (!doc) return;
-    const link = document.createElement("a");
-    link.href = `/pdf/${encodeURIComponent(doc)}#page=${page}`;
-    link.target = "_blank";
-    link.rel = "noopener";
-    document.body.append(link);
-    link.click();
-    link.remove();
+  const unreadableNode = (payload) => {
+    const data = payload && payload.unreadable;
+    if (!data || !data.corpus) return null;
+    const corpus = data.corpus;
+    const box = el2("div", "unreadable-warning");
+    box.append(el2("span", "unreadable-warning__title", "Some pages cannot be read"));
+    box.append(el2("p", "unreadable-warning__body",
+      `${corpus.documents_with_unreadable} of ${corpus.documents} documents have pages with no ` +
+      `text layer (${corpus.unreadable_pages} of ${corpus.pages} pages, ${corpus.ocr_pages} ` +
+      `pages read by OCR). The answer may simply not be on a readable page.`));
+    const list = (data.top_documents || []);
+    if (list.length) {
+      const ul = el2("ul", "unreadable-warning__list");
+      for (const doc of list) {
+        ul.append(el2("li", null,
+          `${doc.label || doc.doc} has ${doc.count} unreadable page` +
+          `${doc.count === 1 ? "" : "s"}: ${doc.pages.join(", ")}`));
+      }
+      box.append(ul);
+    }
+    return box;
   };
 
-  const exportChat = () => {
-    const convo = active();
-    const lines = [`# ${convo.title}`, "", `_Exported ${new Date().toLocaleString()}_`, ""];
-    for (const msg of convo.messages) {
-      lines.push(`## ${msg.role === "user" ? "You" : "Assistant"}`, "", msg.content, "");
-      if (msg.sources && msg.sources.length) {
-        lines.push("**Sources**", "");
-        for (const s of msg.sources) {
-          lines.push(`- [${s.key || s.n}] ${s.label}, page ${s.page} (${s.doc}) — ${s.snippet}`);
+  const actionsNode = (msg, index, isLast) => {
+    const actions = el2("div", "message__actions");
+    if (msg.state === "error") {
+      const retry = el2("button", "message__action", "Retry");
+      retry.dataset.action = "retry";
+      actions.append(retry);
+      return actions;
+    }
+    if (msg.content) {
+      const copy = el2("button", "message__action",
+        msg.state === "unverified" ? "Copy anyway" : "Copy");
+      copy.dataset.action = "copy";
+      copy.dataset.index = String(index);
+      actions.append(copy);
+    }
+    if (isLast) {
+      const again = el2("button", "message__action", "Regenerate");
+      again.dataset.action = "regenerate";
+      actions.append(again);
+    }
+    return actions;
+  };
+
+  const messageNode = (msg, index, isLast) => {
+    const wrap = el2("article", `message message--${msg.role}`);
+    wrap.dataset.index = String(index);
+    if (msg.state) wrap.dataset.state = msg.state;
+    if (msg.state === "unverified") wrap.classList.add("message--unverified");
+
+    if (msg.role === "assistant") {
+      const meta = el2("div", "message__meta");
+      meta.append(el2("span", null, (msg.meta && msg.meta.model) || "assistant"));
+      const stats = formatStats(msg.meta, msg.payload);
+      if (stats) meta.append(el2("span", null, stats));
+      if (msg.state) meta.append(stateBadge(msg.state, msg.payload));
+      wrap.append(meta);
+    }
+
+    const body = el2("div", "message__body");
+    if (msg.role === "user") {
+      body.textContent = msg.content;
+    } else {
+      body.innerHTML = markdown(msg.content || "");
+      const sources = (msg.payload && msg.payload.sources) || [];
+      linkCitations(body, sources, msg.state === "unverified");
+      if (msg.state === "streaming") {
+        if (!msg.content) {
+          const typing = el2("span", "typing");
+          for (let i = 0; i < 3; i++) typing.append(el2("span", "typing__dot"));
+          body.append(typing);
+        } else {
+          body.append(el2("span", "cursor"));
         }
-        lines.push("");
       }
     }
-    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${(convo.title || "chat").replace(/[^\w\- ]+/g, "").slice(0, 40) || "chat"}.md`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    wrap.append(body);
+
+    if (msg.state === "unverified" && msg.payload) {
+      const problems = (msg.payload.verification && msg.payload.verification.problems) || [];
+      wrap.append(el2("p", "message__retraction",
+        `Retracted: ${problems[0] || "the quotations could not be verified"}`));
+      if (problems.length > 1) {
+        const list = el2("ul", "message__problems");
+        for (const problem of problems.slice(1)) list.append(el2("li", null, problem));
+        wrap.append(list);
+      }
+    }
+
+    if (msg.state === "not_found") {
+      const warning = unreadableNode(msg.payload);
+      if (warning) wrap.append(warning);
+    }
+
+    if (msg.error) wrap.append(el2("div", "message__error", msg.error));
+
+    if (msg.role === "assistant" && msg.state !== "streaming") {
+      wrap.append(actionsNode(msg, index, isLast));
+    }
+    return wrap;
+  };
+
+  // ------------------------------------------------------------- evidence rail
+
+  const sourceEntry = (source) => {
+    const item = el2("button", "source");
+    item.dataset.action = "open-source";
+    item.dataset.doc = source.doc || "";
+    item.dataset.page = String(source.page || 1);
+    const head = el2("div", "source__head");
+    head.append(el2("span", "source__n", `[${source.n}]`));
+    head.append(el2("span", "source__label",
+      `${source.label || source.doc} · p${source.page}${source.ocr ? " · OCR" : ""}`));
+    head.append(el2("span", "source__score",
+      typeof source.score === "number" ? source.score.toFixed(2) : "—"));
+    item.append(head);
+    if (source.snippet) item.append(el2("p", "source__quote", source.snippet));
+    return item;
+  };
+
+  const renderEvidence = () => {
+    el.evidence.replaceChildren();
+    const convo = active();
+    const index = state.evidenceIndex;
+    const msg = convo && convo.messages[index];
+    const payload = msg && msg.payload;
+
+    if (!payload) {
+      el.evidence.append(el2("p", "evidence__empty",
+        msg && msg.state === "streaming"
+          ? "Waiting for the pipeline to finish…"
+          : "Answers put their sources and their debug record here."));
+      return;
+    }
+
+    if (state.tab === "debug") {
+      const bar = el2("div", "debug__bar");
+      const copy = el2("button", "debug__copy", "Copy JSON");
+      copy.dataset.action = "copy-debug";
+      copy.dataset.index = String(index);
+      bar.append(copy);
+      bar.append(el2("span", "debug__note", `debug_version ${payload.debug_version}`));
+      el.evidence.append(bar);
+      const pre = el2("pre", "debug__json", JSON.stringify(payload, null, 2));
+      el.evidence.append(pre);
+      return;
+    }
+
+    const sources = payload.sources || [];
+    if (!sources.length) {
+      el.evidence.append(el2("p", "evidence__empty",
+        payload.status === "greeting"
+          ? "A greeting does not search the corpus."
+          : "No page was offered for this answer."));
+      return;
+    }
+    for (const source of sources) el.evidence.append(sourceEntry(source));
   };
 
   const renderThread = () => {
@@ -268,8 +375,10 @@
       el.thread.append(empty);
       return;
     }
-    convo.messages.forEach((msg, i) => el.thread.append(messageNode(msg, i)));
+    convo.messages.forEach((msg, i) =>
+      el.thread.append(messageNode(msg, i, i === convo.messages.length - 1)));
     el.thread.append(el2("div", "chat__spacer"));
+    renderEvidence();
   };
 
   const renderSidebar = () => {
@@ -279,7 +388,8 @@
       return;
     }
     for (const convo of state.conversations) {
-      const item = el2("div", `chat-item${convo.id === state.activeId ? " chat-item--active" : ""}`);
+      const item = el2("div",
+        `chat-item${convo.id === state.activeId ? " chat-item--active" : ""}`);
       item.dataset.action = "open-chat";
       item.dataset.id = convo.id;
       item.append(el2("span", "chat-item__title", convo.title));
@@ -292,10 +402,18 @@
     }
   };
 
-  const atBottom = () => el.scroll.scrollHeight - el.scroll.scrollTop - el.scroll.clientHeight < 80;
+  const atBottom = () =>
+    el.scroll.scrollHeight - el.scroll.scrollTop - el.scroll.clientHeight < 80;
 
   const scrollDown = () => {
     if (state.autoScroll) el.scroll.scrollTop = el.scroll.scrollHeight;
+  };
+
+  const showEvidence = (index) => {
+    state.evidenceIndex = index;
+    el.app.classList.remove("app--evidence-hidden");
+    renderEvidence();
+    save();
   };
 
   // ---------------------------------------------------------------- streaming
@@ -306,24 +424,45 @@
     el.send.setAttribute("aria-label", flag ? "Stop" : "Send");
     el.send.innerHTML = flag ? "&#9632;" : "&#8593;";
     el.send.disabled = false;
-    el.status.textContent = flag ? "generating…" : "";
+    el.status.textContent = flag ? "searching and generating…" : "";
   };
 
-  const chat = async (convo, assistantMsg) => {
+  const paintAssistant = (index, msg) => {
+    const node = el.thread.querySelector(`.message[data-index="${index}"]`);
+    if (!node) return;
+    const fresh = messageNode(msg, index, true);
+    node.replaceWith(fresh);
+  };
+
+  const applyDone = (msg, payload) => {
+    msg.payload = payload;
+    msg.content = payload.answer || msg.content;
+    msg.state = payload.status === "greeting" ? "greeting" : payload.status;
+    msg.error = null;
+    msg.meta = Object.assign(msg.meta || {}, {
+      model: payload.model && payload.model.name,
+      seconds: (payload.timings_ms && payload.timings_ms.total) / 1000,
+    });
+  };
+
+  const postChat = async (convo, msg) => {
     state.controller = new AbortController();
     setStreaming(true);
     const started = performance.now();
+    const index = convo.messages.indexOf(msg);
+    let firstToken = null;
 
     try {
+      const payload = {
+        messages: convo.messages
+          .filter((m) => !m.error && m !== msg)
+          .map((m) => ({ role: m.role, content: m.content })),
+        temperature: 0,
+      };
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: convo.messages
-            .filter((m) => !m.error)
-            .map((m) => ({ role: m.role, content: m.content })),
-          temperature: 0,
-        }),
+        body: JSON.stringify(payload),
         signal: state.controller.signal,
       });
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -331,7 +470,6 @@
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let firstToken = null;
 
       for (;;) {
         const { done, value } = await reader.read();
@@ -342,55 +480,49 @@
 
         for (const line of lines) {
           if (!line.trim()) continue;
-          let chunk;
-          try { chunk = JSON.parse(line); } catch { continue; }
-          if (chunk.error) throw new Error(chunk.error);
+          let event;
+          try { event = JSON.parse(line); } catch { continue; }
 
-          if (chunk.message && chunk.message.content) {
-            if (firstToken === null) firstToken = performance.now();
-            assistantMsg.content += chunk.message.content;
-            assistantMsg.pending = true;
-            paintAssistant(convo, assistantMsg);
+          if (event.event === "token") {
+            if (firstToken === null) {
+              firstToken = performance.now();
+              msg.state = "streaming";
+            }
+            msg.content += event.text;
+            paintAssistant(index, msg);
             scrollDown();
-          }
-          if (chunk.done) {
-            const genSeconds = (chunk.eval_duration || 0) / 1e9;
-            assistantMsg.meta = {
-              seconds: (performance.now() - started) / 1000,
-              firstTokenMs: firstToken ? firstToken - started : null,
-              tokensPerSecond: genSeconds > 0 ? (chunk.eval_count || 0) / genSeconds : null,
-              promptTokens: chunk.prompt_eval_count || null,
-            };
-            assistantMsg.sources = Array.isArray(chunk.sources) ? chunk.sources : [];
+          } else if (event.event === "done") {
+            applyDone(msg, event.payload);
+          } else if (event.event === "error") {
+            throw new Error(event.message || "the server reported an error");
           }
         }
       }
-      assistantMsg.pending = false;
-      if (!assistantMsg.content.trim()) {
-        assistantMsg.error = "The model returned an empty answer.";
+
+      if (!msg.state || msg.state === "streaming") {
+        msg.state = msg.content.trim() ? "verified" : "error";
+        if (!msg.content.trim()) msg.error = "The pipeline returned an empty answer.";
       }
+      msg.meta = Object.assign(msg.meta || {}, {
+        seconds: (performance.now() - started) / 1000,
+        firstTokenMs: firstToken ? firstToken - started : null,
+      });
     } catch (err) {
-      assistantMsg.pending = false;
       if (err.name === "AbortError") {
-        assistantMsg.content += assistantMsg.content ? "\n\n_(stopped)_" : "_(stopped)_";
+        msg.state = "error";
+        msg.error = "Stopped. The model may still be finishing in the background.";
       } else {
-        assistantMsg.error = String(err.message || err);
+        msg.state = "error";
+        msg.error = String(err.message || err);
       }
     } finally {
       setStreaming(false);
       state.controller = null;
-      save();
       renderThread();
+      showEvidence(index);
       scrollDown();
+      save();
     }
-  };
-
-  const paintAssistant = (convo, msg) => {
-    const index = convo.messages.indexOf(msg);
-    const node = el.thread.querySelector(`.message[data-index="${index}"] .message__body`);
-    if (!node) return;
-    node.innerHTML = markdown(msg.content || "");
-    if (msg.pending) node.append(el2("span", "cursor"));
   };
 
   // -------------------------------------------------------------------- send
@@ -400,18 +532,23 @@
     if (!content || state.streaming) return;
 
     const convo = active();
-    if (!convo.messages.length) convo.title = content.slice(0, 46) + (content.length > 46 ? "…" : "");
+    if (!convo.messages.length) {
+      convo.title = content.slice(0, 46) + (content.length > 46 ? "…" : "");
+    }
     convo.messages.push({ role: "user", content });
-    const assistantMsg = { role: "assistant", content: "", pending: true, meta: null, error: null };
-    convo.messages.push(assistantMsg);
+    const msg = { role: "assistant", content: "", state: "streaming", payload: null,
+      meta: null, error: null };
+    convo.messages.push(msg);
 
     el.input.value = "";
     el.input.style.height = "auto";
+    state.evidenceIndex = convo.messages.length - 1;
+    state.tab = "sources";
     renderSidebar();
     renderThread();
     scrollDown();
     save();
-    chat(convo, assistantMsg);
+    postChat(convo, msg);
   };
 
   const regenerate = () => {
@@ -421,27 +558,92 @@
       convo.messages.pop();
     }
     if (!convo.messages.length) return;
-    const assistantMsg = { role: "assistant", content: "", pending: true, meta: null, error: null };
-    convo.messages.push(assistantMsg);
+    const msg = { role: "assistant", content: "", state: "streaming", payload: null,
+      meta: null, error: null };
+    convo.messages.push(msg);
+    state.evidenceIndex = convo.messages.length - 1;
     renderThread();
-    chat(convo, assistantMsg);
+    postChat(convo, msg);
+  };
+
+  const openSource = (doc, page) => {
+    if (!doc) return;
+    const link = document.createElement("a");
+    link.href = `/pdf/${encodeURIComponent(doc)}#page=${page || 1}`;
+    link.target = "_blank";
+    link.rel = "noopener";
+    document.body.append(link);
+    link.click();
+    link.remove();
+  };
+
+  const exportChat = () => {
+    const convo = active();
+    const lines = [`# ${convo.title}`, "", `_Exported ${new Date().toLocaleString()}_`, ""];
+    for (const msg of convo.messages) {
+      if (msg.role === "assistant" && msg.state === "streaming") continue;
+      lines.push(`## ${msg.role === "user" ? "You" : "Assistant"}`, "");
+      if (msg.state) lines.push(`_${STATES[msg.state] ? STATES[msg.state].label : msg.state}_`, "");
+      lines.push(msg.content, "");
+      if (msg.error) lines.push(`**Error:** ${msg.error}`, "");
+      const sources = (msg.payload && msg.payload.sources) || [];
+      if (sources.length) {
+        lines.push("**Sources**", "");
+        for (const s of sources) {
+          lines.push(`- [${s.n}] ${s.label}, page ${s.page} (${s.doc}) — score ` +
+            `${typeof s.score === "number" ? s.score.toFixed(2) : "—"}`);
+        }
+        lines.push("");
+      }
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${(convo.title || "chat").replace(/[^\w\- ]+/g, "").slice(0, 40) || "chat"}.md`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const copyText = (text, button) => {
+    navigator.clipboard.writeText(text).then(() => {
+      if (!button) return;
+      const old = button.textContent;
+      button.textContent = "Copied";
+      setTimeout(() => { button.textContent = old; }, 1200);
+    });
   };
 
   // -------------------------------------------------------------- delegation
 
   document.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
-    if (!target) return;
+    if (!target) {
+      const message = event.target.closest(".message--assistant");
+      if (message) showEvidence(Number(message.dataset.index));
+      return;
+    }
     const action = target.dataset.action;
 
     if (action === "new-chat") {
       const convo = makeConversation();
       state.conversations.unshift(convo);
       state.activeId = convo.id;
+      state.evidenceIndex = null;
       renderSidebar(); renderThread(); save();
       el.input.focus();
     } else if (action === "toggle-sidebar") {
       el.app.classList.toggle("app--collapsed");
+      save();
+    } else if (action === "toggle-evidence") {
+      el.app.classList.toggle("app--evidence-hidden");
+      if (!el.app.classList.contains("app--evidence-hidden")) renderEvidence();
+      save();
+    } else if (action === "show-tab") {
+      state.tab = target.dataset.tab;
+      for (const tab of el.app.querySelectorAll(".evidence__tab")) {
+        tab.classList.toggle("evidence__tab--active", tab.dataset.tab === state.tab);
+      }
+      renderEvidence();
       save();
     } else if (action === "toggle-theme") {
       const dark = document.documentElement.dataset.theme !== "dark";
@@ -451,6 +653,7 @@
       send(target.textContent);
     } else if (action === "open-chat") {
       state.activeId = target.dataset.id;
+      state.evidenceIndex = null;
       renderSidebar(); renderThread(); save();
     } else if (action === "delete-chat") {
       event.stopPropagation();
@@ -459,32 +662,34 @@
       if (!state.conversations.some((c) => c.id === state.activeId)) {
         state.activeId = state.conversations[0].id;
       }
+      state.evidenceIndex = null;
       renderSidebar(); renderThread(); save();
     } else if (action === "copy") {
       const msg = active().messages[Number(target.dataset.index)];
-      navigator.clipboard.writeText(msg.content).then(() => {
-        const old = target.textContent;
-        target.textContent = "Copied";
-        setTimeout(() => { target.textContent = old; }, 1200);
-      });
+      copyText(msg.content, target);
+    } else if (action === "copy-debug") {
+      const msg = active().messages[Number(target.dataset.index)];
+      copyText(JSON.stringify(msg.payload, null, 2), target);
     } else if (action === "regenerate") {
+      regenerate();
+    } else if (action === "retry") {
       regenerate();
     } else if (action === "export-chat") {
       exportChat();
     } else if (action === "open-source") {
       if (target.dataset.doc) {
         openSource(target.dataset.doc, target.dataset.page);
-      } else {
-        const msg = active().messages[Number(target.dataset.index)];
-        const src = (msg.sources || []).find(
-          (s) => (s.key || String(s.n)) === target.dataset.key
-        );
-        if (src) openSource(src.doc, src.page);
+        return;
       }
+      const msg = active().messages[Number(state.evidenceIndex)];
+      const sources = (msg && msg.payload && msg.payload.sources) || [];
+      const source = sources.find((s) => String(s.n) === target.dataset.n);
+      if (source) openSource(source.doc, source.page);
     }
   });
 
-  el.form.addEventListener("submit", (event) => {
+  document.addEventListener("submit", (event) => {
+    if (event.target !== el.form) return;
     event.preventDefault();
     if (state.streaming) {
       if (state.controller) state.controller.abort();
@@ -493,13 +698,15 @@
     send();
   });
 
-  el.input.addEventListener("input", () => {
+  document.addEventListener("input", (event) => {
+    if (event.target !== el.input) return;
     el.input.style.height = "auto";
     el.input.style.height = `${Math.min(el.input.scrollHeight, 200)}px`;
     el.send.disabled = !el.input.value.trim() && !state.streaming;
   });
 
-  el.input.addEventListener("keydown", (event) => {
+  document.addEventListener("keydown", (event) => {
+    if (event.target !== el.input) return;
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       el.form.requestSubmit();
@@ -521,9 +728,15 @@
     try {
       const health = await (await fetch("/api/health")).json();
       el.model.textContent = health.model + (health.loaded ? " · loaded" : "");
-      if (!health.ok) {
-        el.status.textContent = health.error || "model not installed";
+      // The empty state is a template that `renderThread` clones, so the copy on screen
+      // is not the node captured at boot: query the live one, or the update lands in a
+      // detached element and the reader keeps reading the placeholder.
+      const corpusLine = document.querySelector("#corpus-line");
+      if (health.documents && corpusLine) {
+        corpusLine.textContent =
+          `${health.documents} documents (${health.pages} pages) in data/corpus`;
       }
+      if (!health.ok) el.status.textContent = health.error || "model not installed";
     } catch {
       el.status.textContent = "server offline";
     }

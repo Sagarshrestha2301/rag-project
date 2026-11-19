@@ -39,10 +39,13 @@ move is possible in one commit if the owner prefers it (question 1 in section 12
 | File | Role |
 |---|---|
 | `ui/server.py` | FastAPI app, routes, localhost binding, static files, PDF serving |
-| `ui/pipeline.py` | new: streaming wrapper around `generation.answer` (route → search → gate → prompt → stream → verify → retry → debug) |
+| `ui/pipeline.py` | streaming wrapper around `generation.answer` (route → search → gate → prompt → stream → verify → retry → debug); the stream is the same call, via `on_token`, not a second prompt path |
 | `ui/static/index.html` | the page shell |
 | `ui/static/app.css` | all styling, both themes |
+| `ui/static/step7.css` | Step 7 components (evidence rail, five states, unreadable warning, debug view); loaded after `app.css` so the working layout rules are untouched |
 | `ui/static/app.js` | rendering, streaming client, event delegation |
+| `ui/test_pipeline.py` | payload, D-021 counts and event order, with the model stubbed |
+| `ui/test_server.py` | routes, CSP, PDF resolution and the chat stream, with the model stubbed |
 | `ui/SPEC.md` | this document |
 
 ## 3. Layout
