@@ -13,7 +13,7 @@
 - [ ] Every kept change has a before/after eval row in `EVAL.md`
 - [ ] Rejected experiments recorded in `DECISIONS.md` with results
 - [ ] Runbook tested by following it from scratch
-- [ ] `STATUS.md`, `ARCHITECTURE.md`, `README.md` match the real system
+- [x] `STATUS.md`, `ARCHITECTURE.md`, `README.md` match the real system
 - [ ] Owner signs off
 
 ## Context to read
