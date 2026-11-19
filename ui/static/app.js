@@ -225,10 +225,14 @@
     const corpus = data.corpus;
     const box = el2("div", "unreadable-warning");
     box.append(el2("p", "unreadable-warning__title", "Some pages cannot be read"));
+    // Two different sets of pages, said as two facts: the pages that stayed empty after
+    // OCR, and the pages OCR did read. One clause joined them and read as if the 19 were
+    // part of the 86.
     box.append(el2("p", "unreadable-warning__body",
-      `${corpus.documents_with_unreadable} of ${corpus.documents} documents have pages with no ` +
-      `text layer (${corpus.unreadable_pages} of ${corpus.pages} pages, ${corpus.ocr_pages} ` +
-      `pages read by OCR). The answer may simply not be on a readable page.`));
+      `${corpus.unreadable_pages} of ${corpus.pages} pages, in ` +
+      `${corpus.documents_with_unreadable} of ${corpus.documents} documents, still have no ` +
+      `readable text after OCR. ${corpus.ocr_pages} pages were read by OCR. ` +
+      `The answer may simply not be on a readable page.`));
     const list = (data.top_documents || []);
     if (list.length) {
       const ul = el2("ul", "unreadable-warning__list");

@@ -12,7 +12,7 @@
 // Example of the output:
 //   state        not_found
 //   badge        ∅ not found
-//   warning      8 of 97 documents have pages with no text layer (19 of 851 pages, 86 …)
+//   warning      19 of 851 pages, in 8 of 97 documents, still have no readable text after
 //   per document 2023_annual_conservation_action_plan_… has 3 unreadable pages: 2, 8, 27
 //   verdict      PASS
 //
@@ -266,8 +266,13 @@ try {
   // still read `[n]`, because a bare `1` looks like part of a number.
   if (settled === "not_found") {
     const layout = (state.warning || {}).layout || {};
+    // The two counts are different page sets: 19 pages stayed empty after OCR, 86 pages
+    // OCR did read. The body must say both, and not merge them into one clause.
+    const body = (state.warning || {}).body || "";
     state.ok = Boolean(state.warning && state.warning.items.length &&
-      state.warning.title && !state.warning.title.startsWith("Some pages cannot be read8") &&
+      state.warning.title === "Some pages cannot be read" &&
+      body.includes("still have no readable text after OCR") &&
+      body.includes("pages were read by OCR") &&
       layout.bodyTop >= layout.titleBottom - 1);
   } else {
     state.ok = state.chips.length > 0 &&

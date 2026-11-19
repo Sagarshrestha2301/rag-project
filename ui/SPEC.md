@@ -309,7 +309,7 @@ alone:
 
 ```
 ∅ not found — the retrieved passages do not contain this.
-8 of 97 documents have pages with no text layer (19 of 851 pages, 86 pages read by OCR).
+19 of 851 pages, in 8 of 97 documents, still have no readable text after OCR. 86 pages were read by OCR.
   • 2005_Choudhary_Trans_boundary_Floods… has 4 unreadable pages: 1, 2, 3, 4
 ```
 
