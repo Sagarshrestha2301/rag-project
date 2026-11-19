@@ -311,7 +311,7 @@ a hash of the text of every cited page, and the index the process holds against 
 on disk (`corpus.is_current`). Measured: **0.4-0.6 s for a hit against 19.1 s to generate**.
 An `unverified` answer is never cached, and `--no-cache` bypasses the cache entirely.
 
-### 6b. The chat UI (prototype: streaming, letter citations, no verification)
+### 6b. The chat UI (the shipped pipeline, streamed)
 
 ```powershell
 .\scripts\open-chat.ps1 -Start        # Ctrl+C stops it
@@ -321,29 +321,31 @@ Then open **http://127.0.0.1:8000**. Streaming answers, conversations kept in th
 stop mid-answer, copy, regenerate, light/dark theme, and live tokens/second under each
 reply. **Save chat** downloads the conversation as Markdown with its sources.
 
-What it does today: BM25 over pages with `CHAT_TOP_K` passages (4 by default), **letter
-citations `[A]`-`[D]`**, no router, no not-found floor, no quotation verification and no
-answer cache. It is the prototype from before Step 6, and Step 7 replaces its answer path
-with 6a — until then, use 6a when an answer has to be checked.
+It has **no answer path of its own**: `ui/pipeline.py` calls `generation.answer` — router,
+condense step, not-found gate, prompt, quote verifier and its one retry, and the cache are
+the code `eval/` measures (D-061). So the screen shows `verified`, `not_found`,
+`unverified` (a streamed answer is retracted in place when the verifier rejects it),
+`streaming` and `error`, with **numeric citation chips** `[1]`-`[5]` rather than the old
+prototype's `[A]`-`[D]`. Each chip opens the corpus PDF at the cited page (verified on 10
+answers / 13 links, 2026-11-19) and OCR pages are marked `· OCR`. `/api/health` reports
+documents, pages, OCR pages and unreadable pages from `index/pages.json`, and `qwen3.5`'s
+literal ` thinking` tags are stripped from the stream.
 
-Operational details that still apply to it: source chips open the corpus PDF at the cited
-page (OCR pages are marked `· OCR`), `/api/health` reports documents, pages, OCR pages and
-unreadable pages, and `qwen3.5`'s literal ` thinking` tags are stripped from the stream.
-One honest limit survives from the prototype: OCR occasionally loses a hyphen inside a
-numeric range — the paper's `calcite (5-10 %)` comes back as `(510 %)` — so numbers from a
-scanned page deserve a glance at the PDF, which the citation link makes easy.
+One honest limit: OCR occasionally loses a hyphen inside a numeric range — the paper's
+`calcite (5-10 %)` comes back as `(510 %)` — so numbers from a scanned page deserve a
+glance at the PDF, which the citation chip makes easy.
 
 Options, if you want a different port or model:
 
 ```powershell
 $env:CHAT_MODEL = "qwen3.5:4b"   # or "qwen2.5" for the 7B fallback
 $env:CHAT_THINK = "0"           # keep 0 for qwen3.5, or the replies come back empty
-$env:CHAT_TOP_K = "4"           # passages the prototype puts in front of the model
+$env:CHAT_KEEP_ALIVE = "30m"    # how long Ollama keeps the model resident
 .venv\Scripts\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8001
 ```
 
-Stop it with `Ctrl+C` in that terminal (or stop the python process on that port). The
-prototype builds its index once at import, so **after a corpus change, restart it**.
+Stop it with `Ctrl+C` in that terminal (or stop the python process on that port). The server
+loads the page index once, so **after a corpus change, restart it**.
 
 ## 7. Check the environment
 
