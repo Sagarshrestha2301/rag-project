@@ -171,11 +171,20 @@
 
   // The marker keeps its brackets on screen: a bare `1` after "540 mm" reads like part of
   // the number, and three sentences citing one page then look like "1 1 1".
-  const chipNode = (n, source, disabled) => {
+  const chipNode = (n, source, quote, disabled) => {
     const chip = el2("button", "cite", `[${n}]`);
     chip.dataset.action = "open-source";
     chip.dataset.n = String(n);
-    if (source) chip.dataset.doc = source.doc;
+    if (source) {
+      chip.dataset.doc = source.doc;
+      // Everything the citation viewer needs comes with the payload: the page, the text
+      // to highlight, and the work's name for its title bar. The highlighted text is the
+      // quote the verifier checked against the page - more precise than the whole
+      // retrieved passage - and the passage is the fallback.
+      chip.dataset.page = String(source.page || 1);
+      chip.dataset.text = quote || source.snippet || "";
+      chip.dataset.title = source.reference || source.label || source.doc || "";
+    }
     chip.title = disabled ? "Unverified: the citation is not trusted" : "Open the cited page";
     if (disabled) chip.classList.add("cite--disabled");
     return chip;
@@ -194,8 +203,11 @@
   };
 
   /* Turn [1] markers into chips. Numbers, not letters: prompt s6-2 numbers passages. */
-  const linkCitations = (container, sources, disabled) => {
+  const linkCitations = (container, sources, citations, disabled) => {
     const byN = new Map((sources || []).map((s) => [String(s.n), s]));
+    const quoteByN = new Map((citations || [])
+      .filter((c) => c && c.quote)
+      .map((c) => [String(c.n), c.quote]));
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walker.nextNode()) {
@@ -211,7 +223,7 @@
       let last = 0;
       for (const match of text.matchAll(/\[(\d{1,2})\]/g)) {
         frag.append(document.createTextNode(text.slice(last, match.index)));
-        frag.append(chipNode(match[1], byN.get(match[1]), disabled));
+        frag.append(chipNode(match[1], byN.get(match[1]), quoteByN.get(match[1]), disabled));
         last = match.index + match[0].length;
       }
       frag.append(document.createTextNode(text.slice(last)));
@@ -290,7 +302,9 @@
     } else {
       body.innerHTML = markdown(msg.content || "");
       const sources = (msg.payload && msg.payload.sources) || [];
-      linkCitations(body, sources, msg.state === "unverified");
+      const citations = (msg.payload && msg.payload.verification &&
+        msg.payload.verification.citations) || [];
+      linkCitations(body, sources, citations, msg.state === "unverified");
       if (msg.state === "streaming") {
         if (!msg.content) {
           const typing = el2("span", "typing");
@@ -334,6 +348,8 @@
     item.dataset.action = "open-source";
     item.dataset.doc = source.doc || "";
     item.dataset.page = String(source.page || 1);
+    item.dataset.text = source.snippet || "";
+    item.dataset.title = source.reference || source.label || source.doc || "";
     // `reference` is the extracted citation; `label`/`doc` are only a fallback for a
     // document whose page 1 has no readable header.
     const head = el2("div", "source__head");
@@ -597,8 +613,14 @@
     postChat(convo, msg);
   };
 
-  const openSource = (doc, page) => {
+  // A citation opens the cited page in the viewer, with the quoted passage highlighted.
+  // The tab is the fallback: it is what the UI did before the viewer existed, and it is
+  // still the way out if pdf.js cannot render the file.
+  const openSource = (doc, page, text, title) => {
     if (!doc) return;
+    if (window.CitationViewer && window.CitationViewer.open({
+      doc, page: Number(page) || 1, text: text || "", title: title || doc,
+    })) return;
     const link = document.createElement("a");
     link.href = `/pdf/${encodeURIComponent(doc)}#page=${page || 1}`;
     link.target = "_blank";
@@ -709,13 +731,17 @@
       exportChat();
     } else if (action === "open-source") {
       if (target.dataset.doc) {
-        openSource(target.dataset.doc, target.dataset.page);
+        openSource(target.dataset.doc, target.dataset.page, target.dataset.text,
+                   target.dataset.title);
         return;
       }
       const msg = active().messages[Number(state.evidenceIndex)];
       const sources = (msg && msg.payload && msg.payload.sources) || [];
       const source = sources.find((s) => String(s.n) === target.dataset.n);
-      if (source) openSource(source.doc, source.page);
+      if (source) {
+        openSource(source.doc, source.page, source.snippet,
+                   source.reference || source.label);
+      }
     }
   });
 

@@ -103,6 +103,107 @@ function connect(url) {
   });
 }
 
+/* The citation viewer: click the last answer's first chip, wait for pdf.js to paint the
+   cited page with the quote highlighted, check that another page carries no highlight and
+   that going back restores it, then close with Escape. */
+const VIEWER_STATE = `(() => {
+  const root = document.querySelector(".cite-viewer");
+  if (!root || root.hidden) return null;
+  const canvas = root.querySelector(".cite-viewer__canvas");
+  const hits = [...root.querySelectorAll(".cite-viewer__hit")];
+  return {
+    title: (root.querySelector(".cite-viewer__title") || {}).textContent || "",
+    meta: (root.querySelector(".cite-viewer__meta") || {}).textContent || "",
+    page: (root.querySelector(".cite-viewer__page") || {}).value || "",
+    canvas: canvas ? { w: canvas.width, h: canvas.height } : null,
+    hits: hits.length,
+    hitText: ((root.querySelector(".cite-viewer__marks") || {}).dataset || {}).quote || "",
+    hitBox: hits.length
+      ? { w: Math.round(hits[0].getBoundingClientRect().width),
+          h: Math.round(hits[0].getBoundingClientRect().height) }
+      : null,
+    note: ((root.querySelector(".cite-viewer__note") || {}).textContent || "").slice(0, 120),
+  };
+})()`;
+
+async function waitForViewer(session, test, tries = 80) {
+  for (let i = 0; i < tries; i += 1) {
+    await sleep(250);
+    const seen = await session.evaluate(VIEWER_STATE);
+    if (seen && test(seen)) return seen;
+  }
+  return null;
+}
+
+const clickViewer = (session, action) => session.evaluate(
+  `(() => { const b = document.querySelector('.cite-viewer [data-action="${action}"]');
+            if (!b || b.disabled) return false;
+            b.click();
+            return true; })()`);
+
+async function checkViewer(session) {
+  const clicked = await session.evaluate(`(() => {
+    const chip = [...document.querySelectorAll(".message--assistant .cite")].pop();
+    if (!chip) return null;
+    const info = { page: Number(chip.dataset.page || 1), doc: chip.dataset.doc || "",
+                   text: (chip.dataset.text || "").slice(0, 80) };
+    chip.click();
+    return info;
+  })()`);
+  if (!clicked) return { ok: false, reason: "no chip to click" };
+
+  const seen = await waitForViewer(session, (state) =>
+    state.canvas && state.canvas.w > 0 && state.hits > 0);
+  if (!seen) {
+    return { ok: false, reason: "the viewer never showed a highlighted page", chip: clicked };
+  }
+  const pageOk = Number(seen.page) === clicked.page;
+
+  // One page forward: the quote belongs to the cited page, so nothing is highlighted.
+  const forward = await clickViewer(session, "cite-next");
+  const away = forward
+    ? await waitForViewer(session, (state) => Number(state.page) !== clicked.page)
+    : null;
+  const awayOk = Boolean(away && away.hits === 0);
+
+  const back = awayOk ? await clickViewer(session, "cite-prev") : false;
+  const again = back
+    ? await waitForViewer(session, (state) =>
+        Number(state.page) === clicked.page && state.hits > 0)
+    : null;
+  const backOk = Boolean(again);
+
+  const closed = await session.evaluate(`(() => {
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    return document.querySelector(".cite-viewer").hidden;
+  })()`);
+
+  // The evidence rail opens the same viewer, from the retrieved passage rather than the
+  // verified quote, so the source cards must highlight too.
+  const card = await session.evaluate(`(() => {
+    const node = document.querySelector("#evidence-body .source");
+    if (!node) return null;
+    const info = { page: Number(node.dataset.page || 1), doc: node.dataset.doc || "" };
+    node.click();
+    return info;
+  })()`);
+  const fromCard = card
+    ? await waitForViewer(session, (state) => state.hits > 0 && Number(state.page) === card.page)
+    : null;
+  const cardOk = Boolean(fromCard);
+  if (cardOk) {
+    await session.evaluate(`(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      return true;
+    })()`);
+  }
+
+  return { ...(again || seen),
+           ok: pageOk && seen.hits > 0 && awayOk && backOk && closed === true && cardOk,
+           pageOk, awayOk, backOk, cardOk, awayPage: away ? away.page : null,
+           cardPage: card ? card.page : null, closed: closed === true, chip: clicked };
+}
+
 const state = {
   question: QUESTION,
   server: SERVER,
@@ -279,8 +380,14 @@ try {
       state.chips.every((chip) => chip.text === `[${chip.n}]` && Boolean(chip.doc)) &&
       state.refs.length > 0 && state.chipsInRefs === 0;
   }
+
+  // The citation viewer: the chip opens the cited page with the quoted passage
+  // highlighted, and Escape closes it. pdf.js has to load and render for this to pass.
+  if (state.chips.length) state.viewer = await checkViewer(session);
+  if (state.viewer) state.ok = state.ok && state.viewer.ok;
 } finally {
   try { if (session) session.socket.close(); } catch { /* already closed */ }
+
   chrome.kill();
   await sleep(300);
   try { rmSync(profile, { recursive: true, force: true }); } catch { /* Windows lock */ }
@@ -306,6 +413,23 @@ for (const ref of state.refs || []) console.log(`reference    ${ref.slice(0, 110
 console.log(`chips in refs ${state.chipsInRefs}`);
 for (const source of state.sources || []) {
   console.log(`source       ${source.label.slice(0, 100)} | ${source.meta}`);
+}
+if (state.viewer) {
+  const viewer = state.viewer;
+  const chip = viewer.chip || {};
+  console.log(`viewer       ${viewer.ok ? "open" : "FAILED"}  ` +
+    `${viewer.title || viewer.reason || ""} | ${viewer.meta || ""}`);
+  if (viewer.canvas) {
+    console.log(`viewer page  ${viewer.page} (chip says ${chip.page}) · canvas ` +
+      `${viewer.canvas.w}x${viewer.canvas.h} · highlights ${viewer.hits}`);
+    console.log(`viewer text  ${viewer.hitText}`);
+    if (viewer.note) console.log(`viewer note  ${viewer.note}`);
+    console.log(`viewer nav   page ${viewer.chip.page} with a highlight, page ` +
+      `${viewer.awayPage} without one, back ${viewer.backOk ? "yes" : "no"}`);
+    console.log(`viewer card  source card opens page ${viewer.cardPage} with ` +
+      `${viewer.cardOk ? "a highlight" : "NO highlight"}`);
+    console.log(`viewer closed ${viewer.closed}`);
+  }
 }
 console.log(`console errors ${state.consoleErrors.length}`);
 console.log(`verdict      ${state.ok ? "PASS" : "FAIL"}  (${OUT})`);

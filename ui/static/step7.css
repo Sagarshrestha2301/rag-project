@@ -211,3 +211,172 @@
 @media (max-width: 760px) {
   .evidence__body { padding: 10px; }
 }
+
+/* ------------------------------------------------------- citation viewer */
+
+/* The cited PDF page, opened from a chip or a source card. Additive: it is a modal the
+   chat never notices, and it reads the same /pdf/<doc> the browser tab did. */
+.cite-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+}
+.cite-viewer[hidden] { display: none; }
+
+.cite-viewer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 16, 20, .45);
+  backdrop-filter: blur(1.5px);
+}
+
+.cite-viewer__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(920px, 100%);
+  height: 100%;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.cite-viewer__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-raised);
+}
+
+.cite-viewer__titles { flex: 1; min-width: 0; }
+.cite-viewer__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cite-viewer__meta { margin: 2px 0 0; font-size: 11px; color: var(--ink-faint); }
+
+.cite-viewer__nav { display: flex; align-items: center; gap: 4px; }
+.cite-viewer__page {
+  width: 44px;
+  padding: 4px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.cite-viewer__total { font-size: 12px; color: var(--ink-faint); }
+
+.cite-viewer__step,
+.cite-viewer__close,
+.cite-viewer__open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.cite-viewer__step:disabled { opacity: .4; cursor: default; }
+.cite-viewer__step:hover:not(:disabled),
+.cite-viewer__close:hover,
+.cite-viewer__open:hover { color: var(--ink); border-color: var(--ink-faint); }
+.cite-viewer__open { font-size: 12px; padding: 0 10px; }
+
+.cite-viewer__stage {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  background: var(--bg-soft);
+}
+
+.cite-viewer__page-wrap {
+  position: relative;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(16, 18, 22, .18);
+}
+
+.cite-viewer__canvas { display: block; }
+
+/* The text layer pdf.js builds over the canvas: invisible text in the right places, so a
+   highlight is a background on the words themselves, not a guess at coordinates. */
+.cite-viewer__text {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+  text-align: initial;
+  opacity: 1;
+  forced-color-adjust: none;
+}
+.cite-viewer__text span,
+.cite-viewer__text br {
+  position: absolute;
+  white-space: pre;
+  color: transparent;
+  transform-origin: 0% 0%;
+  cursor: text;
+}
+.cite-viewer__text ::selection { background: rgba(180, 96, 58, .28); }
+
+/* One rectangle per line of the matched text, positioned over the page from the text
+   layer's own measurements. Never receives the pointer: selecting the page's text still
+   works through the transparent text layer above it. */
+.cite-viewer__marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cite-viewer__hit {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(255, 214, 0, .45);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(219, 178, 0, .55);
+}
+html[data-theme="dark"] .cite-viewer__hit {
+  background: rgba(255, 214, 0, .38);
+  box-shadow: 0 0 0 1px rgba(255, 214, 0, .35);
+}
+
+.cite-viewer__note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 8px 12px;
+  background: rgba(28, 28, 30, .88);
+  color: #fff;
+  font-size: 12px;
+}
+
+body.cite-viewer-open { overflow: hidden; }
+
+@media (max-width: 720px) {
+  .cite-viewer__panel { width: 100%; }
+  .cite-viewer__stage { padding: 12px; }
+  .cite-viewer__open { display: none; }
+}

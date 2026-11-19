@@ -335,6 +335,13 @@ Then open **http://127.0.0.1:8000**. Streaming answers, conversations kept in th
 stop mid-answer, copy, regenerate, light/dark theme, and live tokens/second under each
 reply. **Save chat** downloads the conversation as Markdown with its sources.
 
+**Clicking a citation (`[1]`) or an evidence card opens the cited page in the UI**, with the
+quotation highlighted - no browser tab, no plugin. `ui/static/citation-viewer.js` renders
+the page with pdf.js (`ui/static/vendor/pdfjs/`, pinned 4.10.38, imported on the first
+click) and marks the words by measuring the page's own text layer; `←`/`→` and `Esc`
+navigate and close, and *Open PDF* is still there for the browser's own viewer. If pdf.js
+cannot read a file the click falls back to that tab, so nothing new can block reading.
+
 It has **no answer path of its own**: `ui/pipeline.py` calls `generation.answer` — router,
 condense step, not-found gate, prompt, quote verifier and its one retry, and the cache are
 the code `eval/` measures (D-061). So the screen shows `verified`, `not_found`,

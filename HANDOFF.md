@@ -70,9 +70,15 @@ Tags exist for steps 00–05 (`git tag -l`). Steps 06–09 have their start appr
   documents…"; its title is now its own block, and the two counts are stated as two facts:
   **"19 of 851 pages, in 8 of 97 documents, still have no readable text after OCR. 86 pages
   were read by OCR."**
+- **Clicking a citation opens the cited page inside the UI**, with the quotation marked:
+  `ui/static/citation-viewer.js`, pdf.js 4.10.38 vendored at `ui/static/vendor/pdfjs/`,
+  imported on the first click. Measured: q001's chip opened page 2 of 5 with 12 highlight
+  rectangles over the quoted sentence, page 3 opened with none, and Escape closed it.
+  Frontend only - no server, pipeline, prompt or index change.
 - Every one of these is asserted by `scripts/ui-browser-check.mjs`, which drives the
   installed Chrome headless and fails on a missing chip, a chip inside a reference line, a
-  merged warning, or a source that is only a file name.
+  merged warning, a source that is only a file name, or a citation that does not open its
+  page with a highlight.
 - Sentence-level entailment prototype (D-067, measure only): **92 sentences judged, 55
   SUPPORTED, 3 PARTIAL, 34 UNSUPPORTED**. Of the 37 failures, **15** state a number the
   quote lacks but the cited page prints, **0** state a number absent from the page, and 4
@@ -99,6 +105,10 @@ Tags exist for steps 00–05 (`git tag -l`). Steps 06–09 have their start appr
    report, or drop it.
 
 ### For the agent (no approval needed, all measurable)
+0. **The viewer only opens a page it can highlight on the page it renders.** A hash-link
+   `#page=N` would scroll a native PDF viewer to a page even when the text layer is empty;
+   this one shows "cited text not found on this page" instead. If a reader wants the
+   native viewer as the default, that is a one-line change in `openSource`.
 1. **The 4 unexplained markers.** Sentences in q002, q020 and q046 carry a `[n]` with no
    citation line at all, so nothing about them was verified. Fix the citation listing (or
    drop the marker) and re-run those four questions; changing the prompt needs the eval and
