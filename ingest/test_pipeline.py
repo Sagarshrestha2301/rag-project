@@ -257,6 +257,10 @@ def backup_and_restore_round_trip():
     assert restored["counts"] == before["counts"], (restored["counts"], before["counts"])
     assert json.loads((index / "pages.json").read_text(encoding="utf-8"))["docs"], \
         "pages.json did not come back"
+    # Everything the backup holds must land in the restored index, dense vectors included.
+    for path in (root / "backup").rglob("*"):
+        if path.is_file():
+            assert (index / path.relative_to(root / "backup")).is_file(), path
 
 
 CASES = [

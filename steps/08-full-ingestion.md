@@ -16,12 +16,12 @@
 
 ## Definition of done
 - [x] All files in the manifest are `done` or `failed` with a reason; failures listed
-- [ ] Unreadable pages counted over the full corpus and compared with the 1-2% threshold (D-020); result reported to the owner
+- [x] Unreadable pages counted over the full corpus and compared with the 1-2% threshold (D-020); result reported to the owner
 - [x] Kill-and-resume test passed
 - [x] Incremental add test passed
-- [ ] Index size and RAM use at full scale recorded; query latency at full scale within budget
+- [x] Index size and RAM use at full scale recorded; query latency at full scale within budget
 - [x] Every not-found question re-checked against the full corpus; result listed (still absent / replaced with owner approval)
-- [ ] Eval on full index recorded; compared with the sample-scale results; any drop analyzed
+- [x] Eval on full index recorded; compared with the sample-scale results; any drop analyzed
 - [ ] Offline run: pass (network disabled, output recorded)
 - [x] All corpus files in `data/corpus/` have a recorded SHA-256 in the manifest
 - [x] Backup of the index and manifest made and a restore tested

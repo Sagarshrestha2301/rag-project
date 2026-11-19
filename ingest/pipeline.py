@@ -30,6 +30,9 @@ Usage:
 
 Manifest row, as `status` prints it:
     data/corpus/1970_Marahatta_....pdf | sha256 2f1c… | 5 pages | parsed | []
+
+Output: stdout is one JSON summary, so a script can read it (`scripts/add-document.ps1`
+does); per-document progress goes to stderr.
 """
 
 from __future__ import annotations
@@ -285,21 +288,23 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
                 page_hashes=json.dumps(hashes),
                 seconds=round(time.perf_counter() - began, 1))
             if duplicate_of:
-                print(f"  duplicate: {row['name']} repeats {duplicate_of}; kept, not indexed")
+                print(f"  duplicate: {row['name']} repeats {duplicate_of}; kept, not indexed",
+                      file=sys.stderr)
             else:
                 parsed += 1
         except Exception as exc:                    # noqa: BLE001 - one file must not stop the run
             failed += 1
             manifest.set_status(row["name"], "failed",
                                 error=f"{exc.__class__.__name__}: {exc}")
-            print(f"  ! {row['name'][:56]}: {exc.__class__.__name__}: {exc}")
+            print(f"  ! {row['name'][:56]}: {exc.__class__.__name__}: {exc}",
+                  file=sys.stderr)
             continue
 
         done = time.perf_counter() - started
         eta = (done / position) * (len(todo) - position)
         print(f"  [{position}/{len(todo)}] {row['name'][:52]:54s} "
               f"{search['page_count']:>3}p {time.perf_counter() - began:>6.1f}s "
-              f"eta {eta:>5.0f}s")
+              f"eta {eta:>5.0f}s", file=sys.stderr)
 
     manifest.set_meta("last_parse", time.strftime("%Y-%m-%dT%H:%M:%S"))
     return {"parsed": parsed, "failed": failed, "seconds": round(time.perf_counter() - started, 1)}
@@ -455,7 +460,7 @@ def embed_stage(index_dir: pathlib.Path, manifest: Manifest,
                             embedding_model=model_folder)
         eta = (time.perf_counter() - began) / position * (len(todo) - position)
         print(f"  [{position}/{len(todo)}] {row['name'][:52]:54s} "
-              f"{len(records):>3} chunks eta {eta:>5.0f}s")
+              f"{len(records):>3} chunks eta {eta:>5.0f}s", file=sys.stderr)
 
     return {"embedded": len(todo), "chunks": written,
             "seconds": round(time.perf_counter() - began, 1)}
@@ -514,6 +519,9 @@ def status(index_dir: pathlib.Path = DEFAULT_INDEX) -> dict:
                            for row in rows if json.loads(row["unreadable_pages"] or "[]")},
             "without_sha256": [row["name"] for row in rows
                                if not _is_sha256(row["sha256"] or "")],
+            # Only the parse stage stores a per-document duration, so this is that
+            # number summed, not a wall-clock total for a whole build.
+            "parse_seconds": round(sum(row["seconds"] or 0 for row in rows), 1),
         }
     finally:
         manifest.close()
@@ -521,6 +529,15 @@ def status(index_dir: pathlib.Path = DEFAULT_INDEX) -> dict:
 
 def _is_sha256(value: str) -> bool:
     return len(value) == 64 and all(ch in "0123456789abcdef" for ch in value)
+
+
+def _size(path: pathlib.Path) -> int:
+    """Bytes on disk for a file or a folder; 0 when it does not exist."""
+    if path.is_file():
+        return path.stat().st_size
+    if path.is_dir():
+        return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+    return 0
 
 
 def write_report(index_dir: pathlib.Path = DEFAULT_INDEX,
@@ -539,8 +556,22 @@ def write_report(index_dir: pathlib.Path = DEFAULT_INDEX,
         f"- Failures: **{len(summary['failures'])}**",
         f"- Duplicates flagged and skipped: **{len(summary['duplicates'])}**",
         f"- Documents without a valid SHA-256: **{len(summary['without_sha256'])}**",
+        f"- Sum of the measured per-document parse times: **{summary['parse_seconds']:.0f} s**",
         "",
-        "## Failures with reasons",
+        "## Index size (bytes on disk)",
+        "",
+        "| Artifact | Bytes |",
+        "|---|---|",
+    ]
+    for label, path in (("`index/pages.json`", index_dir / "pages.json"),
+                        ("`index/chunks.jsonl`", index_dir / "chunks.jsonl"),
+                        ("`index/parsed/` (pages.jsonl + shards)", index_dir / "parsed"),
+                        ("`index/lancedb/`", index_dir / "lancedb"),
+                        ("`index/manifest.sqlite`", index_dir / DB_NAME)):
+        lines.append(f"| {label} | {_size(path):,} |")
+    total = _size(index_dir)
+    lines += [f"| **total `index/`** | **{total:,}** |", "",
+              "## Failures with reasons",
         "",
     ]
     lines += ([f"- `{item['name']}`: {item['error']}" for item in summary["failures"]]
@@ -552,9 +583,9 @@ def write_report(index_dir: pathlib.Path = DEFAULT_INDEX,
     lines += ([f"- `{name}`: pages {pages}" for name, pages in summary["unreadable"].items()]
               or ["None."])
     lines += ["", "## Scale", "",
-              "The corpus this pipeline currently runs on is the 97-document / 851-page set.",
-              "The 100k-page target is a scope question for the owner (see `STATUS.md`);",
-              "the timings here are what was measured, not a projection.", ""]
+              "The corpus this pipeline currently runs on is the 97-document / 851-page set,",
+              "so the numbers above are that scale. The 100k-page target is a scope question",
+              "for the owner (see `STATUS.md`); nothing here is projected to it.", ""]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines), encoding="utf-8")
     return out
@@ -563,10 +594,15 @@ def write_report(index_dir: pathlib.Path = DEFAULT_INDEX,
 # ------------------------------------------------------------------- backup
 
 BACKUP_FILES = ("pages.json", "chunks.jsonl", "parsed/pages.jsonl", "parsed/manifest.json")
+BACKUP_DIRS = (SHARDS, "lancedb")      # dense vectors included: a restore is usable at once
 
 
 def backup(index_dir: pathlib.Path = DEFAULT_INDEX, out: pathlib.Path | None = None) -> dict:
-    """Copy the manifest and the index artifacts into one folder, DB via sqlite backup."""
+    """Copy the manifest and every index artifact into one folder, DB via sqlite backup.
+
+    The dense vectors are included, so a restore answers questions immediately instead
+    of waiting for a re-embed.
+    """
     target = out or (ROOT / "backups" / time.strftime("%Y-%m-%d-%H%M%S"))
     target.mkdir(parents=True, exist_ok=True)
     source = sqlite3.connect(index_dir / DB_NAME)
@@ -583,10 +619,11 @@ def backup(index_dir: pathlib.Path = DEFAULT_INDEX, out: pathlib.Path | None = N
             (target / relative).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(origin, target / relative)
             copied.append(relative)
-    shards = index_dir / SHARDS
-    if shards.exists():
-        shutil.copytree(shards, target / SHARDS, dirs_exist_ok=True)
-        copied.append(SHARDS)
+    for relative in BACKUP_DIRS:
+        origin = index_dir / relative
+        if origin.exists():
+            shutil.copytree(origin, target / relative, dirs_exist_ok=True)
+            copied.append(relative)
     return {"backup": str(target), "files": copied}
 
 
@@ -600,9 +637,10 @@ def restore(backup_dir: pathlib.Path, index_dir: pathlib.Path = DEFAULT_INDEX) -
         if origin.exists():
             (index_dir / relative).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(origin, index_dir / relative)
-    shards = backup_dir / SHARDS
-    if shards.exists():
-        shutil.copytree(shards, index_dir / SHARDS, dirs_exist_ok=True)
+    for relative in BACKUP_DIRS:
+        origin = backup_dir / relative
+        if origin.exists():
+            shutil.copytree(origin, index_dir / relative, dirs_exist_ok=True)
     return status(index_dir)
 
 

@@ -171,23 +171,49 @@ citations 20/30, numeric 23/24, not-found 3/3 and 26/26, median 4.9 s.
 
 ## 5. Build the page index
 
-`corpus.build()` parses every PDF under `data/corpus/`, OCRs any page with no text layer,
-and caches the result in `index/pages.json`. It is the only step between a PDF and being
-searchable:
+`python -m ingest.pipeline build` is the one command that takes `data/corpus/` to a
+searchable index. It walks the corpus, records what it did in `index/manifest.sqlite`, and
+works only on documents that are new, changed or unfinished:
 
 ```powershell
-.venv\Scripts\python.exe -c "import corpus; i=corpus.build(); print(len(i['docs']), 'documents', len(i['pages']), 'pages,', i['ocr_pages'], 'OCR pages')"
+.venv\Scripts\python.exe -m ingest.pipeline build                  # everything still pending
+.venv\Scripts\python.exe -m ingest.pipeline build --limit 5        # five documents, then stop
+.venv\Scripts\python.exe -m ingest.pipeline status --report        # counts + reports\full-ingestion.md
+.venv\Scripts\python.exe -m ingest.pipeline backup --out backups\2026-11-19
+.venv\Scripts\python.exe -m ingest.pipeline restore --from backups\2026-11-19
 ```
 
-Measured on the current corpus: **97 documents / 851 pages, 86 OCR pages, 996 s (~17 min)**
-— about 51 pages/min, with OCR at roughly 4 s/page. Every rebuild re-parses every
-document, so after adding files run this once from the terminal instead of letting a
-user's first question pay for it.
+Five stages, in order; `--stages scan,parse` runs a subset:
 
-- **The index is a cache, not the authority.** It stores a *signature* (file name, size and
-  mtime per document) and `build()` re-parses when the signature changes, so a new or
-  edited PDF is picked up on the next build by itself. Deleting `index/pages.json` is never
-  required; `corpus.build(force=True)` is the explicit way to force a full re-parse.
+| Stage | What it does | Where the result goes |
+|---|---|---|
+| `scan` | SHA-256, size and page count of every corpus PDF; flags duplicates | manifest rows |
+| `parse` | `corpus.parse_document` + `ingest.manifest.parse_document`, one document at a time | `index/parsed/shards/<sha>.{search.json,structure.jsonl,summary.json}` |
+| `assemble` | concatenates the shards in corpus order | `index/pages.json` (search) and `index/parsed/pages.jsonl` (chunking) |
+| `chunk` | one record per chunk | `index/chunks.jsonl` |
+| `embed` | bge-small-en-v1.5 on CPU, per document | LanceDB table `chunks` in `index/lancedb/` |
+
+**Measured on 2026-11-19** on the current corpus (97 documents / 851 pages):
+
+- parse: **1,414 s summed over the 97 documents** (86 pages OCR'd at about 4 s each). The
+  run's total wall time is not recorded - the background shell was killed after the work
+  finished and before the summary line flushed - so the parse figure is measured and the
+  embed figure is **not measured separately**.
+- chunk: **3,226 chunks**; embed: **3,226 vectors, 384-dim, all unit length, no zeros**,
+  counted straight out of LanceDB after the run.
+- `index/` totals **41,969,013 bytes (40 MB)**; the per-artifact table is in
+  `reports/full-ingestion.md`.
+- **Nothing else changed:** `index/pages.json`, `index/chunks.jsonl` and
+  `index/parsed/pages.jsonl` have the same SHA-256 before and after the Step 8 refactor -
+  `395c5a2b…`, `1208cb59…`, `f7e82daf…` (see `artifacts/step8/baseline/artifact-hashes.txt`).
+  The pipeline reproduces the index the eval was measured on, byte for byte.
+- A second `build` with nothing changed takes **1.6 s** and parses nothing.
+
+- **Resume is per document.** A manifest row's status is written only after that
+  document's work is on disk, so a kill costs at most the document in flight; the next run
+  starts from the unfinished ones. Killing and resuming is a case in
+  `ingest/test_pipeline.py` ("a killed run resumes where it stopped"), along with eleven
+  others.
 - **Adding a document, in one command:**
 
   ```powershell
@@ -197,16 +223,38 @@ user's first question pay for it.
 
   It hardlinks the PDF into `data\corpus\<folder>\` (copying when the volumes differ),
   refuses a file name the corpus already has — the loader identifies a document by name,
-  so two `report.pdf` are an error, not two documents — then rebuilds the index and
-  prints the document and page counts before and after, with the rebuild time. A file
-  under `data\raw\` keeps its folder relative to `data\raw`; `data\raw` itself is never
-  modified. It exits 1 on any refusal. PDFs only: convert Word files with the pinned
-  LibreOffice to `<name>.docx.pdf` first. The new file is ranked against the old ones in
-  the same pass; there is one index, not one per document.
-
-- **Scans are fine:** a page with under 40 characters of text is OCR'd at build time and
-  marked `source: "ocr"` in the index (86 pages here). Pages that stay empty are listed in
-  `i["unreadable"]` — 8 documents have at least one — and `/api/health` reports the count.
+  so two `report.pdf` are an error, not two documents — then runs the pipeline, which
+  parses, chunks and embeds **only the new document**, and prints the before/after counts
+  and measured time. A file under `data\raw\` keeps its folder relative to `data\raw`;
+  `data\raw` itself is never modified. It exits 1 on any refusal. PDFs only: convert Word
+  files with the pinned LibreOffice to `<name>.docx.pdf` first.
+- **Duplicates are flagged, never deleted.** Same SHA-256 under another name, or pages at
+  least 80% the same text as an indexed document, become `duplicate` with `duplicate_of`
+  set and are left out of the index; `status` lists them. This is why a stray copy cannot
+  skew retrieval, and why nothing on disk moves.
+- **After adding documents, three checks:**
+  1. re-run `.venv\Scripts\python.exe scripts\recheck-not-found.py` and read
+     `reports/not-found-recheck.md`. An unanswerable question becomes a **false** answer the
+     moment the corpus starts stating its fact, and D-027 says a not-found question may only
+     be replaced with owner approval - so the report lists the pages and leaves the verdict
+     to the owner.
+  2. Word files: convert once with the pinned LibreOffice **26.8.2.2** (headless) into
+     `data\corpus\<name>.docx.pdf`, rename after conversion (`--convert-to pdf` writes
+     `<stem>.pdf`), and never convert again silently - every gold page and citation refers to
+     the stored PDF (D-023, D-030).
+  3. run the offline proof if the change touched anything that could reach the network:
+     `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\offline-generation-proof.ps1`
+     from an elevated prompt (`scripts\offline-check.py` is the self-test it uses).
+- **Backups are complete.** `backup` copies the manifest (through SQLite's backup API), the
+  artifacts, the shards and `index/lancedb/` — **40 MB** for this corpus. `restore --from`
+  into a folder was verified on the real index: restored `pages.json` and `chunks.jsonl`
+  are byte-identical to the live ones (`395c5a2b…`, `1208cb59…`), all 3,226 dense rows came
+  back, and the restored index answered a BM25 query with the same top page.
+- **Scans are fine:** a page with under 40 characters of text is OCR'd during `parse` and
+  marked `source: "ocr"` in the index (86 pages here). Pages that stay empty are listed by
+  `status` and `/api/health`: **8 documents have at least one** (19 pages).
+- **Scale:** this is measured on 97 documents / 851 pages. The 100k-page target is an
+  owner scope decision (D-063); nothing above is projected to it.
 - **No working-directory dependency:** `corpus.CORPUS` and `corpus.INDEX_CACHE` are
   absolute and derived from the project folder, so this works from any directory.
 
@@ -318,6 +366,10 @@ git status
 | Prompt rejected as too long | Context is 4096 tokens. Retrieved passages plus history must stay under roughly 3.5k. |
 | `status: unverified` (exit 1) | The answer's quotations, or a number a sentence states, were not found on the pages they cite, after one retry. Re-ask, or open the cited page: the verifier is meant to fail here rather than pass a claim nobody can check. |
 | A question answers in well under a second every time | It is a cache hit: same question, index, model and prompt. Use `--no-cache` to force a fresh answer. |
+| `build` finishes in seconds and parses nothing | Nothing changed: every manifest row is `embedded`. A changed file is detected by SHA-256, so an edit is picked up on the next run without deleting anything. |
+| `status` lists a document as `duplicate` | The same bytes under another name, or at least 80% of its pages repeat an indexed document. It is left out on purpose; `duplicate_of` names the file that is indexed. Nothing was deleted. Rename or remove the copy yourself if you want it gone. |
+| A document is `failed` | `status` prints the error. Fix the PDF (or the parser), then run `build` again: failed documents are retried, finished ones are not re-parsed. |
+| `restore` and the answers differ from before the backup | Restore with `python -m ingest.pipeline restore --from <backup>` and stop the UI server while it runs - copying folders by hand can mix a new `pages.json` with an old `lancedb/`. |
 
 ## Notes and limits
 
@@ -331,6 +383,13 @@ git status
 - **VRAM is 4 GB.** The 4B model peaks at 3.7 GB including context, leaving
   roughly 400 MiB — enough for the model, not for a GPU reranker (D-004 keeps it
   on CPU). Closing other GPU applications buys headroom.
+- **Ingestion is measured on 97 documents / 851 pages**, not on the 100k-page target: a
+  full parse summed to 1,414 s (OCR ~4 s/page) and produced 3,226 chunks / 3,226 vectors on
+  CPU, with `index/` at 40 MB. Nothing here is projected to 100k pages (D-063); the
+  manifest and per-document resume were built so that scale is possible, not proven.
+- **Embedding is CPU-only** (D-054 / rule 10). A GPU embed would be faster, but it competes
+  with the LLM for 4 GB and no benchmark has been run; the pipeline keeps the embedder on
+  CPU deliberately.
 - **Stop the model** with `ollama stop qwen3.5:4b` (frees VRAM immediately).
 - Tags and approvals are the owner's: `step-NN-approved` in git, and lines in
   `APPROVALS.md`.

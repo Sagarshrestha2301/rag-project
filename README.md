@@ -18,17 +18,16 @@ The short version; options, checks and failure fixes are in `RUNNING.md`.
 tools\python312\python.exe -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# 2. Parse the corpus and build chunks (~17 min for the current 97 PDFs, then ~1 s)
-.venv\Scripts\python.exe -m ingest.cli build
-.venv\Scripts\python.exe -m chunk.cli build
+# 2. Ingest the corpus: parse (+OCR), chunk, embed on CPU. Only new or changed
+#    documents are parsed; ~24 min of parsing for the current 97 PDFs, then ~2 s. Needs
+#    models\bge-small-en-v1.5. Writes reports\full-ingestion.md on --report.
+.venv\Scripts\python.exe -m ingest.pipeline build
+.venv\Scripts\python.exe -m ingest.pipeline status --report
 
-# 3. Dense index (CPU; needs models\bge-small-en-v1.5; writes reports\index-size.md)
-.venv\Scripts\python.exe -m chunk.dense
-
-# 4. Start the model: Ollama on 127.0.0.1:11434, qwen3.5:4b, 30-minute keep-alive
+# 3. Start the model: Ollama on 127.0.0.1:11434, qwen3.5:4b, 30-minute keep-alive
 .\scripts\launch-llm.ps1
 
-# 5. Start the chat UI, then open http://127.0.0.1:8000
+# 4. Start the chat UI, then open http://127.0.0.1:8000
 .\scripts\open-chat.ps1 -Start
 ```
 
@@ -92,6 +91,9 @@ rag-project/
 │   ├── text.py, tables.py, ocr.py, manifest.py
 │   ├── drive.py                  # bounded Google Drive sample fetch + SHA-256 manifest
 │   ├── cli.py                    # python -m ingest.cli build | verify
+│   ├── pipeline.py               # Step 8: scan | parse | assemble | chunk | embed, resumable,
+│   │                             #   manifest.sqlite, duplicates, status/report, backup/restore
+│   ├── test_pipeline.py          # 11 cases: resume, changed file, duplicates, backup round trip
 │   └── verify.py                 # cell check + the two review sheets the owner reads
 ├── eval/                         # the eval set and its scorer
 │   ├── questions.jsonl           # 55 questions (gold answers, gold pages, dev/held-out)
@@ -109,6 +111,8 @@ rag-project/
 │                                 # parsing sample, manual test sheet, knowledge graph
 ├── data/                         (generated, gitignored) corpus PDFs in data/corpus (read-only)
 ├── index/                        (generated, gitignored) parsed pages + chunks.jsonl + lancedb/
+│                                 #   + manifest.sqlite and per-document shards under parsed/shards
+├── backups/                      (generated, gitignored) index snapshots from ingest.pipeline backup
 ├── models/                       (generated, gitignored) embedder weights, ~690 MB
 ├── logs/                         (generated, gitignored) health log, build logs, download manifests
 ├── artifacts/                    (generated, gitignored) review sheets, step evidence,

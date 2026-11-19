@@ -11,16 +11,18 @@
 #      a second copy);
 #   2. puts the file at data\corpus\<folder>\<name>.pdf, hardlinked to the original when
 #      both are on the same volume (D-030: no extra disk) and copied when they are not;
-#   3. rebuilds index\pages.json by running corpus.build(), and prints the document and
-#      page counts before and after, with the rebuild time.
+#   3. ingests it with python -m ingest.pipeline build, which parses ONLY new or changed
+#      documents, then chunks and embeds them, and prints the document and page counts
+#      before and after, with the measured time.
 #
 # The folder: a file under data\raw\ keeps its folder relative to data\raw; anything
 # else goes to the corpus root unless -Folder names a folder. data\raw is owner-only and
 # is never modified here.
 #
-# The rebuild re-parses EVERY document, measured at 996 s for 97 documents / 851 pages
-# (about 51 pages/min, OCR about 4 s/page), so this is a deliberate step, not something
-# to run while someone waits for an answer.
+# The 97-document / 851-page corpus took 1414 s for a first full ingest (OCR about 4 s per
+# scanned page); adding one more document re-parses just that document. A file whose bytes
+# or pages repeat one already indexed is flagged as a duplicate and skipped, not silently
+# indexed twice - `python -m ingest.pipeline status` lists it.
 #
 # Usage note for tests: -Python exists so the script can be pointed at a different
 # interpreter, the same way scripts\open-chat.ps1 does.
@@ -118,19 +120,22 @@ catch {
 }
 $bytes = (Get-Item -LiteralPath $target).Length
 
-# --- rebuild the index -----------------------------------------------------------
+# --- ingest it -------------------------------------------------------------------
 Write-Host "added  : $target  ($mode, $([math]::Round($bytes / 1MB, 2)) MB)"
-Write-Host "index  : rebuilding from $beforeText - this re-parses every document, expect minutes"
+Write-Host "index  : ingesting from $beforeText - only new or changed documents are parsed"
 $started = Get-Date
-$py = & $Python -c "import json, corpus; i = corpus.build(); print(json.dumps({'docs': len(i['docs']), 'pages': len(i['pages']), 'ocr': i['ocr_pages'], 'unreadable': len(i['unreadable'])}))"
+$json = & $Python -m ingest.pipeline build
 if ($LASTEXITCODE -ne 0) {
-    Stop-With "the index rebuild failed (exit $LASTEXITCODE). The file is in place; fix the error and run: .venv\Scripts\python.exe -c `"import corpus; corpus.build() `""
+    Stop-With "the ingestion failed (exit $LASTEXITCODE). The file is in place; fix the error and run: .venv\Scripts\python.exe -m ingest.pipeline build"
 }
-$after = ($py | Select-Object -Last 1) | ConvertFrom-Json
+$after = (($json -join "`n") | ConvertFrom-Json)
 $elapsed = [int]((Get-Date) - $started).TotalSeconds
 
 Write-Host "before : $beforeText"
-Write-Host "after  : $($after.docs) documents / $($after.pages) pages  (rebuilt in $elapsed s, $($after.ocr) OCR pages, $($after.unreadable) documents with unreadable pages)"
+Write-Host "after  : $($after.stages.assemble.documents) documents / $($after.stages.assemble.pages) pages  ($($after.stages.parse.parsed) parsed, $($after.stages.embed.chunks) chunks embedded in $elapsed s)"
+if ($after.stages.parse.failed -gt 0 -or $after.counts.duplicate -gt 0) {
+    Write-Host "check  : $($after.stages.parse.failed) failed document(s) and $($after.counts.duplicate) duplicate(s) - .venv\Scripts\python.exe -m ingest.pipeline status"
+}
 Write-Host ""
 Write-Host "search it: .venv\Scripts\python.exe -m generation.answer `"<a question about $name>`""
 exit 0
