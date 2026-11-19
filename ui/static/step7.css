@@ -154,7 +154,13 @@
   font-size: 13px;
   line-height: 1.5;
 }
-.unreadable-warning__title { color: var(--state-info); font-weight: 600; }
+.unreadable-warning__title {
+  display: block;
+  margin: 0;
+  color: var(--state-info);
+  font-weight: 600;
+}
+.unreadable-warning__body { margin: 2px 0 0; }
 .unreadable-warning__list { margin: 6px 0 0; padding-left: 18px; }
 
 /* --------------------------------------------------------------- debug */

@@ -181,6 +181,18 @@
     return chip;
   };
 
+  /* The citation line the prompt asks for — `[1] <file>, p. <n>: "<quote>"` — is a
+     reference, not a claim marker: its number is already a source in the evidence rail,
+     so turning it into a chip only repeats the same marker after the last sentence. */
+  const isReferenceLine = (node) => {
+    const block = node.parentElement && node.parentElement.closest("p, li, h2, h3, h4");
+    if (!block) return false;
+    const text = block.textContent.trim();
+    const reference = /^\[\d{1,2}\]\s+\S/.test(text) && /,\s*p\.\s*\d+\s*:/i.test(text);
+    if (reference) block.classList.add("message__ref");
+    return reference;
+  };
+
   /* Turn [1] markers into chips. Numbers, not letters: prompt s6-2 numbers passages. */
   const linkCitations = (container, sources, disabled) => {
     const byN = new Map((sources || []).map((s) => [String(s.n), s]));
@@ -189,7 +201,9 @@
     while (walker.nextNode()) {
       const node = walker.currentNode;
       if (node.parentElement && node.parentElement.closest("pre, code")) continue;
-      if (/\[\d{1,2}\]/.test(node.nodeValue)) nodes.push(node);
+      if (!/\[\d{1,2}\]/.test(node.nodeValue)) continue;
+      if (isReferenceLine(node)) continue;
+      nodes.push(node);
     }
     for (const node of nodes) {
       const text = node.nodeValue;
@@ -210,7 +224,7 @@
     if (!data || !data.corpus) return null;
     const corpus = data.corpus;
     const box = el2("div", "unreadable-warning");
-    box.append(el2("span", "unreadable-warning__title", "Some pages cannot be read"));
+    box.append(el2("p", "unreadable-warning__title", "Some pages cannot be read"));
     box.append(el2("p", "unreadable-warning__body",
       `${corpus.documents_with_unreadable} of ${corpus.documents} documents have pages with no ` +
       `text layer (${corpus.unreadable_pages} of ${corpus.pages} pages, ${corpus.ocr_pages} ` +
@@ -316,13 +330,24 @@
     item.dataset.action = "open-source";
     item.dataset.doc = source.doc || "";
     item.dataset.page = String(source.page || 1);
+    // `reference` is the extracted citation; `label`/`doc` are only a fallback for a
+    // document whose page 1 has no readable header.
     const head = el2("div", "source__head");
     head.append(el2("span", "source__n", `[${source.n}]`));
     head.append(el2("span", "source__label",
-      `${source.label || source.doc} · p${source.page}${source.ocr ? " · OCR" : ""}`));
+      source.reference || source.label || source.doc));
     head.append(el2("span", "source__score",
       typeof source.score === "number" ? source.score.toFixed(2) : "—"));
     item.append(head);
+    const meta = el2("div", "source__meta");
+    meta.append(el2("span", "source__page",
+      `p${source.page}${source.ocr ? " · OCR" : ""}`));
+    if (source.doc) {
+      const file = el2("span", "source__file", source.doc);
+      file.title = source.doc;
+      meta.append(file);
+    }
+    item.append(meta);
     if (source.snippet) item.append(el2("p", "source__quote", source.snippet));
     return item;
   };

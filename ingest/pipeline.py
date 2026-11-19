@@ -6,11 +6,12 @@ changed. Killing it mid-run costs at most the document in flight.
 
 Stages, in order (`build` runs them all):
 
-    scan      hash every corpus PDF, record size/pages, flag duplicates
-    parse     one document at a time -> two shards under index/parsed/shards/
-    assemble  write index/pages.json (search) and index/parsed/pages.jsonl (chunking)
-    chunk     one chunk record per unit into index/chunks.jsonl
-    embed     append each new document's chunks to the LanceDB table
+    scan         hash every corpus PDF, record size/pages, flag duplicates
+    parse        one document at a time -> two shards under index/parsed/shards/
+    assemble     write index/pages.json (search) and index/parsed/pages.jsonl (chunking)
+    bibliography one validated title/authors/year/venue/DOI record per document (D-066)
+    chunk        one chunk record per unit into index/chunks.jsonl
+    embed        append each new document's chunks to the LanceDB table
 
 Resume is per document, not per stage: the manifest row's `status` is written only after
 that document's work is on disk, so a killed run leaves unfinished documents `pending`
@@ -51,6 +52,7 @@ sys.path.insert(0, str(ROOT))
 
 import corpus                                     # noqa: E402
 from chunk import cli as chunk_cli                # noqa: E402
+from ingest import bibliography                   # noqa: E402
 from ingest import manifest as structure          # noqa: E402
 from ingest import text                           # noqa: E402
 
@@ -474,7 +476,8 @@ def record_file(rows: list[dict]) -> str:
 # ------------------------------------------------------------------- build
 
 def build(root: pathlib.Path = DEFAULT_CORPUS, index_dir: pathlib.Path = DEFAULT_INDEX,
-          stages: tuple[str, ...] = ("scan", "parse", "assemble", "chunk", "embed"),
+          stages: tuple[str, ...] = ("scan", "parse", "assemble", "bibliography", "chunk",
+                                     "embed"),
           limit: int | None = None) -> dict:
     """Run the requested stages in order and return what each one measured."""
     started = time.perf_counter()
@@ -487,6 +490,12 @@ def build(root: pathlib.Path = DEFAULT_CORPUS, index_dir: pathlib.Path = DEFAULT
             report["stages"]["parse"] = parse_stage(root, index_dir, manifest, limit)
         if "assemble" in stages:
             report["stages"]["assemble"] = assemble(root, index_dir, manifest)
+        if "bibliography" in stages:
+            # Slow (one local model call per new document) and never fatal: a missing model
+            # leaves the DOI and year and blanks the rest, and the UI falls back to a label.
+            artifact = bibliography.build(index_dir, log=lambda line: print(line, file=sys.stderr))
+            report["stages"]["bibliography"] = {
+                **artifact.get("counts", {}), "seconds": artifact.get("seconds")}
         if "chunk" in stages:
             report["stages"]["chunk"] = chunk_stage(root, index_dir, manifest)
         if "embed" in stages:
@@ -593,7 +602,8 @@ def write_report(index_dir: pathlib.Path = DEFAULT_INDEX,
 
 # ------------------------------------------------------------------- backup
 
-BACKUP_FILES = ("pages.json", "chunks.jsonl", "parsed/pages.jsonl", "parsed/manifest.json")
+BACKUP_FILES = ("pages.json", "chunks.jsonl", "parsed/pages.jsonl", "parsed/manifest.json",
+                bibliography.INDEX_FILE)
 BACKUP_DIRS = (SHARDS, "lancedb")      # dense vectors included: a restore is usable at once
 
 
@@ -653,8 +663,9 @@ def main(argv: list[str]) -> int:
     build_cmd = sub.add_parser("build", help="run the stages that have work to do")
     build_cmd.add_argument("--corpus", default=str(DEFAULT_CORPUS))
     build_cmd.add_argument("--index", default=str(DEFAULT_INDEX))
-    build_cmd.add_argument("--stages", default="scan,parse,assemble,chunk,embed",
-                           help="comma-separated subset: scan,parse,assemble,chunk,embed")
+    build_cmd.add_argument("--stages", default="scan,parse,assemble,bibliography,chunk,embed",
+                           help="comma-separated subset: scan,parse,assemble,bibliography,"
+                                "chunk,embed")
     build_cmd.add_argument("--limit", type=int, default=None,
                            help="work on at most N documents this run (dry run, resume test)")
 

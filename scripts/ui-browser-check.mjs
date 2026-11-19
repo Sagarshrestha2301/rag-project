@@ -210,6 +210,14 @@ try {
     const badge = message ? message.querySelector(".state-badge") : null;
     const warning = message ? message.querySelector(".unreadable-warning") : null;
     const body = warning ? warning.querySelector(".unreadable-warning__body") : null;
+    const title = warning ? warning.querySelector(".unreadable-warning__title") : null;
+    // The warning used to read "Some pages cannot be read8 of 97 documents..." because
+    // the title and the counts were one inline run. They must be separate lines.
+    const layout = title && body ? {
+      titleDisplay: getComputedStyle(title).display,
+      titleBottom: Math.round(title.getBoundingClientRect().bottom),
+      bodyTop: Math.round(body.getBoundingClientRect().top),
+    } : null;
     const items = warning
       ? [...warning.querySelectorAll(".unreadable-warning__list li")].map((li) => li.textContent)
       : [];
@@ -220,29 +228,51 @@ try {
       disabled: chip.classList.contains("cite--disabled"),
       title: chip.title,
     }));
+    // The printed citation line is a reference block, and the marker inside it must stay
+    // plain text: it is the same source the evidence rail already lists.
+    const refs = [...document.querySelectorAll(".message--assistant .message__ref")]
+      .map((node) => node.textContent.trim().slice(0, 160));
+    const chipsInRefs = document.querySelectorAll(".message--assistant .message__ref .cite").length;
+    // D-066: the rail names the work (authors, year, title), not the storage file.
+    const sourceList = [...document.querySelectorAll("#evidence-body .source")].map((node) => ({
+      label: ((node.querySelector(".source__label") || {}).textContent || "").trim(),
+      meta: ((node.querySelector(".source__meta") || {}).textContent || "").trim(),
+    }));
     return {
       badge: badge ? badge.textContent.trim() : null,
-      warningTitle: warning ? (warning.querySelector(".unreadable-warning__title") || {}).textContent : null,
+      warningTitle: title ? title.textContent.trim() : null,
       warningBody: body ? body.textContent.trim() : null,
+      warningLayout: layout,
       warningItems: items,
       chips,
+      refs,
+      chipsInRefs,
+      sourceList,
       answer: message ? (message.querySelector(".message__body") || {}).textContent : null,
     };
   })()`);
 
   state.badge = dom.badge;
   state.warning = dom.warningBody || dom.warningTitle
-    ? { title: dom.warningTitle, body: dom.warningBody, items: dom.warningItems }
+    ? { title: dom.warningTitle, body: dom.warningBody, items: dom.warningItems,
+        layout: dom.warningLayout }
     : null;
   state.chips = dom.chips;
+  state.refs = dom.refs;
+  state.chipsInRefs = dom.chipsInRefs;
+  state.sources = dom.sourceList;
   state.answer = (dom.answer || "").trim().slice(0, 200);
   // An unanswerable question must show the warning; an answered one must show chips that
   // still read `[n]`, because a bare `1` looks like part of a number.
   if (settled === "not_found") {
-    state.ok = Boolean(state.warning && state.warning.items.length);
+    const layout = (state.warning || {}).layout || {};
+    state.ok = Boolean(state.warning && state.warning.items.length &&
+      state.warning.title && !state.warning.title.startsWith("Some pages cannot be read8") &&
+      layout.bodyTop >= layout.titleBottom - 1);
   } else {
     state.ok = state.chips.length > 0 &&
-      state.chips.every((chip) => chip.text === `[${chip.n}]` && Boolean(chip.doc));
+      state.chips.every((chip) => chip.text === `[${chip.n}]` && Boolean(chip.doc)) &&
+      state.refs.length > 0 && state.chipsInRefs === 0;
   }
 } finally {
   try { if (session) session.socket.close(); } catch { /* already closed */ }
@@ -258,9 +288,20 @@ console.log(`browser      ${state.browser || "unknown"}`);
 console.log(`question     ${state.question}`);
 console.log(`state        ${state.status}`);
 console.log(`badge        ${state.badge}`);
-console.log(`warning      ${state.warning ? state.warning.body : "MISSING"}`);
+console.log(`warning      ${state.warning ? state.warning.title : "MISSING"}`);
+if (state.warning) {
+  const layout = state.warning.layout || {};
+  console.log(`warning body ${state.warning.body}`);
+  console.log(`warning flow title ${layout.titleDisplay}, title bottom ${layout.titleBottom}px, `
+    + `body top ${layout.bodyTop}px`);
+}
 for (const item of state.warning ? state.warning.items : []) console.log(`per document ${item}`);
 console.log(`chips        ${state.chips.length}  ${state.chips.map((chip) => chip.text).join(" ")}`);
+for (const ref of state.refs || []) console.log(`reference    ${ref.slice(0, 110)}`);
+console.log(`chips in refs ${state.chipsInRefs}`);
+for (const source of state.sources || []) {
+  console.log(`source       ${source.label.slice(0, 100)} | ${source.meta}`);
+}
 console.log(`console errors ${state.consoleErrors.length}`);
 console.log(`verdict      ${state.ok ? "PASS" : "FAIL"}  (${OUT})`);
 process.exit(state.ok ? 0 : 1);

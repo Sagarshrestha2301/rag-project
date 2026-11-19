@@ -183,15 +183,29 @@ works only on documents that are new, changed or unfinished:
 .venv\Scripts\python.exe -m ingest.pipeline restore --from backups\2026-11-19
 ```
 
-Five stages, in order; `--stages scan,parse` runs a subset:
+Six stages, in order; `--stages scan,parse` runs a subset:
 
 | Stage | What it does | Where the result goes |
 |---|---|---|
 | `scan` | SHA-256, size and page count of every corpus PDF; flags duplicates | manifest rows |
 | `parse` | `corpus.parse_document` + `ingest.manifest.parse_document`, one document at a time | `index/parsed/shards/<sha>.{search.json,structure.jsonl,summary.json}` |
 | `assemble` | concatenates the shards in corpus order | `index/pages.json` (search) and `index/parsed/pages.jsonl` (chunking) |
+| `bibliography` | one local-model call per new document: title, authors, year, venue, DOI from its header pages (D-066) | `index/bibliography.json` |
 | `chunk` | one record per chunk | `index/chunks.jsonl` |
 | `embed` | bge-small-en-v1.5 on CPU, per document | LanceDB table `chunks` in `index/lancedb/` |
+
+`bibliography` is the only stage that calls a model, and it never fails the run: if Ollama
+is down the DOI and year are still read off the page and the rest stays blank, and the UI
+falls back to the short label. Run it alone when you only want references:
+
+```powershell
+.venv\Scripts\python.exe -m ingest.bibliography build      # resume-safe, one call per new document
+.venv\Scripts\python.exe -m ingest.bibliography show       # counts, then a few references
+```
+
+Every field is checked against the page it was read from — a title or author that the
+model returns but the page does not print is dropped and the reason is recorded — so a
+blank field means "not printed", not "not tried".
 
 **Measured on 2026-11-19** on the current corpus (97 documents / 851 pages):
 
@@ -260,9 +274,9 @@ Five stages, in order; `--stages scan,parse` runs a subset:
 
 ## 6. Ask a question
 
-Two front ends sit on the same page index. They do **not** yet share the same answer path:
-the pipeline below is Step 6, and the chat UI is still the older prototype. Step 7 replaces
-the prototype's answer path with the pipeline.
+Two front ends sit on the same page index and the same answer path: the CLI and the eval
+call `generation.answer` directly, and the chat UI streams that same call (D-061). What
+the eval scores is what the browser shows.
 
 ### 6a. The generation pipeline (router, gate, verified citations, cache)
 

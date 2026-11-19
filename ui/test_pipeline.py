@@ -61,6 +61,26 @@ def payload_has_the_spec_shape() -> None:
     assert data["timings_ms"]["total"] == 8700.0, "record seconds x 1000"
     assert data["tokens"] == {"prompt": 1818, "answer": 104}
     assert data["sources"][0]["snippet"] == "540 mm", "the rail needs the page snippet"
+    assert "reference" in data["sources"][0], "D-066: the rail shows a reference"
+
+
+def sources_use_the_extracted_reference() -> None:
+    """D-066: the rail prefers the extracted citation and falls back to the label."""
+    original = pipeline.bibliography_records
+    pipeline.bibliography_records = lambda: {
+        "a.pdf": {"authors": ["S. Marahatta", "J. K. Bhusal"], "year": 2009,
+                  "title": "Relating Hydrological Extremes"}}
+    try:
+        listed = pipeline.sources([{"n": 1, "doc": "a.pdf", "page": 2,
+                                    "label": "Marahatta 1970"},
+                                   {"n": 2, "doc": "b.pdf", "page": 1,
+                                    "label": "Dhar 1960"}])
+    finally:
+        pipeline.bibliography_records = original
+    assert listed[0]["reference"] == ("Marahatta & Bhusal (2009). Relating Hydrological "
+                                      "Extremes"), listed[0]
+    assert listed[1]["reference"] is None, "no record, so the label stays"
+    assert listed[1]["doc"] == "b.pdf", "the file name is what /pdf opens"
 
 
 def unreadable_counts_match_the_index() -> None:
@@ -142,6 +162,7 @@ def a_greeting_has_no_sources() -> None:
 
 CASES = [
     ("payload carries every field the spec names", payload_has_the_spec_shape),
+    ("sources use the extracted reference", sources_use_the_extracted_reference),
     ("unreadable counts come from the index", unreadable_counts_match_the_index),
     ("the unreadable list is capped and deduplicated", unreadable_list_is_capped_and_deduplicated),
     ("the stream is start, tokens, done", stream_yields_start_tokens_done),

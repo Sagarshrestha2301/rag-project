@@ -263,8 +263,29 @@ def backup_and_restore_round_trip():
             assert (index / path.relative_to(root / "backup")).is_file(), path
 
 
+def bibliography_stage_survives_a_missing_model() -> None:
+    """D-066: the stage is best-effort - a dead model must not fail an ingestion run."""
+    root, index = workspace()
+    make_pdf(root / "a.pdf", PAGES_A)
+    original = pipeline.bibliography.ask_model
+
+    def down(*args, **kwargs):
+        raise RuntimeError("no model")
+
+    pipeline.bibliography.ask_model = down
+    try:
+        report = run(root, index, "scan,parse,assemble,bibliography")
+    finally:
+        pipeline.bibliography.ask_model = original
+    assert report["stages"]["bibliography"]["documents"] == 1, report["stages"]
+    artifact = json.loads((index / "bibliography.json").read_text(encoding="utf-8"))
+    record = artifact["documents"]["a.pdf"]
+    assert record["title"] is None and "no model" in record["error"], record
+
+
 CASES = [
     ("pages.json matches a full corpus.build", pages_json_matches_a_full_build),
+    ("the bibliography stage survives a dead model", bibliography_stage_survives_a_missing_model),
     ("chunk export is written and citable", chunk_export_is_written_and_citable),
     ("a second run parses nothing", second_run_parses_nothing),
     ("a killed run resumes where it stopped", a_killed_run_resumes_where_it_stopped),

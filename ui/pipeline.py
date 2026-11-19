@@ -28,7 +28,9 @@ Example of one finished answer's payload:
      'verification': {'ok': True, 'verified_quotes': 1, 'citations': [...]},
      'timings_ms': {'retrieval': 41.0, 'model_total': 8600.0, 'total': 8700.0},
      'unreadable': {'corpus': {...}, 'top_documents': [...]},
-     'sources': [{'n': 1, 'label': '...', 'page': 3, 'snippet': '...'}]}
+     'sources': [{'n': 1, 'label': 'Marahatta 1970', 'reference': 'Marahatta & Bhusal
+     (2009). Relating Hydrological Extremes with Area. J. Hydrology & Meteorology',
+     'doc': '1970_Marahatta_....pdf', 'page': 3, 'snippet': '...'}]}
 """
 
 from __future__ import annotations
@@ -38,6 +40,7 @@ import queue
 import threading
 
 from generation import answer as generator
+from ingest import bibliography
 
 # Bumped when the payload's shape changes, so the view can refuse a shape it does not
 # know instead of rendering fields that are not there (ui/SPEC.md section 7).
@@ -46,6 +49,19 @@ DEBUG_VERSION = 1
 # The evidence rail shows at most this many documents with unreadable pages, then
 # "and N more": five lines is what fits before it stops being an explanation (SPEC 7.3).
 UNREADABLE_LIST_CAP = 5
+
+# `index/bibliography.json` is read once per process: the rail asks for it on every
+# answer, and the file changes only when ingestion runs.
+_BIBLIOGRAPHY: dict | None = None
+
+
+def bibliography_records() -> dict:
+    """Document name -> its validated bibliographic record (empty when not extracted)."""
+    global _BIBLIOGRAPHY
+    if _BIBLIOGRAPHY is None:
+        folder = pathlib.Path(__file__).resolve().parent.parent / "index"
+        _BIBLIOGRAPHY = bibliography.load(folder).get("documents", {})
+    return _BIBLIOGRAPHY
 
 
 def index() -> dict:
@@ -83,12 +99,22 @@ def unreadable_summary(source: dict, passages: list[dict]) -> dict:
 
 
 def sources(passages: list[dict]) -> list[dict]:
-    """What the evidence rail lists: one entry per passage the model was shown."""
-    return [{"n": passage.get("n"), "rank": passage.get("rank"),
-             "doc": passage.get("doc"), "page": passage.get("page"),
-             "label": passage.get("label"), "score": passage.get("score"),
-             "snippet": passage.get("snippet"), "ocr": bool(passage.get("ocr"))}
-            for passage in passages]
+    """What the evidence rail lists: one entry per passage the model was shown.
+
+    `reference` is the human-readable citation from `index/bibliography.json` (D-066); the
+    file name stays in `doc`, because that is what `/pdf/<name>` opens and what the
+    verifier compares against. A document without extracted metadata keeps its label.
+    """
+    records = bibliography_records()
+    out = []
+    for passage in passages:
+        record = records.get(passage.get("doc")) or {}
+        out.append({"n": passage.get("n"), "rank": passage.get("rank"),
+                    "doc": passage.get("doc"), "page": passage.get("page"),
+                    "label": passage.get("label"), "score": passage.get("score"),
+                    "reference": bibliography.reference_line(record) or None,
+                    "snippet": passage.get("snippet"), "ocr": bool(passage.get("ocr"))})
+    return out
 
 
 def debug_payload(record: dict, source: dict) -> dict:
