@@ -169,8 +169,10 @@
     return badge;
   };
 
+  // The marker keeps its brackets on screen: a bare `1` after "540 mm" reads like part of
+  // the number, and three sentences citing one page then look like "1 1 1".
   const chipNode = (n, source, disabled) => {
-    const chip = el2("button", "cite", String(n));
+    const chip = el2("button", "cite", `[${n}]`);
     chip.dataset.action = "open-source";
     chip.dataset.n = String(n);
     if (source) chip.dataset.doc = source.doc;

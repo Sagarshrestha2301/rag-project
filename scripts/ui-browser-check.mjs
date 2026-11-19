@@ -215,6 +215,7 @@ try {
       : [];
     const chips = [...document.querySelectorAll(".message--assistant .cite")].map((chip) => ({
       n: chip.dataset.n || null,
+      text: chip.textContent.trim(),
       doc: chip.dataset.doc || null,
       disabled: chip.classList.contains("cite--disabled"),
       title: chip.title,
@@ -235,7 +236,14 @@ try {
     : null;
   state.chips = dom.chips;
   state.answer = (dom.answer || "").trim().slice(0, 200);
-  state.ok = Boolean(state.warning && state.warning.items.length);
+  // An unanswerable question must show the warning; an answered one must show chips that
+  // still read `[n]`, because a bare `1` looks like part of a number.
+  if (settled === "not_found") {
+    state.ok = Boolean(state.warning && state.warning.items.length);
+  } else {
+    state.ok = state.chips.length > 0 &&
+      state.chips.every((chip) => chip.text === `[${chip.n}]` && Boolean(chip.doc));
+  }
 } finally {
   try { if (session) session.socket.close(); } catch { /* already closed */ }
   chrome.kill();
@@ -252,7 +260,7 @@ console.log(`state        ${state.status}`);
 console.log(`badge        ${state.badge}`);
 console.log(`warning      ${state.warning ? state.warning.body : "MISSING"}`);
 for (const item of state.warning ? state.warning.items : []) console.log(`per document ${item}`);
-console.log(`chips        ${state.chips.length}`);
+console.log(`chips        ${state.chips.length}  ${state.chips.map((chip) => chip.text).join(" ")}`);
 console.log(`console errors ${state.consoleErrors.length}`);
 console.log(`verdict      ${state.ok ? "PASS" : "FAIL"}  (${OUT})`);
 process.exit(state.ok ? 0 : 1);
