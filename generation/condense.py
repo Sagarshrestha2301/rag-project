@@ -22,8 +22,15 @@ Example:
 
 from __future__ import annotations
 
+import re
+
 MAX_HISTORY_TURNS = 4          # enough to resolve a pronoun, short enough to stay cheap
 MAX_WORDS = 40                 # a rewrite longer than this is the model explaining itself
+MIN_SHARED_WORDS = 1           # a rewrite must keep at least one word of the question
+STOPWORDS = frozenset(
+    "a an and are as at be by can could did do does for from had has have how in into "
+    "is it its of on or that the their them then there these they this those to was "
+    "were what when where which who why will with about please tell show give".split())
 
 SYSTEM = (
     "Rewrite the user's last question as a standalone question, in at most 20 words, "
@@ -72,4 +79,28 @@ def condense(question: str, history: list[dict] | None, ask=None) -> tuple[str, 
         return question, False
     if rewritten.rstrip("?.!").lower() == question.strip().rstrip("?.!").lower():
         return question, False
+    if not _keeps_the_question(question, rewritten):
+        # Measured 2026-11-19: "Bagmati River that had favored severe flooding is only
+        # about" was rewritten into the previous Tistung question, so the reader got that
+        # answer for a different question. A rewrite that keeps none of the question's own
+        # words has replaced it, not resolved it.
+        return question, False
     return rewritten, True
+
+
+def _words(text: str) -> set[str]:
+    return {word for word in re.findall(r"[\w']+", text.lower())
+            if len(word) >= 4 and word not in STOPWORDS}
+
+
+def _keeps_the_question(question: str, rewritten: str) -> bool:
+    """Does the rewrite keep at least one content word of what was asked?
+
+    "and in 1990?" keeps `1990`; a greeting or pronoun-only follow-up has no content word
+    of its own (`MAX_WORDS` and the empty check already handle those), so this only
+    rejects rewrites that dropped everything the user actually wrote.
+    """
+    asked = _words(question)
+    if not asked:
+        return True
+    return len(asked & _words(rewritten)) >= MIN_SHARED_WORDS

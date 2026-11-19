@@ -133,6 +133,34 @@ def miss_on_a_different_question() -> None:
                      root=root, **VERSIONS) is None
 
 
+def a_follow_up_rewritten_into_another_question_is_a_miss() -> None:
+    """Measured 2026-11-19: two different questions got the same answer, marked cached.
+
+    A follow-up is rewritten before it is searched, and the condenser can return the
+    previous question. Keying on the rewritten text alone made that follow-up replay the
+    previous answer, so both questions must be in the key.
+    """
+    root, path = corpus_root("a.pdf"), temp_path()
+    index = index_for(root, ("a.pdf", 1, TISTUNG))
+    first = "What was the 24-hour rainfall at Tistung in July 1993?"
+    second = "Bagmati River that had favored severe flooding is only about"
+    cache.put(first, record(("a.pdf", 1)), path=path, index=index, **VERSIONS)
+
+    # The condenser turned the follow-up back into the first question.
+    assert cache.get(second, search_question=first, path=path, index=index,
+                     root=root, **VERSIONS) is None, "the follow-up replays the first answer"
+    # The first question, asked again, is still a hit.
+    assert cache.get(first, search_question=first, path=path, index=index,
+                     root=root, **VERSIONS) is not None
+    # And the follow-up is stored under its own key, so it cannot displace that hit.
+    cache.put(second, record(("a.pdf", 1)), search_question=first, path=path,
+              index=index, **VERSIONS)
+    assert cache.get(first, search_question=first, path=path, index=index,
+                     root=root, **VERSIONS) is not None
+    assert cache.get(second, search_question=first, path=path, index=index,
+                     root=root, **VERSIONS) is not None
+
+
 def survives_a_reload() -> None:
     """The cache is a file, so a new process must find what the last one wrote."""
     root, path = corpus_root(), temp_path()
@@ -263,6 +291,8 @@ def main() -> int:
         ("a different model file is a miss", miss_after_model_change),
         ("an edited prompt is a miss", miss_after_prompt_change),
         ("a different question is a miss", miss_on_a_different_question),
+        ("a follow-up rewritten into another question is a miss",
+         a_follow_up_rewritten_into_another_question_is_a_miss),
         ("the cache survives a reload", survives_a_reload),
         ("a missing file is an empty cache", missing_file_is_an_empty_cache),
         ("a corrupt file is an empty cache", corrupt_file_is_an_empty_cache),

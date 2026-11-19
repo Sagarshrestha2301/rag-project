@@ -163,16 +163,18 @@ _CACHE_FIELDS = ("answer", "status", "gate", "citations", "problems", "attempts"
                  "passages", "model", "prompt_version", "timing")
 
 
-def _remember(record: dict, question: str, path: pathlib.Path, versions: dict,
-              index: dict) -> None:
+def _remember(record: dict, question: str, search_question: str, path: pathlib.Path,
+              versions: dict, index: dict) -> None:
     """Store an answer, so a later identical question is served instead of re-asked.
 
     `index` is the page index the answer was built from: the cache keys on its signature
     and stores a hash of each cited page's text, so an answer cannot outlive either the
-    corpus on disk or the text it quoted.
+    corpus on disk or the text it quoted. `question` is what the user typed and
+    `search_question` what was searched: both are in the key, so a follow-up cannot hit
+    the answer to the question the condenser rewrote it into.
     """
     cache.put(question, {key: record[key] for key in _CACHE_FIELDS},
-              path=path, index=index, **versions)
+              search_question=search_question, path=path, index=index, **versions)
 
 
 def _record(question: str, **fields) -> dict:
@@ -232,9 +234,9 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
             question, history, ask=lambda messages: _ask(messages, model, temperature)[0])
         marks["condense"] = stage(mark)
 
-    # The key follows the question that was actually searched: a follow-up condensed
-    # against a different history is a different question, and its answer must not be
-    # replayed for this one.
+    # The key holds both the question asked and the question searched. The searched one
+    # alone is not enough: a follow-up that the condenser rewrites into the previous
+    # question would otherwise replay that question's answer.
     versions = None
     path = cache_path or cache.CACHE_PATH
     marks["cache_lookup"] = 0.0
@@ -242,7 +244,8 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
         versions = {"model_version": cache.model_version(model, model_digest(model)),
                     "prompt_version": prompt.PROMPT_VERSION}
         mark = time.perf_counter()
-        hit = cache.get(search_question, path=path, index=source, **versions)
+        hit = cache.get(question, search_question=search_question, path=path,
+                        index=source, **versions)
         marks["cache_lookup"] = stage(mark)
         if hit is not None:
             return done({**hit, "cached": True, "route": routed,
@@ -265,7 +268,7 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
                        "passages": _passages(passages), "model": model,
                        "seconds": round(time.perf_counter() - started, 2)})
         if use_cache:
-            _remember(record, search_question, path, versions, source)
+            _remember(record, question, search_question, path, versions, source)
         return record
 
     mark = time.perf_counter()
@@ -312,7 +315,7 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     # An unverified answer is not cached: it is the one outcome that should be retried
     # rather than replayed.
     if use_cache and status != "unverified":
-        _remember(record, search_question, path, versions, source)
+        _remember(record, question, search_question, path, versions, source)
     return record
 
 

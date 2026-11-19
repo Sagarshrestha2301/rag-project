@@ -68,9 +68,18 @@ def model_version(name: str, digest: str | None = None) -> str:
 
 
 def key(question: str, *, index_version: str, model_version: str,
-        prompt_version: str) -> str:
-    payload = json.dumps([norm_question(question), index_version, model_version,
-                          prompt_version], separators=(",", ":"))
+        prompt_version: str, search_question: str | None = None) -> str:
+    """The cache key: the question asked, the question searched, and the three versions.
+
+    Both questions, because a follow-up is rewritten before it is searched and the two
+    can differ. Keying only on the rewritten text let a follow-up that the condenser
+    turned back into the previous question replay that question's stored answer
+    (measured 2026-11-19: a question about the Bagmati's flood-prone area was served the
+    Tistung rainfall answer, marked `cached`).
+    """
+    payload = json.dumps([norm_question(question), norm_question(search_question or question),
+                          index_version, model_version, prompt_version],
+                         separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24]
 
 
@@ -124,6 +133,7 @@ def save(entries: dict, path: pathlib.Path = CACHE_PATH) -> None:
 
 
 def get(question: str, *, index: dict, model_version: str, prompt_version: str,
+        search_question: str | None = None,
         root: pathlib.Path | None = None, path: pathlib.Path = CACHE_PATH) -> dict | None:
     """The cached answer, or None when the key is absent or a cited page changed.
 
@@ -136,7 +146,8 @@ def get(question: str, *, index: dict, model_version: str, prompt_version: str,
     """
     record = load(path).get(key(question, index_version=index_version(index),
                                 model_version=model_version,
-                                prompt_version=prompt_version))
+                                prompt_version=prompt_version,
+                                search_question=search_question))
     if record is None:
         return None
 
@@ -156,12 +167,14 @@ def get(question: str, *, index: dict, model_version: str, prompt_version: str,
 
 
 def put(question: str, record: dict, *, index: dict, model_version: str,
-        prompt_version: str, path: pathlib.Path = CACHE_PATH) -> str:
+        prompt_version: str, search_question: str | None = None,
+        path: pathlib.Path = CACHE_PATH) -> str:
     """Store an answer with the page fingerprints `get()` will re-check."""
     entries = load(path)
     cache_key = key(question, index_version=index_version(index),
                     model_version=model_version,
-                    prompt_version=prompt_version)
+                    prompt_version=prompt_version,
+                    search_question=search_question)
     entries[cache_key] = {**record,
                           "sources": _sources(record, _page_hashes(index.get("pages") or []))}
     save(entries, path)

@@ -103,6 +103,25 @@ def first_line_only_and_quotes_stripped() -> None:
     assert used and text == "What was the rainfall at Tistung in 1990?", text
 
 
+def a_rewrite_that_replaces_the_question_falls_back() -> None:
+    """Measured 2026-11-19: the condenser answered a different question.
+
+    "Bagmati River that had favored severe flooding is only about" came back as the
+    previous turn's Tistung question, so the reader was shown that answer again. A
+    rewrite that keeps none of the question's own words is not a rewrite of it.
+    """
+    ask = answers("What was the 24-hour rainfall at Tistung in July 1993?")
+    question = "Bagmati River that had favored severe flooding is only about"
+    text, used = condense.condense(question, HISTORY, ask=ask)
+    assert (text, used) == (question, False), (text, used)
+
+
+def a_rewrite_that_keeps_one_word_is_used() -> None:
+    ask = answers("Which districts did the Bagmati flood hit in 1993?")
+    text, used = condense.condense("Bagmati flooding in 1993?", HISTORY, ask=ask)
+    assert used and "Bagmati" in text, (text, used)
+
+
 def no_ask_means_no_rewrite() -> None:
     assert condense.condense("and in 1990?", HISTORY, ask=None) == ("and in 1990?", False)
 
@@ -117,6 +136,9 @@ def main() -> int:
         ("a rambling rewrite falls back", rambling_rewrite_falls_back),
         ("a failing model does not lose the question", a_failing_model_does_not_lose_the_question),
         ("only the first line is kept, quotes stripped", first_line_only_and_quotes_stripped),
+        ("a rewrite that replaces the question falls back",
+         a_rewrite_that_replaces_the_question_falls_back),
+        ("a rewrite that keeps one word is used", a_rewrite_that_keeps_one_word_is_used),
         ("no ask function means no rewrite", no_ask_means_no_rewrite),
     ]
     for name, fn in cases:
