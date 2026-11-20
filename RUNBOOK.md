@@ -201,14 +201,21 @@ the default `--index index`.
 ```powershell
 .venv\Scripts\python.exe ingest\test_pipeline.py       # resume, duplicates, backup/restore
 .venv\Scripts\python.exe generation\test_verify.py     # the quote and number verifier
+.venv\Scripts\python.exe generation\test_answer.py     # the retry budget guard (D-072)
 .venv\Scripts\python.exe generation\test_cache.py      # the cache key and page guard
+.venv\Scripts\python.exe retrieval\test_tables.py      # both table passes (off by default)
+.venv\Scripts\python.exe eval\test_scorer.py           # the scorer against the gold data
 .venv\Scripts\python.exe ui\test_pipeline.py
 .venv\Scripts\python.exe ui\test_server.py
-.venv\Scripts\python.exe eval\gate.py --current eval\runs\2026-11-19-step8-full --baseline eval\runs\2026-11-18-step6-after-ui --start eval\runs\2026-11-18-step6-after-ui
+node scripts\ui-browser-check.mjs                       # one question, warning + viewer
+node scripts\ui-starters-check.mjs                      # all four starter cards and their chips
+.venv\Scripts\python.exe eval\gate.py --current eval\runs\2026-11-20-step9-retry-guard --baseline eval\runs\2026-11-20-step9-retry-guard --start eval\runs\2026-11-19-step8-full
 ```
 
-The gate exits 0 when no rule breaks; see `RUNNING.md` §3c for the rules and `EVAL.md`
-for the thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-40 min).
+The two browser checks need the server running (§1) and a page the corpus can answer; they
+drive the installed Chrome, install nothing, and touch nothing outside 127.0.0.1. The gate
+exits 0 when no rule breaks; see `RUNNING.md` §3c for the rules and `EVAL.md` for the
+thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-40 min).
 
 ---
 

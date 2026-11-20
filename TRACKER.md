@@ -176,7 +176,8 @@ git tag                                           # what you have attested
 .venv\Scripts\python.exe -m ingest.pipeline backup --out backups\2026-11-20
 .venv\Scripts\python.exe ingest\test_pipeline.py   # 12 cases: resume, duplicates, backup
 .venv\Scripts\python.exe generation\test_verify.py # 26 cases: quotes, numbers, refusals
-.venv\Scripts\python.exe retrieval\test_tables.py   # 6 cases: the table pass (off)
+.venv\Scripts\python.exe retrieval\test_tables.py   # 11 cases: both table passes (off)
+node scripts\ui-starters-check.mjs                  # every starter card and citation chip (Chrome)
 .venv\Scripts\python.exe eval\gate.py --current eval\runs\2026-11-19-step8-full `
   --baseline eval\runs\2026-11-18-step6-after-ui --start eval\runs\2026-11-18-step6-after-ui
 .venv\Scripts\python.exe eval\gate.py --milestone --current eval\runs\2026-11-19-step8-full `

@@ -20,8 +20,9 @@
 // carries no per-document line.
 
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { CHROME, connect, dropProfile, freshProfile, sleep, VIEWER_STATE,
+         waitForJson, waitForViewer, clickViewer } from "./ui-cdp.mjs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const SERVER = process.argv[2] || "http://127.0.0.1:8000";
@@ -31,115 +32,8 @@ const QUESTION = process.argv[3] ||
   "Who chaired the annual conservation action plan 2080 workshop?";
 const PORT = 9334;
 const TIMEOUT_MS = Number(process.env.UI_TIMEOUT_MS || 240000);
-const CHROME = process.env.CHROME_PATH ||
-  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const OUT_DIR = resolve("artifacts/step7");
 const OUT = join(OUT_DIR, "ui-browser-check.json");
-
-const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-
-async function waitForJson(url, tries = 100) {
-  for (let i = 0; i < tries; i += 1) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return await response.json();
-    } catch {
-      // Chrome is still starting.
-    }
-    await sleep(150);
-  }
-  throw new Error(`no CDP endpoint at ${url}`);
-}
-
-class Session {
-  constructor(socket) {
-    this.socket = socket;
-    this.nextId = 1;
-    this.pending = new Map();
-    socket.addEventListener("message", (event) => {
-      const message = JSON.parse(event.data);
-      if (message.id && this.pending.has(message.id)) {
-        const { resolve, reject } = this.pending.get(message.id);
-        this.pending.delete(message.id);
-        if (message.error) reject(new Error(JSON.stringify(message.error)));
-        else resolve(message.result);
-      }
-    });
-  }
-
-  send(method, params = {}) {
-    const id = this.nextId;
-    this.nextId += 1;
-    this.socket.send(JSON.stringify({ id, method, params }));
-    return new Promise((resolve, reject) => this.pending.set(id, { resolve, reject }));
-  }
-
-  // A navigation destroys the execution context under an in-flight evaluate (first run
-  // hit this while the app was still loading), so a transient failure is retried.
-  async evaluate(expression, awaitPromise = false, tries = 20) {
-    for (let i = 0; i < tries; i += 1) {
-      try {
-        const result = await this.send("Runtime.evaluate", {
-          expression, returnByValue: true, awaitPromise,
-        });
-        if (result.exceptionDetails) {
-          throw new Error(result.exceptionDetails.exception?.description || "evaluate failed");
-        }
-        return result.result.value;
-      } catch (error) {
-        if (!/Execution context was destroyed|Cannot find context/i.test(error.message)) throw error;
-        await sleep(250);
-      }
-    }
-    throw new Error("the page never kept an execution context");
-  }
-}
-
-function connect(url) {
-  const socket = new WebSocket(url);
-  return new Promise((resolve, reject) => {
-    socket.addEventListener("open", () => resolve(new Session(socket)));
-    socket.addEventListener("error", reject);
-  });
-}
-
-/* The citation viewer: click the last answer's first chip, wait for pdf.js to paint the
-   cited page with the quote highlighted, check that another page carries no highlight and
-   that going back restores it, then close with Escape. */
-const VIEWER_STATE = `(() => {
-  const root = document.querySelector(".cite-viewer");
-  if (!root || root.hidden) return null;
-  const canvas = root.querySelector(".cite-viewer__canvas");
-  const hits = [...root.querySelectorAll(".cite-viewer__hit")];
-  return {
-    title: (root.querySelector(".cite-viewer__title") || {}).textContent || "",
-    meta: (root.querySelector(".cite-viewer__meta") || {}).textContent || "",
-    page: (root.querySelector(".cite-viewer__page") || {}).value || "",
-    canvas: canvas ? { w: canvas.width, h: canvas.height } : null,
-    hits: hits.length,
-    hitText: ((root.querySelector(".cite-viewer__marks") || {}).dataset || {}).quote || "",
-    hitBox: hits.length
-      ? { w: Math.round(hits[0].getBoundingClientRect().width),
-          h: Math.round(hits[0].getBoundingClientRect().height) }
-      : null,
-    note: ((root.querySelector(".cite-viewer__note") || {}).textContent || "").slice(0, 120),
-  };
-})()`;
-
-async function waitForViewer(session, test, tries = 80) {
-  for (let i = 0; i < tries; i += 1) {
-    await sleep(250);
-    const seen = await session.evaluate(VIEWER_STATE);
-    if (seen && test(seen)) return seen;
-  }
-  return null;
-}
-
-const clickViewer = (session, action) => session.evaluate(
-  `(() => { const b = document.querySelector('.cite-viewer [data-action="${action}"]');
-            if (!b || b.disabled) return false;
-            b.click();
-            return true; })()`);
 
 async function checkViewer(session) {
   const clicked = await session.evaluate(`(() => {
@@ -215,16 +109,10 @@ const state = {
   ok: false,
 };
 
-const profile = mkdtempSync(join(tmpdir(), "step7-chrome-"));
+const profile = freshProfile("step7-chrome-");
 const chrome = spawn(CHROME, [
-  "--headless=new",
-  "--disable-gpu",
-  "--disable-background-timer-throttling",
-  "--disable-renderer-backgrounding",
-  "--no-first-run",
-  "--no-default-browser-check",
+  ...profile.args,
   `--remote-debugging-port=${PORT}`,
-  `--user-data-dir=${profile}`,
   SERVER + "/",
 ], { stdio: "ignore" });
 
@@ -403,7 +291,7 @@ try {
 
   chrome.kill();
   await sleep(300);
-  try { rmSync(profile, { recursive: true, force: true }); } catch { /* Windows lock */ }
+  dropProfile(profile.dir);
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
