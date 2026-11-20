@@ -35,10 +35,12 @@ def other_page(path: str, page: int) -> int:
 
 
 def perfect_row(q: dict) -> dict:
-    src = q["gold_sources"][0]
-    if not q["answerable"]:
+    # The answerable check comes first: an unanswerable question has no gold source in
+    # the grown set, and reading [0] before this check is what broke the rebuild.
+    if not q["answerable"] or not q["gold_sources"]:
         return {"id": q["id"], "retrieved": [], "answer": "", "citations": [],
                 "said_not_found": True, "timings": {"retrieve_s": 0.1}}
+    src = q["gold_sources"][0]
     return {
         "id": q["id"],
         "retrieved": [{"file": src["file"], "page": src["page"], "score": 0.95},
@@ -56,7 +58,14 @@ def empty_row(q: dict) -> dict:
 
 
 def broken_row(q: dict) -> dict:
-    """Wrong page, wrong quote, wrong answer, but still an answer."""
+    """Wrong page, wrong quote, wrong answer, but still an answer.
+
+    An unanswerable question has no gold source to get wrong, so it stays a refusal: the
+    fixture's point is the *second half of the set* failing, not a crash on a row with no
+    gold page to mangle.
+    """
+    if not q["answerable"] or not q["gold_sources"]:
+        return empty_row(q)
     src = q["gold_sources"][0]
     wrong = other_page(src["file"], src["page"])
     return {
@@ -70,6 +79,8 @@ def broken_row(q: dict) -> dict:
 
 
 def outside_row(q: dict) -> dict:
+    if not q["answerable"] or not q["gold_sources"]:
+        return empty_row(q)
     src = q["gold_sources"][0]
     outside = src["file"].replace("data/corpus/", "data/raw/")
     return {

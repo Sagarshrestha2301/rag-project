@@ -1,11 +1,25 @@
-"""Prove the scorer against fixture runs whose scores are known in advance.
+"""Prove the scorer against fixture runs whose scores follow from the gold data itself.
 
 Five cases (Step 1 task 7):
-    perfect      all 30 pass
-    empty        only the 4 not-found questions pass
-    partial      15 pass, and the diff names exactly the 15 that regressed
+    perfect      every question answered from its gold page with its gold quote
+    empty        nothing retrieved, "not found" everywhere
+    partial      perfect for the first half of the set, broken for the second
     outside      citing data/raw/ is rejected, no scores written
     bad_hash     a gold hash that does not match the file is rejected
+
+Nothing here is frozen to a question count. The earlier version hardcoded the 30-question
+set (30 passed, 20 dev, 26 answerable, 5 dev points, q016-q030 regressing), so it reported
+10 failures the day the set grew to 55 even though the scorer was right.
+
+What the test asserts now is **per-question agreement between the scorer and the gold
+data**, computed independently of `eval/score.py`: a `perfect` row can only pass if its
+`gold_quote` really is on the gold page and every `gold_numbers` value really appears in
+`gold_answer`. Three questions in the current set cannot be perfect for that reason (q042
+and q050 spell their number as a word, q044's gold quote lost a hyphen), and the test
+names them and their reason instead of pretending otherwise. If the gold data is repaired,
+the expectation moves with it; if the scorer drifts, the disagreement is the failure.
+
+Fixtures are rebuilt whenever their row count no longer matches the question set.
 
 Usage:
     .venv\\Scripts\\python.exe eval\\test_scorer.py
@@ -15,17 +29,121 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 
-ROOT = pathlib.Path(".").resolve()
+import pymupdf
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
 FIXTURES = ROOT / "eval" / "fixtures"
 QUESTIONS = ROOT / "eval" / "questions.jsonl"
 
 failures: list[str] = []
+
+
+def load_questions() -> list[dict]:
+    return [json.loads(line) for line in QUESTIONS.read_text(encoding="utf-8").splitlines()
+            if line.strip()]
+
+
+def norm(text: str) -> str:
+    """Whitespace-collapsed text, the comparison the scorer's quote rule uses."""
+    return re.sub(r"\s+", " ", text or "").strip()
+
+
+_PAGES: dict[tuple[str, int], str] = {}
+
+
+def page_text(file: str, page: int) -> str:
+    key = (file, page)
+    if key not in _PAGES:
+        path = ROOT / file
+        try:
+            with pymupdf.open(path) as doc:
+                _PAGES[key] = (norm(doc[page - 1].get_text())
+                               if 1 <= page <= doc.page_count else "")
+        except Exception:                     # a missing file is "not on the page"
+            _PAGES[key] = ""
+    return _PAGES[key]
+
+
+def gold_limits(questions: list[dict]) -> dict[str, list[str]]:
+    """The questions a `perfect` fixture cannot pass, with the gold-data reason why.
+
+    Read from the PDFs and the gold fields, not from `eval/score.py`: this is the
+    independent expectation the scorer is checked against.
+    """
+    limits: dict[str, list[str]] = {}
+    for question in questions:
+        if not question["answerable"]:
+            continue
+        reasons: list[str] = []
+        source = question["gold_sources"][0]
+        if norm(question["gold_quote"]) not in page_text(source["file"], source["page"]):
+            reasons.append("gold_quote is not on the gold page")
+        answer = question["gold_answer"]
+        for number in question.get("gold_numbers") or []:
+            value = str(number.get("value"))
+            if value not in answer and value.replace(".", "") not in answer.replace(",", ""):
+                reasons.append(f"gold number {value} is not written in gold_answer")
+                break
+        if reasons:
+            limits[question["id"]] = reasons
+    return limits
+
+
+def facts(questions: list[dict]) -> dict:
+    """What the fixtures imply, read off the question set they were built from."""
+    dev = [q for q in questions if q["split"] == "dev"]
+    held = [q for q in questions if q["split"] == "heldout"]
+    answerable = [q for q in questions if q["answerable"]]
+    notfound = [q for q in questions if not q["answerable"]]
+    nf_dev = [q for q in notfound if q["split"] == "dev"]
+    limits = gold_limits(questions)
+    half = len(questions) // 2
+    first, second = questions[:half], questions[half:]
+    limited = set(limits)
+    return {
+        "n": len(questions),
+        "dev": len(dev),
+        "heldout": len(held),
+        "answerable": len(answerable),
+        "notfound": len(notfound),
+        "notfound_dev": len(nf_dev),
+        "limits": limits,
+        "perfect_passed": len(questions) - len(limits),
+        "citation_failures": [q["id"] for q in answerable
+                              if any("quote" in r for r in limits.get(q["id"], []))],
+        "numeric_failures": [q["id"] for q in answerable
+                             if any("number" in r for r in limits.get(q["id"], []))],
+        # `partial` is perfect for questions[:half] and broken after it.
+        "partial_half": half,
+        "partial_passed": (len([q for q in first if q["id"] not in limited])
+                           + len([q for q in second if not q["answerable"]])),
+        "partial_to_fail": [q["id"] for q in second
+                            if q["answerable"] and q["id"] not in limited],
+        "points": {"dev": round(100 / len(dev), 2) if dev else 0.0,
+                   "heldout": round(100 / len(held), 2) if held else 0.0},
+    }
+
+
+def ensure_fixtures(n: int) -> None:
+    """Rebuild the fixtures when they are missing or were built for another set size."""
+    counts = {}
+    for name in ("perfect.jsonl", "empty.jsonl", "partial.jsonl", "outside.jsonl"):
+        path = FIXTURES / name
+        counts[name] = (len(path.read_text(encoding="utf-8").splitlines())
+                        if path.exists() else -1)
+    if counts and all(count == n for count in counts.values()):
+        return
+    print(f"fixtures do not match the {n}-question set ({counts}); rebuilding")
+    sys.path.insert(0, str(ROOT / "eval"))
+    import make_fixtures
+    make_fixtures.main()
 
 
 def run_score(run: pathlib.Path, out: pathlib.Path, questions: pathlib.Path | None = None,
@@ -50,11 +168,16 @@ def scores_of(out: pathlib.Path) -> dict:
 
 
 def main() -> int:
-    if not FIXTURES.exists():
-        print("fixtures missing, building them with eval/make_fixtures.py")
-        sys.path.insert(0, str(ROOT / "eval"))
-        import make_fixtures
-        make_fixtures.main()
+    questions = load_questions()
+    want = facts(questions)
+    ensure_fixtures(want["n"])
+    print(f"{want['n']} questions: {want['dev']} dev, {want['heldout']} held-out, "
+          f"{want['answerable']} answerable, {want['notfound']} not-found "
+          f"({want['notfound_dev']} of them dev)")
+    if want["limits"]:
+        print("gold data that no perfect fixture can pass:")
+        for qid, reasons in want["limits"].items():
+            print(f"  {qid}: {'; '.join(reasons)}")
 
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="scorer-test-"))
     try:
@@ -62,21 +185,42 @@ def main() -> int:
         print("case 1: perfect run")
         out = tmp / "perfect"
         r = run_score(FIXTURES / "perfect.jsonl", out)
-        check("exit 0", r.returncode == 0, r.stdout.strip().splitlines()[0] if r.stdout else r.stderr[:120])
+        check("exit 0", r.returncode == 0,
+              r.stdout.strip().splitlines()[0] if r.stdout else r.stderr[:120])
         if r.returncode == 0:
-            s = scores_of(out)["summary"]
-            check("passed 30/30", s["passed"]["count"] == 30, f"{s['passed']['count']}/30")
-            check("citation 26/26 (answerable only)", s["citation"]["count"] == 26 and s["citation"]["of"] == 26,
-                  f"{s['citation']['count']}/{s['citation']['of']}")
-            check("numeric all", s["numeric"]["count"] == s["numeric"]["of"], f"{s['numeric']['count']}/{s['numeric']['of']}")
-            check("recall@5 26/26", s["retrieval"]["recall@5"]["pass"]["count"] == 26,
-                  f"{s['retrieval']['recall@5']['pass']['count']}/26")
+            data = scores_of(out)
+            s = data["summary"]
+            check(f"passed {want['perfect_passed']}/{want['n']} (gold data allows no more)",
+                  s["passed"]["count"] == want["perfect_passed"],
+                  f"{s['passed']['count']}/{want['n']}")
+            agree = [row["id"] for row in data["results"]
+                     if row["passed"] != (row["id"] not in want["limits"])]
+            check("every question agrees with the gold-data expectation", not agree,
+                  f"disagree: {agree}" if agree else "all agree")
+            check(f"citation {s['citation']['count']}/{s['citation']['of']}",
+                  s["citation"]["of"] - s["citation"]["count"] == len(want["citation_failures"]),
+                  f"{s['citation']['count']}/{s['citation']['of']}, "
+                  f"gold limits {want['citation_failures']}")
+            check(f"numeric {s['numeric']['count']}/{s['numeric']['of']}",
+                  s["numeric"]["of"] - s["numeric"]["count"] == len(want["numeric_failures"]),
+                  f"{s['numeric']['count']}/{s['numeric']['of']}, "
+                  f"gold limits {want['numeric_failures']}")
+            check(f"recall@5 {want['answerable']}/{want['answerable']}",
+                  s["retrieval"]["recall@5"]["pass"]["count"] == want["answerable"],
+                  f"{s['retrieval']['recall@5']['pass']['count']}/{want['answerable']}")
             check("MRR 1.0", s["mrr"] == 1.0, str(s["mrr"]))
-            check("not-found (a) dev 3/3", s["notfound_a"]["count"] == 3 and s["notfound_a"]["of"] == 3,
-                  f"{s['notfound_a']['count']}/{s['notfound_a']['of']} scope={s['notfound_a_scope']}")
-            check("points: dev 5, held-out 10", s["points_per_question_by_split"] == {"dev": 5.0, "heldout": 10.0},
-                  str(s["points_per_question_by_split"]))
-            check("split blocks 20/10", (s["by_split"]["dev"]["n"], s["by_split"]["heldout"]["n"]) == (20, 10),
+            check(f"not-found (a) dev {want['notfound_dev']}/{want['notfound_dev']}",
+                  s["notfound_a"]["count"] == want["notfound_dev"]
+                  and s["notfound_a"]["of"] == want["notfound_dev"],
+                  f"{s['notfound_a']['count']}/{s['notfound_a']['of']} "
+                  f"scope={s['notfound_a_scope']}")
+            points = {split: round(value, 2)
+                      for split, value in s["points_per_question_by_split"].items()}
+            check("points derive from the split sizes", points == want["points"],
+                  f"{points} expected {want['points']}")
+            check(f"split blocks {want['dev']}/{want['heldout']}",
+                  (s["by_split"]["dev"]["n"], s["by_split"]["heldout"]["n"])
+                  == (want["dev"], want["heldout"]),
                   f"{s['by_split']['dev']['n']} dev / {s['by_split']['heldout']['n']} held-out")
 
         # ---------------------------------------------------------- empty
@@ -86,12 +230,18 @@ def main() -> int:
         check("exit 0", r.returncode == 0, "scored")
         if r.returncode == 0:
             s = scores_of(out)["summary"]
-            check("passed 4/30", s["passed"]["count"] == 4, f"{s['passed']['count']}/30")
-            check("recall@5 0/26", s["retrieval"]["recall@5"]["pass"]["count"] == 0,
-                  f"{s['retrieval']['recall@5']['pass']['count']}/26")
+            check(f"passed {want['notfound']}/{want['n']} (only refusals pass)",
+                  s["passed"]["count"] == want["notfound"],
+                  f"{s['passed']['count']}/{want['n']}")
+            check(f"recall@5 0/{want['answerable']}",
+                  s["retrieval"]["recall@5"]["pass"]["count"] == 0,
+                  f"{s['retrieval']['recall@5']['pass']['count']}/{want['answerable']}")
             check("MRR 0.0", s["mrr"] == 0.0, str(s["mrr"]))
-            check("not-found (a) dev 3/3", s["notfound_a"]["count"] == 3, f"{s['notfound_a']['count']}/3")
-            check("not-found (b) 0/26", s["notfound_b"]["count"] == 0, f"{s['notfound_b']['count']}/26")
+            check(f"not-found (a) dev {want['notfound_dev']}/{want['notfound_dev']}",
+                  s["notfound_a"]["count"] == want["notfound_dev"],
+                  f"{s['notfound_a']['count']}/{want['notfound_dev']}")
+            check(f"not-found (b) 0/{want['answerable']}",
+                  s["notfound_b"]["count"] == 0, f"{s['notfound_b']['count']}/{want['answerable']}")
 
         # ---------------------------------------------------------- partial
         print("case 3: partial run, with diff against perfect")
@@ -101,14 +251,15 @@ def main() -> int:
         if r.returncode == 0:
             data = scores_of(out)
             s, d = data["summary"], data["diff"]
-            check("passed 15/30", s["passed"]["count"] == 15, f"{s['passed']['count']}/30")
-            check("15 pass -> fail", len(d["pass_to_fail"]) == 15, f"{len(d['pass_to_fail'])} regressions")
+            check(f"passed {want['partial_passed']}/{want['n']}",
+                  s["passed"]["count"] == want["partial_passed"],
+                  f"{s['passed']['count']}/{want['n']}")
+            check(f"{len(want['partial_to_fail'])} pass -> fail",
+                  d["pass_to_fail"] == want["partial_to_fail"],
+                  f"{len(d['pass_to_fail'])} regressions: {d['pass_to_fail'][:3]}...")
             check("0 fail -> pass", len(d["fail_to_pass"]) == 0, str(d["fail_to_pass"]))
             check("no phantom ids", not d["only_in_current"] and not d["only_in_baseline"],
                   "ids match")
-            expected = [f"q{i:03d}" for i in range(16, 31)]
-            check("regressions are q016-q030", d["pass_to_fail"] == expected,
-                  d["pass_to_fail"][:3] + ["..."] if d["pass_to_fail"] else "empty")
 
         # ---------------------------------------------------------- outside
         print("case 4: run citing outside the corpus")
@@ -124,12 +275,8 @@ def main() -> int:
         # than the conflicting-hashes path (many questions share a document)
         bad_questions = tmp / "questions_badhash.jsonl"
         lines = []
-        first = json.loads(QUESTIONS.read_text(encoding="utf-8").splitlines()[0])
-        target = first["gold_sources"][0]["file"]
-        for line in QUESTIONS.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            q = json.loads(line)
+        target = questions[0]["gold_sources"][0]["file"]
+        for q in questions:
             for src in q["gold_sources"]:
                 if src["file"] == target:
                     src["sha256"] = "0" * 64
