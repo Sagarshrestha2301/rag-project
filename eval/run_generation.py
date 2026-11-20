@@ -112,6 +112,8 @@ def write_meta(out: pathlib.Path, args, questions: list[dict], index: dict,
         "seed": generator.SEED,
         "think": generator.THINK,
         "cache": "off",
+        # A retrieval change behind a flag must be visible in the run it produced.
+        "table_retrieval": generator.table_retrieval.enabled(),
         "questions": len(questions),
         "questions_sha256": questions_sha,
         "corpus": {"documents": len(index["docs"]), "pages": len(index["pages"]),

@@ -255,21 +255,21 @@ for the thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-
 
 ## 10. Results, as of 2026-11-20
 
-The number to quote is the **last accepted answer run**, 2026-11-19:
+The number to quote is the **last accepted answer run**, 2026-11-20 (prompt `s6-3`):
 
 | Metric | Value |
 |---|---|
-| Passed | **33/55** (dev 28/45, held-out 5/10) |
+| Passed | **36/55** (dev 29/45, held-out 7/10) |
 | Retrieval | recall@5 **45/48**, recall@10 46/48, MRR **0.826** |
-| Citation / numeric | 31/48 / 34/43 |
-| Not-found (a) / (b) | 3/6 / 45/48 |
-| Latency | p50 **16.5 s**, p95 **46.4 s** |
+| Citation / numeric | 35/48 / 36/43 |
+| Not-found (a) / (b) | 3/6 / 46/48 |
+| Latency | p50 **13.4 s**, p95 **27.7 s** |
 | Corpus and index | 97 documents, 851 pages, 3,226 chunks, 40 MB index, 67 MiB peak RSS |
 | Offline proof | Step 6 **PASS** 2026-11-17; Steps 7 and 8 **not run** (an elevated prompt is needed) |
 
-One experiment has been measured since then and **rejected** (D-068): accepting a refusal
-written in the model's own words scored 36/55 with not-found (a) 6/6, but turned two
-answerable questions into a false "not found", so not-found (b) fell 37/39 to 35/39 and
-the regression gate refused it. The shipped pipeline is unchanged, so the table above still
-describes it. The full row-by-row history is `EVAL.md`; the run is
-`eval/runs/2026-11-20-step9-d060/`.
+Two experiments measured on 2026-11-20 were **rejected**: accepting a refusal in the
+model's own words (it turned two answerable questions into a false "not found", D-068), and
+the optional table pass (it gained no gold page and regressed one question, D-070 — it is
+still in the code, off, behind `CHAT_TABLE_RETRIEVAL`). The change that **is** in the table
+above is the per-sentence quotation rule in prompt `s6-3` (D-071). The full row-by-row
+history is `EVAL.md`; the current run is `eval/runs/2026-11-20-step9-cite-evidence/`.

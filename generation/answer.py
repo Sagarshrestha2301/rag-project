@@ -35,6 +35,7 @@ import httpx
 
 from corpus import build as build_pages, search as search_pages
 from generation import cache, condense, gate, prompt, router, think, verify
+from retrieval import tables as table_retrieval
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 MODEL = os.environ.get("CHAT_MODEL", "qwen3.5:4b")
@@ -253,7 +254,12 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
                          "seconds": round(time.perf_counter() - started, 2)})
 
     mark = time.perf_counter()
-    passages = search_pages(source, search_question, k=k or routed["k"])
+    wanted = k or routed["k"]
+    passages = search_pages(source, search_question, k=wanted)
+    # Step 9 / D-069, behind `CHAT_TABLE_RETRIEVAL`: a table question also reads the pages
+    # whose cleaned table rows match, without growing the passage list the route chose.
+    if routed["route"] == "table" and table_retrieval.enabled():
+        passages = table_retrieval.merge(source, search_question, passages, k=wanted)
     marks["retrieval"] = stage(mark)
 
     # Task 3's floor: a question nothing scores against is refused without spending a

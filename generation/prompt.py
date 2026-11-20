@@ -29,7 +29,7 @@ import pathlib
 
 # Bumped whenever SYSTEM_RULES or build_system changes, because the answer cache is
 # keyed on it (D-017): a prompt edit must never serve yesterday's answers.
-PROMPT_VERSION = "s6-2"
+PROMPT_VERSION = "s6-3"
 
 # Written out here, quoted by the prompt, and compared against in answer.py, so the
 # refusal the model is told to produce is exactly the one the code looks for.
@@ -55,6 +55,11 @@ The quotation must be copied character for character from that page, 8 to 25 wor
 with the original capitalisation and punctuation. Do not paraphrase, do not join two \
 sentences with "...", and do not correct a typo in the original. It is checked against \
 the page text in code and a quotation that is not found there is rejected.
+
+A quotation supports the sentence that carries its number, and only that sentence. When \
+two sentences state different facts or figures from the same page, give each its own \
+number and its own quotation of the words that carry that fact; never reuse one quotation \
+for both. If a sentence states a figure, its quotation must contain that figure as printed.
 
 Rules:
 - Use only the passages above. Never use outside knowledge, never estimate, never \

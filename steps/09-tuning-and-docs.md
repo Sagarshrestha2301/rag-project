@@ -10,7 +10,7 @@
 4. Final docs: runbook (start, stop, add documents, rebuild, backup, restore), troubleshooting, known limits, final results table. The "add documents" section must include re-checking the not-found questions (D-027), storing converted PDFs in `data/corpus/` with the pinned converter (D-023), and the offline check.
 
 ## Definition of done
-- [ ] Every kept change has a before/after eval row in `EVAL.md`
+- [x] Every kept change has a before/after eval row in `EVAL.md`
 - [x] Rejected experiments recorded in `DECISIONS.md` with results
 - [x] Runbook tested by following it from scratch
 - [x] `STATUS.md`, `ARCHITECTURE.md`, `README.md` match the real system

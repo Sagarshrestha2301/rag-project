@@ -172,3 +172,22 @@ Tests: `ingest/test_bibliography.py` 7/7, `ingest/test_pipeline.py` 12/12,
 - Step 9 stands at **3 of 5 DoD boxes**: the rejected experiment is recorded with results,
   the runbook is tested, and the docs match the system. Open: a kept change to give a
   before/after row (nothing was kept), and the owner's sign-off.
+
+## Update 2026-11-20, later (Step 9 experiments)
+
+- **Kept: prompt `s6-3` makes each sentence quote its own evidence** (D-071). 55-question
+  run: **36/55 passed**, citation **31/48 → 35/48**, numeric **34/43 → 36/43**, held-out
+  **5/10 → 7/10**, recall@5 45/48 and MRR 0.826 unchanged, p50 **13.4 s** / p95 **27.7 s**.
+  Dev gate passes with three written explanations (q017/q051 cite a real extra page that
+  D-041 counts as a miss; q047's retry ran out of context) and the held-out milestone gate
+  passes. This run is the new baseline. `eval/runs/2026-11-20-step9-cite-evidence/`.
+- **Rejected: the table pass** (D-070). It was built behind `CHAT_TABLE_RETRIEVAL` and does
+  nothing: the gold page is already rank 1 for q026-q028/q042, it gains no gold page on any
+  of the 13 table questions, drops q046's, and regressed q047 under the gate. The flag is
+  off, so shipped retrieval is unchanged. The real gap is table *content* in a passage,
+  which is a change to what a quotable passage is — needs its own approval.
+- **Fixed: `eval/test_scorer.py`.** It no longer hardcodes 30-question counts; fixtures
+  rebuild when the set size changes, and expectations are derived per question from the gold
+  data. All checks pass. The three gold-data limits are named (q042/q050 write their number
+  as a word, q044's gold quote lost a hyphen).
+- Step 9 stands at **4 of 5 DoD boxes**; only the owner's sign-off is open.

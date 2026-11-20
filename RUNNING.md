@@ -306,6 +306,12 @@ What happens, in order:
 | 8 | `generation/verify.py` | every `[n]` must be a passage that was shown; every quotation must exist, character for character, on the page it cites; every number a sentence states must be on a page that same sentence cites; one retry, then `unverified` |
 | 9 | `generation/gate.py` | `resolve`: `verified`, `not_found` or `unverified` |
 
+One optional pass exists but is **off**: `retrieval/tables.py` can replace up to two of a
+`table`-route question's six passages with pages whose cleaned table chunks match it
+(`CHAT_TABLE_RETRIEVAL=1`). It was measured on 2026-11-20 and rejected — the gold page was
+already rank 1, and one dev question regressed (D-070). With the variable unset `merge()`
+is never called, so the pipeline below is the measured one.
+
 Answers use **`[1]…[n]` passage numbers** and end with one citation line per number, which
 is what makes them checkable:
 

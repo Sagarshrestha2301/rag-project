@@ -25,10 +25,10 @@ step 07  web UI           BUILT     7/8  boxes - only the Wi-Fi-off session left
                                     needs an elevated prompt
 step 08  full ingestion   BUILT     9/10 boxes - the offline proof (elevated) and the
                                     100k-page scope (D-063) are the two open items
-step 09  tuning + docs    DOCS DONE 3/5  boxes - RUNBOOK.md written and followed; the one
-                                    approved experiment (D-060) was measured and rejected
-                                    by the gate (D-068); the four backlog experiments wait
-                                    on your approval (D-069)
+step 09  tuning + docs    BUILT     4/5  boxes - RUNBOOK.md written and followed; three
+                                    experiments measured: prose refusals and the table pass
+                                    rejected (D-068, D-070), the per-sentence citation
+                                    prompt kept (D-071) and now the baseline
 ```
 
 `git tag` lists **step-00-approved … step-05-approved**. Steps 06-09 have start approvals
@@ -79,9 +79,9 @@ Measured, not claimed (2026-11-19 unless a row says otherwise):
 | Index | **40 MB** (41,969,013 bytes incl. LanceDB); load 0.04 s; BM25 top-5 2–140 ms; **67 MiB** peak RSS for a process that loads and searches |
 | Rebuild | `pages.json` `395c5a2b…`, `parsed/pages.jsonl` `f7e82daf…`, `chunks.jsonl` `1208cb59…` — identical before and after the Step 8 pipeline; a build with nothing changed **6.9 s** (measured 2026-11-20) |
 | Retrieval (55 questions) | recall@5 **45/48**, recall@10 46/48, MRR **0.826** (dev 37/39, held-out 8/9) |
-| **Last accepted answer run** | **33/55 passed**; citation 31/48, numeric 34/43, not-found (a) 3/6, (b) 45/48; p50 **16.5 s**, p95 **46.4 s** |
+| **Last accepted answer run** (2026-11-20, prompt `s6-3`) | **36/55 passed**; citation 35/48, numeric 36/43, not-found (a) 3/6, (b) 46/48; p50 **13.4 s**, p95 **27.7 s** |
 | Held-out milestone | **5/10 passed**, recall@5 8/9, MRR 0.806 — both gates pass |
-| Experiment tried 2026-11-20 | D-060 prose refusals: **36/55**, nf(a) **6/6**, nf(b) **35/39** on dev — **rejected by the gate, removed** |
+| Experiments tried 2026-11-20 | prose refusals **rejected** (nf(b) 35/39, D-068); table pass **rejected** (no gold page gained, q047 regressed, D-070); per-sentence citation prompt **kept** (36/55, citation 35/48, held-out 7/10, D-071) |
 | Backup / restore | 40 MB snapshot restores byte-identically, 3,226 dense rows, same top BM25 page (re-run 2026-11-20) |
 | Offline proof | step 06 **PASS** 2026-11-17 (6 firewall rules + refused probes, run identical to online); steps 07 and 08 **not run** — they need an elevated prompt |
 | Unit suites | 26 verifier, 21 cache, 11 condense, 9 gate, 7 prompt, 16 router, 10 think, 12 ingest pipeline, 8 UI server, 7 UI pipeline, 7 corpus, 6 chunk suites pass; `eval/test_scorer.py` is stale (its fixtures still assume 30 questions) |
@@ -94,7 +94,9 @@ Measured, not claimed (2026-11-19 unless a row says otherwise):
 | **D-064** | Parsed output is per-document shards keyed by SHA-256, assembled in corpus order | Approve — already built, and the rebuild is byte-identical | nothing |
 | **D-065** | Duplicates are flagged (exact SHA-256 or ≥80% shared pages) and never deleted or indexed | Approve — already built and tested | nothing |
 | **D-068** | D-060 (prose refusals) is measured and **not kept**: +3 passed and nf(a) 6/6, but nf(b) 37/39 → 35/39 and two answerable questions lost | Approve the rejection; re-propose it after table retrieval, when it costs nothing | closing D-060 |
-| **D-069** | The next experiment is **table retrieval** (q026-q028, q042), not HyDE / multi-query / RAPTOR / fine-tuning | Approve table retrieval — it also unblocks D-060 | Step 09 accuracy work |
+| **D-069** | Table retrieval was the recommended next experiment | **Answered by measurement**: rejected, see D-070 | nothing |
+| **D-070** | The table pass adds no gold page on this set and costs one dev question | Approve the rejection — the real gap is table *content* in a passage, which changes what a quotable passage is | nothing |
+| **D-071** | The prompt now makes each sentence quote its own evidence (`s6-3`) and it is **kept** | Approve — citation 31/48 → 35/48, numeric 34/43 → 36/43, held-out 5/10 → 7/10, no metric down | the new baseline |
 | **D-066** | Per-document reference extracted from the header pages (built, 78 of 96 documents name the work) | Approve — measured, and the rail no longer shows a storing key | nothing |
 | **D-067** | Sentence-level entailment check (measure only; 34 UNSUPPORTED / 3 PARTIAL of 92 sentences) | Pick one: wire it in as a warning, keep it as a periodic report, or drop it | nothing |
 | — | `EVAL.md`'s one-question table still says dev is 20 questions at 5 points (it is 45, so 2.2) | your edit — protected file | nothing |
@@ -132,16 +134,17 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
    best pages and the pages containing every term, and leaves the verdict to you (D-027).
 5. **D-068:** accept that D-060 is rejected, or tell me to take the not-found (b) drop for
    the (a) 6/6 gain. The numbers are in `DECISIONS.md` and the 2026-11-20 row of `EVAL.md`.
-6. **D-069:** approve one experiment. Table retrieval is the one with evidence behind it;
-   the alternative is to stop at the docs and close Step 09 as it stands.
+6. **D-070 / D-071:** accept the two experiment outcomes (table pass rejected, citation
+   prompt kept) and sign off Step 09. The next measured change I would propose is the
+   context overflow q047 exposed: a retry can run out of the 4,096-token context now that
+   answers carry more quotations.
 7. **Step 3:** tick or reword the two review boxes (only you may edit step text).
 
 ## 6. Honest risks, in the order they will bite
 
-1. **Latency is 16.5 s median, 46.4 s at p95** on the accepted run — inside N2's 20 s
-   typical target at the median, over it at p95 (the table route with one retry). The 4B
-   model is what keeps it that low; a larger one would spill to RAM on this card. The
-   2026-11-20 experiment run measured p50 16.4 s / p95 50.8 s with one 133.8 s stall.
+1. **Latency is 13.4 s median, 27.7 s at p95** on the current accepted run (`s6-3`) —
+   inside N2's 20 s typical target at both, and faster than the 16.5 / 46.4 of the run it
+   replaced. The 4B model is what keeps it that low; a larger one would spill to RAM.
 2. **Twelve of the 22 failures are citations**, not retrieval: the answer quotes a page it
    does not cite, or paraphrases past the verifier. That is where the remaining accuracy is.
 3. **Not-found accuracy is a trade, measured, not a free win.** Accepting prose refusals
@@ -155,6 +158,11 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
    found" with a warning — by design, not by accident.
 7. **100k pages is not proven.** The manifest and per-document resume are built for it; the
    acquisition, the ~32 h run and the disk budget are not.
+8. **A retry can now run out of context.** q047 measured it on 2026-11-20: the retry prompt
+   reached 4,063 of 4,096 tokens because `s6-3` answers carry more quotations, so the second
+   answer was cut at 33 tokens. A shorter retry message or 5 table passages is the next
+   small measured change; until then, a table question that fails verification can return a
+   truncated answer.
 
 ---
 
@@ -167,6 +175,7 @@ git tag                                           # what you have attested
 .venv\Scripts\python.exe -m ingest.pipeline backup --out backups\2026-11-20
 .venv\Scripts\python.exe ingest\test_pipeline.py   # 12 cases: resume, duplicates, backup
 .venv\Scripts\python.exe generation\test_verify.py # 26 cases: quotes, numbers, refusals
+.venv\Scripts\python.exe retrieval\test_tables.py   # 6 cases: the table pass (off)
 .venv\Scripts\python.exe eval\gate.py --current eval\runs\2026-11-19-step8-full `
   --baseline eval\runs\2026-11-18-step6-after-ui --start eval\runs\2026-11-18-step6-after-ui
 .venv\Scripts\python.exe eval\gate.py --milestone --current eval\runs\2026-11-19-step8-full `
