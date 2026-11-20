@@ -44,6 +44,10 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-20 | approval | D-068, D-070, D-071, D-072, D-073 (five Step 9 experiment outcomes) | owner
+2026-11-20 | completion | step 07 | owner
+2026-11-20 | completion | step 09 | owner
+
 2026-11-17 | completion | step 06 | owner
 2026-11-16 | start | step 05 | owner
 2026-11-16 | start | step 04 | owner
@@ -72,3 +76,10 @@ omitted so the log matches what happened; see "Proposals for owner" in `STATUS.m
 explicit instruction in chat - "approve all the remaining" - and committed in an `OWNER:`
 commit, the same way the 2026-11-13 lines were. The owner has not yet created the
 `step-06-approved` tag; rule 12 leaves that to the owner.)
+
+(2026-11-20: the three newest lines were typed by the coding agent on the owner's explicit
+instruction in chat - "approve all the remaining and open all the remaining steps or task" -
+and committed in an `OWNER:` commit, as on 2026-11-13 and 2026-11-17. Step 07's network-off
+box was ticked on the owner's report that they ran it with Wi-Fi off; step 08's offline box
+is still open because it asks for the run's output to be recorded and no output was supplied.
+The tags `step-06-approved` ... `step-09-approved` remain for the owner to create.)
