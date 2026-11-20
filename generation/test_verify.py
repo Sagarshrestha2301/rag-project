@@ -151,6 +151,31 @@ def refusal_with_extra_text_fails() -> None:
     assert not result["ok"] and result["said_not_found"], result
 
 
+def prose_refusal_is_not_a_refusal() -> None:
+    """q020's shape. Measured 2026-11-20: accepting it fixed 3 and lost 2 (D-060)."""
+    answer = ("The provided passages do not state the total population living in the "
+              "Bagmati catchment. They mention that data collection started in the "
+              'sixties [1].\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: "Hydrological data"')
+    result = run(answer)
+    assert not result["said_not_found"], result
+
+
+def refusal_on_the_second_line_is_not_a_refusal() -> None:
+    """q021's shape: only the first non-empty line is the contract."""
+    answer = ("The provided passages do not state the total economic loss caused by the "
+              "July 1993 floods.\n" + prompt.NOT_FOUND_TEXT)
+    result = run(answer)
+    assert not result["said_not_found"], result
+
+
+def an_answer_then_the_exact_line_is_not_a_refusal() -> None:
+    """q028's shape: the first sentence asserts a fact, so the trailing line proves nothing."""
+    answer = ("The provided text states that there were no households in the Terai [1].\n"
+              + prompt.NOT_FOUND_TEXT)
+    result = run(answer)
+    assert not result["said_not_found"], result
+
+
 def number_not_on_cited_page_fails() -> None:
     """A genuine quotation does not excuse a number the page never states."""
     expect_fail("bad", 'The depth is 54 mm [1].\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: "' + QUOTE + '"',
@@ -245,6 +270,12 @@ def main() -> int:
         ("the refusal is its own case", [
             ("exact refusal is accepted", refusal_passes),
             ("refusal followed by extra text is refused", refusal_with_extra_text_fails),
+            ("a prose disclaimer is not a refusal (measured, D-060)",
+             prose_refusal_is_not_a_refusal),
+            ("a refusal on the second line is not a refusal",
+             refusal_on_the_second_line_is_not_a_refusal),
+            ("an answer then the exact line is not a refusal",
+             an_answer_then_the_exact_line_is_not_a_refusal),
         ]),
         ("real corpus page", [
             ("a quotation copied from a real PDF verifies", real_quote_verifies),

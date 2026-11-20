@@ -1,6 +1,6 @@
 # Tracker — where this project stands and what is yours to decide
 
-One page, checked against the repository on **2026-11-19**: `git log`, `git tag`,
+One page, checked against the repository on **2026-11-20**: `git log`, `git tag`,
 `APPROVALS.md`, `STATUS.md`, `DECISIONS.md`, `EVAL.md` and the DoD boxes in `steps/`. If
 this page and those files disagree, the files win — this is a summary.
 
@@ -23,11 +23,12 @@ step 05  hybrid retrieval DONE      7/7  boxes, tagged (hybrid rejected on measu
 step 06  generation       DONE      7/7  boxes - completion line recorded, tag still yours
 step 07  web UI           BUILT     7/8  boxes - only the Wi-Fi-off session left, and it
                                     needs an elevated prompt
-step 08  full ingestion   BUILT     9/10 boxes - the full ingest is measured; only the
-                                    offline proof is left (elevated) and the 100k-page
-                                    item is D-063
-step 09  tuning + docs    RUNNING   1/5  boxes - failure list and runbook done; every
-                                    experiment needs its own approval before it can start
+step 08  full ingestion   BUILT     9/10 boxes - the offline proof (elevated) and the
+                                    100k-page scope (D-063) are the two open items
+step 09  tuning + docs    DOCS DONE 3/5  boxes - RUNBOOK.md written and followed; the one
+                                    approved experiment (D-060) was measured and rejected
+                                    by the gate (D-068); the four backlog experiments wait
+                                    on your approval (D-069)
 ```
 
 `git tag` lists **step-00-approved … step-05-approved**. Steps 06-09 have start approvals
@@ -38,6 +39,9 @@ in `APPROVALS.md`; step 06 also has its completion line. Only you create tags.
 One answer path, and it is the one the eval measures:
 
 ```powershell
+# the procedure to operate it, start to restore: RUNBOOK.md (followed step by step 2026-11-20)
+# the reference with the detail: RUNNING.md
+
 # the shipped UI: streams generation.answer (router, condense, gate, verifier, cache)
 .\scripts\open-chat.ps1 -Start                    # then http://127.0.0.1:8000
 
@@ -50,20 +54,19 @@ One answer path, and it is the one the eval measures:
 ```
 
 - **The UI keeps no prompt of its own.** `ui/pipeline.py` calls `generation.answer`, so the
-  five answer states (`streaming`, `verified`, `not_found`, `unverified`, `error`), the
-  numeric citation chips and the unreadable-page warning show the measured pipeline's
-  output (D-061). Verified 2026-11-19: **13 citation links across 10 answers** open the cited
-  page and carry the quoted sentence, and a real headless Chrome shows the not-found warning
-  with per-document counts matching `index/pages.json`.
-- **`ingest/pipeline.py`** runs scan → parse → assemble → chunk → embed from one manifest
-  (`index/manifest.sqlite`), resumes per document after a kill, flags exact and 80%-shared
-  duplicates instead of indexing them twice, keeps `backup`/`restore`, and rebuilds
-  `index/pages.json` and `index/chunks.jsonl` **byte for byte**.
+  five answer states, the numeric citation chips and the unreadable-page warning show the
+  measured pipeline's output (D-061). Verified 2026-11-19: **13 citation links across 10
+  answers** open the cited page and carry the quoted sentence, and a real headless Chrome
+  shows the not-found warning with counts matching `index/pages.json`.
+- **`ingest/pipeline.py`** runs scan → parse → assemble → bibliography → chunk → embed from
+  one manifest (`index/manifest.sqlite`), resumes per document after a kill, flags exact and
+  80%-shared duplicates instead of indexing them twice, keeps `backup`/`restore`, and
+  rebuilds `index/pages.json` and `index/chunks.jsonl` **byte for byte**.
 - **`scripts/add-document.ps1 -Path <pdf>`** adds a document in one command and ingests only
   that document; `scripts/recheck-not-found.py` re-checks every unanswerable question after a
-  corpus change.
+  corpus change. Both are refusals-tested and in `RUNBOOK.md` §3.
 - **`eval/gate.py`** enforces `EVAL.md`'s regression gate (two baselines, per-question diff,
-  non-zero exit when a rule breaks — `RUNNING.md` §3c).
+  non-zero exit when a rule breaks — `RUNNING.md` §3c). It is what rejected D-060.
 - **`scripts/offline-generation-proof.ps1`** proves the pipeline runs with the network
   blocked and refuses to run the eval until `scripts/offline-check.py` proves the block.
 
@@ -74,14 +77,14 @@ Measured, not claimed (2026-11-19 unless a row says otherwise):
 | Corpus | **97 PDFs, 851 pages**, 8 documents with unreadable pages (19 pages), 86 pages OCR'd |
 | Chunks | **3,226** (2,958 text + 268 table) from 95 documents, every chunk carrying a document context |
 | Index | **40 MB** (41,969,013 bytes incl. LanceDB); load 0.04 s; BM25 top-5 2–140 ms; **67 MiB** peak RSS for a process that loads and searches |
-| Rebuild | `pages.json` `395c5a2b…`, `parsed/pages.jsonl` `f7e82daf…`, `chunks.jsonl` `1208cb59…` — identical before and after the Step 8 pipeline; a second run with nothing changed 1.6 s |
+| Rebuild | `pages.json` `395c5a2b…`, `parsed/pages.jsonl` `f7e82daf…`, `chunks.jsonl` `1208cb59…` — identical before and after the Step 8 pipeline; a build with nothing changed **6.9 s** (measured 2026-11-20) |
 | Retrieval (55 questions) | recall@5 **45/48**, recall@10 46/48, MRR **0.826** (dev 37/39, held-out 8/9) |
-| Full generation run | **33/55 passed**; citation 31/48, numeric 34/43, not-found (a) 3/6, (b) 45/48; p50 **16.5 s**, p95 **46.4 s** |
+| **Last accepted answer run** | **33/55 passed**; citation 31/48, numeric 34/43, not-found (a) 3/6, (b) 45/48; p50 **16.5 s**, p95 **46.4 s** |
 | Held-out milestone | **5/10 passed**, recall@5 8/9, MRR 0.806 — both gates pass |
-| Eval drift since 2026-11-18 | **zero** — 0 status changes, 0 answer changes over all 55 questions |
-| Backup / restore | 40 MB snapshot restores byte-identically, 3,226 dense rows, same top BM25 page |
+| Experiment tried 2026-11-20 | D-060 prose refusals: **36/55**, nf(a) **6/6**, nf(b) **35/39** on dev — **rejected by the gate, removed** |
+| Backup / restore | 40 MB snapshot restores byte-identically, 3,226 dense rows, same top BM25 page (re-run 2026-11-20) |
 | Offline proof | step 06 **PASS** 2026-11-17 (6 firewall rules + refused probes, run identical to online); steps 07 and 08 **not run** — they need an elevated prompt |
-| Unit suites | 94 generation cases, 11 pipeline, 8 UI server, 6 UI pipeline, 7 corpus, 6 chunk suites pass; `eval/test_scorer.py` is stale (its fixtures still assume 30 questions) |
+| Unit suites | 26 verifier, 21 cache, 11 condense, 9 gate, 7 prompt, 16 router, 10 think, 12 ingest pipeline, 8 UI server, 7 UI pipeline, 7 corpus, 6 chunk suites pass; `eval/test_scorer.py` is stale (its fixtures still assume 30 questions) |
 
 ## 3. Open decisions only you can sign
 
@@ -90,7 +93,10 @@ Measured, not claimed (2026-11-19 unless a row says otherwise):
 | **D-063** | Step 8 is judged on the pipeline at 97 documents / 851 pages; reaching 100k pages is a separate corpus-and-hardware decision | Approve — the 1,000-page dry run cannot be run on an 851-page corpus, and 100k is ~32 h of parsing at the measured 51.3 pages/min | the Step 08 tag |
 | **D-064** | Parsed output is per-document shards keyed by SHA-256, assembled in corpus order | Approve — already built, and the rebuild is byte-identical | nothing |
 | **D-065** | Duplicates are flagged (exact SHA-256 or ≥80% shared pages) and never deleted or indexed | Approve — already built and tested | nothing |
-| **D-060** | Approved 2026-11-17 but **not built**: a prose refusal counts when its first sentence negates the question | Build it — `verify.said_not_found` still compares only the first line, so not-found (a) stays 3/6 | not-found (a) |
+| **D-068** | D-060 (prose refusals) is measured and **not kept**: +3 passed and nf(a) 6/6, but nf(b) 37/39 → 35/39 and two answerable questions lost | Approve the rejection; re-propose it after table retrieval, when it costs nothing | closing D-060 |
+| **D-069** | The next experiment is **table retrieval** (q026-q028, q042), not HyDE / multi-query / RAPTOR / fine-tuning | Approve table retrieval — it also unblocks D-060 | Step 09 accuracy work |
+| **D-066** | Per-document reference extracted from the header pages (built, 78 of 96 documents name the work) | Approve — measured, and the rail no longer shows a storing key | nothing |
+| **D-067** | Sentence-level entailment check (measure only; 34 UNSUPPORTED / 3 PARTIAL of 92 sentences) | Pick one: wire it in as a warning, keep it as a periodic report, or drop it | nothing |
 | — | `EVAL.md`'s one-question table still says dev is 20 questions at 5 points (it is 45, so 2.2) | your edit — protected file | nothing |
 
 The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and built.
@@ -102,9 +108,11 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
    accepted deviation; the page and table reviews are still open boxes in the step file.
 2. **Step 8's 100k-page items cannot be run here** (97 documents, 851 pages). The pipeline
    half is built and measured; D-063 asks you to accept that split.
-3. **Not-found (a) is 3/6.** q020, q021 and q055 were refused in prose instead of the exact
-   `Not found in the indexed documents.` line, so the scorer counts them as answers. D-060
-   is the approved fix and it is **not built**.
+3. **Not-found (a) is 3/6 and stays there for now.** q020, q021 and q055 refuse in prose
+   instead of the exact `Not found in the indexed documents.` line. D-060 was the fix and it
+   was measured on 2026-11-20: it reaches 6/6, but only by also refusing two answerable
+   questions, so the gate rejected it (D-068). The real cause is that the Das Table 2 rows
+   are not retrieved at all (D-069).
 4. **Citation 31/48** is under the strict rule you chose (D-041) and stays that way: the
    failures are paraphrase and extra pages, not invented sources.
 5. **The offline proofs for Steps 07 and 08 need an elevated prompt.** This shell cannot
@@ -122,26 +130,30 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
    `step-08-approved`.
 4. **Confirm the not-found questions:** `reports/not-found-recheck.md` lists all 7 with the
    best pages and the pages containing every term, and leaves the verdict to you (D-027).
-5. **Build D-060** (approved): the test suite it asks for plus one 55-question re-run; it is
-   the cheapest measured gain on the board (not-found (a) 3/6 → expected 6/6).
-6. **Step 09:** read `reports/failures.md` and approve or reject one experiment (HyDE,
-   multi-query, RAPTOR, fine-tuning) — or stop at the docs. Nothing was tried without you.
+5. **D-068:** accept that D-060 is rejected, or tell me to take the not-found (b) drop for
+   the (a) 6/6 gain. The numbers are in `DECISIONS.md` and the 2026-11-20 row of `EVAL.md`.
+6. **D-069:** approve one experiment. Table retrieval is the one with evidence behind it;
+   the alternative is to stop at the docs and close Step 09 as it stands.
 7. **Step 3:** tick or reword the two review boxes (only you may edit step text).
 
 ## 6. Honest risks, in the order they will bite
 
-1. **Latency is 16.5 s median, 46.4 s at p95** — inside N2's 20 s typical target at the
-   median, over it at p95 (the table route with one retry). The 4B model is what keeps it
-   that low; a larger one would spill to RAM on this card.
+1. **Latency is 16.5 s median, 46.4 s at p95** on the accepted run — inside N2's 20 s
+   typical target at the median, over it at p95 (the table route with one retry). The 4B
+   model is what keeps it that low; a larger one would spill to RAM on this card. The
+   2026-11-20 experiment run measured p50 16.4 s / p95 50.8 s with one 133.8 s stall.
 2. **Twelve of the 22 failures are citations**, not retrieval: the answer quotes a page it
    does not cite, or paraphrases past the verifier. That is where the remaining accuracy is.
-3. **The gate only protects you if it is run.** It is a command, not a hook.
-4. **`data/corpus` is read-only and the index is derived**; a corpus change re-runs ingestion
+3. **Not-found accuracy is a trade, measured, not a free win.** Accepting prose refusals
+   fixed three unanswerable questions and broke two answerable ones. Anything that changes
+   the refusal rule must run both halves of not-found (a) and (b) plus the gate.
+4. **The gate only protects you if it is run.** It is a command, not a hook.
+5. **`data/corpus` is read-only and the index is derived**; a corpus change re-runs ingestion
    (one document is cheap, a full rebuild is ~24 min of parsing), and a long-lived process
-   holds its own index in memory, so restart the UI after adding documents.
-5. **2.2% of pages have no readable text**, so some questions can only be answered "not
+   holds its own index in memory, so restart the UI after adding documents (`RUNBOOK.md` §3.4).
+6. **2.2% of pages have no readable text**, so some questions can only be answered "not
    found" with a warning — by design, not by accident.
-6. **100k pages is not proven.** The manifest and per-document resume are built for it; the
+7. **100k pages is not proven.** The manifest and per-document resume are built for it; the
    acquisition, the ~32 h run and the disk budget are not.
 
 ---
@@ -152,8 +164,9 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
 git status                                        # must be clean before any agent session
 git tag                                           # what you have attested
 .venv\Scripts\python.exe -m ingest.pipeline status --report
-.venv\Scripts\python.exe -m ingest.pipeline backup --out backups\2026-11-19
-.venv\Scripts\python.exe ingest\test_pipeline.py   # 11 cases: resume, duplicates, backup
+.venv\Scripts\python.exe -m ingest.pipeline backup --out backups\2026-11-20
+.venv\Scripts\python.exe ingest\test_pipeline.py   # 12 cases: resume, duplicates, backup
+.venv\Scripts\python.exe generation\test_verify.py # 26 cases: quotes, numbers, refusals
 .venv\Scripts\python.exe eval\gate.py --current eval\runs\2026-11-19-step8-full `
   --baseline eval\runs\2026-11-18-step6-after-ui --start eval\runs\2026-11-18-step6-after-ui
 .venv\Scripts\python.exe eval\gate.py --milestone --current eval\runs\2026-11-19-step8-full `

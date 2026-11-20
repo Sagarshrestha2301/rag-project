@@ -152,3 +152,23 @@ node scripts/ui-browser-check.mjs http://127.0.0.1:8000 "Who chaired the annual 
 Tests: `ingest/test_bibliography.py` 7/7, `ingest/test_pipeline.py` 12/12,
 `ui/test_pipeline.py` 7/7, `ui/test_server.py` 8/8, `scripts/measure-entailment.py
 --selftest` pass.
+
+## Update 2026-11-20 (Step 9)
+
+- **`RUNBOOK.md` is new** and every command in it was run in order on 2026-11-20
+  (`artifacts/step9/runbook-test.log`). Use it to operate the system; `RUNNING.md` remains
+  the reference.
+- **D-060 was built, measured and removed.** Accepting a prose refusal as a refusal scored
+  36/55 with not-found (a) 3/6 → 6/6, but flipped two answerable questions (q027, q028) to
+  a false "not found", so not-found (b) fell 37/39 → 35/39 and `eval/gate.py` failed rules
+  1-3. The verifier is back to the exact line only, three cases in `generation/test_verify.py`
+  pin that behaviour, and replaying it over the 2026-11-19 answers changes 0 of 55 statuses.
+  Numbers and reasoning: D-068 in `DECISIONS.md`; the run is
+  `eval/runs/2026-11-20-step9-d060/`.
+- **D-069 proposes the next experiment as table retrieval**, not HyDE / multi-query /
+  RAPTOR / fine-tuning: q026-q028 and q042 fail because a table row is not in the retrieved
+  passages, and the Das Table 2 questions are the same ones that made D-060 cost accuracy.
+  Nothing was started without approval.
+- Step 9 stands at **3 of 5 DoD boxes**: the rejected experiment is recorded with results,
+  the runbook is tested, and the docs match the system. Open: a kept change to give a
+  before/after row (nothing was kept), and the owner's sign-off.

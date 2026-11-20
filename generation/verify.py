@@ -15,6 +15,15 @@ misstatement), so it costs 1 of 55 answers and bought a caught error. It ignores
 glued to letters (`P0`, `m3`), `[n]` markers, and sentences with no marker, where the
 separate "no [n] marker" rule already speaks.
 
+Accepting a refusal written in the model's own words was measured and **not kept**
+(D-060, 2026-11-20). The rule was: a first sentence that negates what the passages
+contain, about the question asked, counts as a refusal and is normalised to
+`NOT_FOUND_TEXT`. It fixed all three prose refusals (not-found (a) 3/6 -> 6/6) but also
+swallowed two answerable questions whose model answer opens with the same shape
+(q027, q028: "the provided passages do not contain Table 2 ..."), so not-found (b) fell
+37/39 -> 35/39 on dev and `eval/gate.py` rejected the change. Only the exact line counts;
+the cases in `test_verify.py` pin the measured behaviour.
+
 Usage:
     from generation import prompt, verify
     hits = retrieval.search(index, question, k=5)
@@ -142,6 +151,11 @@ def prose_number_problems(answer: str, citations: list[dict], read_page) -> list
 
 
 def said_not_found(answer: str) -> bool:
+    """Did the model refuse with the prompt's exact line (first non-empty line)?
+
+    Prose refusals are deliberately **not** accepted: measured on 2026-11-20, accepting
+    them cost two answerable dev questions (D-060, see the module docstring).
+    """
     first = (answer or "").strip().splitlines()[0].strip() if (answer or "").strip() else ""
     return first.rstrip(".").lower() == NOT_FOUND_TEXT.rstrip(".").lower()
 
