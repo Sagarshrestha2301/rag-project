@@ -191,3 +191,20 @@ Tests: `ingest/test_bibliography.py` 7/7, `ingest/test_pipeline.py` 12/12,
   data. All checks pass. The three gold-data limits are named (q042/q050 write their number
   as a word, q044's gold quote lost a hyphen).
 - Step 9 stands at **4 of 5 DoD boxes**; only the owner's sign-off is open.
+
+## Update 2026-11-20, third (retry guard, table rows, UI rail)
+
+- **Kept: the retry guard (D-072).** A failed verification retries with the failed answer
+  only while the first call used under 85% of `num_ctx` (Ollama's own counters); above that
+  the answer is dropped and the retry message says why. q047 - 4,063 of 4,096 tokens, second
+  answer cut at 33 - now answers correctly. Full run **37/55**, citation 36/48, numeric
+  37/43, not-found (a) 3/6, p50 11.4 s / p95 28.9 s; dev and held-out milestone gates pass.
+  `eval/runs/2026-11-20-step9-retry-guard/`.
+- **Rejected: table rows in the passage (D-073).** Appending a page's cleaned rows to its
+  passage builds a 16,012-character prompt, over the 4,096-token context: Ollama truncates,
+  the model refuses, and q029/q030 regress. Flag `CHAT_TABLE_CONTENT` stays off. The fix
+  must swap rows in for the prose window, not add them.
+- **UI: the evidence rail is a toggle only** (owner request). It no longer opens after an
+  answer or on a message click; `node scripts/ui-browser-check.mjs` asserts that and passes.
+- **New:** `reports/next-experiments.md` ranks the five next experiments from the 18 current
+  failures. The first is a one-rule gate change for q020/q021/q055.

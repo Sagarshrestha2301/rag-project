@@ -79,9 +79,9 @@ Measured, not claimed (2026-11-19 unless a row says otherwise):
 | Index | **40 MB** (41,969,013 bytes incl. LanceDB); load 0.04 s; BM25 top-5 2–140 ms; **67 MiB** peak RSS for a process that loads and searches |
 | Rebuild | `pages.json` `395c5a2b…`, `parsed/pages.jsonl` `f7e82daf…`, `chunks.jsonl` `1208cb59…` — identical before and after the Step 8 pipeline; a build with nothing changed **6.9 s** (measured 2026-11-20) |
 | Retrieval (55 questions) | recall@5 **45/48**, recall@10 46/48, MRR **0.826** (dev 37/39, held-out 8/9) |
-| **Last accepted answer run** (2026-11-20, prompt `s6-3`) | **36/55 passed**; citation 35/48, numeric 36/43, not-found (a) 3/6, (b) 46/48; p50 **13.4 s**, p95 **27.7 s** |
+| **Last accepted answer run** (2026-11-20, prompt `s6-3` + retry guard) | **37/55 passed**; citation 36/48, numeric 37/43, not-found (a) 3/6, (b) 46/48; p50 **11.4 s**, p95 **28.9 s** |
 | Held-out milestone | **5/10 passed**, recall@5 8/9, MRR 0.806 — both gates pass |
-| Experiments tried 2026-11-20 | prose refusals **rejected** (nf(b) 35/39, D-068); table pass **rejected** (no gold page gained, q047 regressed, D-070); per-sentence citation prompt **kept** (36/55, citation 35/48, held-out 7/10, D-071) |
+| Experiments tried 2026-11-20 | prose refusals **rejected** (D-068); page-level table pass **rejected** (D-070); per-sentence citation prompt **kept** (D-071); retry guard **kept** (**37/55**, q047 fixed, D-072); table rows in the passage **rejected** (overflows the context, D-073) |
 | Backup / restore | 40 MB snapshot restores byte-identically, 3,226 dense rows, same top BM25 page (re-run 2026-11-20) |
 | Offline proof | step 06 **PASS** 2026-11-17 (6 firewall rules + refused probes, run identical to online); steps 07 and 08 **not run** — they need an elevated prompt |
 | Unit suites | 26 verifier, 21 cache, 11 condense, 9 gate, 7 prompt, 16 router, 10 think, 12 ingest pipeline, 8 UI server, 7 UI pipeline, 7 corpus, 6 chunk suites pass; `eval/test_scorer.py` is stale (its fixtures still assume 30 questions) |
@@ -97,6 +97,8 @@ Measured, not claimed (2026-11-19 unless a row says otherwise):
 | **D-069** | Table retrieval was the recommended next experiment | **Answered by measurement**: rejected, see D-070 | nothing |
 | **D-070** | The table pass adds no gold page on this set and costs one dev question | Approve the rejection — the real gap is table *content* in a passage, which changes what a quotable passage is | nothing |
 | **D-071** | The prompt now makes each sentence quote its own evidence (`s6-3`) and it is **kept** | Approve — citation 31/48 → 35/48, numeric 34/43 → 36/43, held-out 5/10 → 7/10, no metric down | the new baseline |
+| **D-072** | A retry drops the failed answer when the first call used >85% of `num_ctx`, and it is **kept** | Approve — 37/55, q047 answered correctly, citation 35 → 36, numeric 36 → 37 | the current baseline |
+| **D-073** | Appending a page's table rows to its passage is **rejected**: the table prompt is already ~4,100 tokens, so it truncates and the model refuses | Approve — and design the next table change as rows *instead of* the prose window | nothing |
 | **D-066** | Per-document reference extracted from the header pages (built, 78 of 96 documents name the work) | Approve — measured, and the rail no longer shows a storing key | nothing |
 | **D-067** | Sentence-level entailment check (measure only; 34 UNSUPPORTED / 3 PARTIAL of 92 sentences) | Pick one: wire it in as a warning, keep it as a periodic report, or drop it | nothing |
 | — | `EVAL.md`'s one-question table still says dev is 20 questions at 5 points (it is 45, so 2.2) | your edit — protected file | nothing |
@@ -134,10 +136,10 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
    best pages and the pages containing every term, and leaves the verdict to you (D-027).
 5. **D-068:** accept that D-060 is rejected, or tell me to take the not-found (b) drop for
    the (a) 6/6 gain. The numbers are in `DECISIONS.md` and the 2026-11-20 row of `EVAL.md`.
-6. **D-070 / D-071:** accept the two experiment outcomes (table pass rejected, citation
-   prompt kept) and sign off Step 09. The next measured change I would propose is the
-   context overflow q047 exposed: a retry can run out of the 4,096-token context now that
-   answers carry more quotations.
+6. **D-070 / D-071 / D-072 / D-073:** accept the four experiment outcomes and sign off
+   Step 09. The ranked next experiments are in `reports/next-experiments.md`; the first one
+   is a one-rule change that should gain q020, q021 and q055 (refuse in exact words, count
+   it as a refusal).
 7. **Step 3:** tick or reword the two review boxes (only you may edit step text).
 
 ## 6. Honest risks, in the order they will bite
@@ -158,11 +160,10 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
    found" with a warning — by design, not by accident.
 7. **100k pages is not proven.** The manifest and per-document resume are built for it; the
    acquisition, the ~32 h run and the disk budget are not.
-8. **A retry can now run out of context.** q047 measured it on 2026-11-20: the retry prompt
-   reached 4,063 of 4,096 tokens because `s6-3` answers carry more quotations, so the second
-   answer was cut at 33 tokens. A shorter retry message or 5 table passages is the next
-   small measured change; until then, a table question that fails verification can return a
-   truncated answer.
+8. **The context is nearly spent on the table route, and that now bounds what can be
+   added.** q047 measured 4,063 of 4,096 tokens of retry prompt before D-072 fixed it, and
+   D-073 measured a 16,012-character table prompt that Ollama truncated. The retry guard
+   buys room only on a retry; any change that *adds* text to a table passage overflows.
 
 ---
 

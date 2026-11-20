@@ -68,6 +68,23 @@ rag-project/
   scripts/
 ```
 
+## As built on 2026-11-20
+- **Model:** `qwen3.5:4b` through Ollama on `127.0.0.1:11434`, `num_ctx` 4096, temperature 0,
+  the same seed for every eval answer.
+- **Retrieval:** page-level hybrid (dense + BM25, fused with RRF) then the CPU reranker;
+  `corpus.context_for` shows the model a 700-character page opening plus a 1,200-character
+  window rather than the whole page.
+- **Prompt `s6-3`:** every sentence carries its own number and quotes its own evidence, and a
+  figure in a sentence must appear in that sentence's quotation (D-071).
+- **Retry:** one retry after a failed citation check. The failed answer is echoed back only
+  while the first call stayed under 85% of `num_ctx` (measured with Ollama's counters); above
+  that it is dropped and the retry says so (D-072).
+- **Flags, both off by default:** `CHAT_TABLE_RETRIEVAL` (a page-level table pass, rejected in
+  D-070) and `CHAT_TABLE_CONTENT` (a page's table rows added to its passage, rejected in
+  D-073 because it overflows the context).
+- **UI:** the evidence rail is a toggle. An answer fills it in only when it is already open;
+  the `Evidence` button and the citation chips are the way in.
+
 ## Experiments backlog (only if eval shows a specific failure; each behind a flag; each needs approval)
 HyDE, multi-query, RAPTOR-style summaries, embedder/reranker fine-tuning.
 

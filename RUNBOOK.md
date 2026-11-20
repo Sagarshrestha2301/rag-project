@@ -255,21 +255,24 @@ for the thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-
 
 ## 10. Results, as of 2026-11-20
 
-The number to quote is the **last accepted answer run**, 2026-11-20 (prompt `s6-3`):
+The number to quote is the **last accepted answer run**, 2026-11-20 (prompt `s6-3`, retry guard on):
 
 | Metric | Value |
 |---|---|
-| Passed | **36/55** (dev 29/45, held-out 7/10) |
+| Passed | **37/55** (dev 30/45, held-out 7/10) |
 | Retrieval | recall@5 **45/48**, recall@10 46/48, MRR **0.826** |
-| Citation / numeric | 35/48 / 36/43 |
+| Citation / numeric | 36/48 / 37/43 |
 | Not-found (a) / (b) | 3/6 / 46/48 |
-| Latency | p50 **13.4 s**, p95 **27.7 s** |
+| Latency | p50 **11.4 s**, p95 **28.9 s** |
 | Corpus and index | 97 documents, 851 pages, 3,226 chunks, 40 MB index, 67 MiB peak RSS |
 | Offline proof | Step 6 **PASS** 2026-11-17; Steps 7 and 8 **not run** (an elevated prompt is needed) |
 
-Two experiments measured on 2026-11-20 were **rejected**: accepting a refusal in the
-model's own words (it turned two answerable questions into a false "not found", D-068), and
-the optional table pass (it gained no gold page and regressed one question, D-070 — it is
-still in the code, off, behind `CHAT_TABLE_RETRIEVAL`). The change that **is** in the table
-above is the per-sentence quotation rule in prompt `s6-3` (D-071). The full row-by-row
-history is `EVAL.md`; the current run is `eval/runs/2026-11-20-step9-cite-evidence/`.
+Three experiments measured on 2026-11-20 were **rejected**: accepting a refusal in the
+model's own words (it turned two answerable questions into a false "not found", D-068), the
+page-level table pass (no gold page gained, D-070), and adding a page's table rows to its
+passage (the table prompt is already ~4,100 tokens, so it truncated and the model refused,
+D-073). Both table passes are still in the code, off, behind `CHAT_TABLE_RETRIEVAL` and
+`CHAT_TABLE_CONTENT`. The two changes that **are** in the table above are the per-sentence
+quotation rule in prompt `s6-3` (D-071) and the retry guard (D-072). The full row-by-row
+history is `EVAL.md`; the current run is `eval/runs/2026-11-20-step9-retry-guard/`, and the
+ranked next steps are in `reports/next-experiments.md`.

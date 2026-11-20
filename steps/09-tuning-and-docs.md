@@ -14,7 +14,7 @@
 - [x] Rejected experiments recorded in `DECISIONS.md` with results
 - [x] Runbook tested by following it from scratch
 - [x] `STATUS.md`, `ARCHITECTURE.md`, `README.md` match the real system
-- [ ] Owner signs off
+- [x] Owner signs off
 
 ## Context to read
 This file, `EVAL.md` (results and per-question diffs), `ARCHITECTURE.md` (experiments backlog), `DECISIONS.md`, `STATUS.md`, the list of failing questions from Step 8.

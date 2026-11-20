@@ -73,22 +73,22 @@ HITS = [{"doc": "1970_Marahatta.pdf", "page": 2, "label": "Marahatta", "score": 
          "ocr": False, "context": "rainfall", "snippet": "rainfall"}]
 
 
-def with_flag(value: str | None):
-    """Set the flag for one case, restoring the environment afterwards."""
+def with_flag(value: str | None, name: str = tables.FLAG):
+    """Set one flag for a case, restoring the environment afterwards."""
     class Flag:
         def __enter__(self):
-            self.old = os.environ.get(tables.FLAG)
+            self.old = os.environ.get(name)
             if value is None:
-                os.environ.pop(tables.FLAG, None)
+                os.environ.pop(name, None)
             else:
-                os.environ[tables.FLAG] = value
+                os.environ[name] = value
             return self
 
         def __exit__(self, *exc):
             if self.old is None:
-                os.environ.pop(tables.FLAG, None)
+                os.environ.pop(name, None)
             else:
-                os.environ[tables.FLAG] = self.old
+                os.environ[name] = self.old
     return Flag()
 
 
@@ -145,6 +145,49 @@ def a_missing_chunk_file_changes_nothing() -> None:
     assert merged == HITS, merged
 
 
+ROWS = {("1970_Das_Beliefs.pdf", 6): TABLE_TEXT}
+CONTENT_HITS = [{"doc": "1970_Das_Beliefs.pdf", "page": 6, "label": "Das",
+                 "score": 50.0, "ocr": False, "context": "prose about taboos",
+                 "snippet": "taboos"},
+                {"doc": "1970_Marahatta.pdf", "page": 2, "label": "Marahatta",
+                 "score": 9.0, "ocr": False, "context": "rainfall prose",
+                 "snippet": "rainfall"}]
+
+
+def content_flag_off_is_a_no_op() -> None:
+    with with_flag(None, tables.CONTENT_FLAG):
+        assert not tables.rows_enabled()
+        assert tables.with_rows(CONTENT_HITS, rows=ROWS) == CONTENT_HITS
+
+
+def a_page_gains_its_rows() -> None:
+    with with_flag("1", tables.CONTENT_FLAG):
+        got = tables.with_rows(CONTENT_HITS, rows=ROWS)
+    assert "prose about taboos" in got[0]["context"], "the prose must stay"
+    assert TABLE_TEXT in got[0]["context"], "the page's own rows must be added"
+    assert "TABLE ROWS FROM THIS PAGE" in got[0]["context"]
+
+
+def a_page_without_a_table_is_unchanged() -> None:
+    with with_flag("1", tables.CONTENT_FLAG):
+        got = tables.with_rows(CONTENT_HITS, rows=ROWS)
+    assert got[1] == CONTENT_HITS[1], "a page with no table must not change"
+
+
+def the_rows_are_capped() -> None:
+    long_rows = {("1970_Das_Beliefs.pdf", 6): "row " * 500}
+    with with_flag("1", tables.CONTENT_FLAG):
+        got = tables.with_rows(CONTENT_HITS, rows=long_rows, limit=100)
+    added = got[0]["context"].split("TABLE ROWS FROM THIS PAGE")[1]
+    assert len(added) < 260, f"the rows were not capped: {len(added)} characters"
+
+
+def the_hit_is_not_mutated() -> None:
+    with with_flag("1", tables.CONTENT_FLAG):
+        tables.with_rows(CONTENT_HITS, rows=ROWS)
+    assert CONTENT_HITS[0]["context"] == "prose about taboos", "the caller's hit was changed"
+
+
 def main() -> int:
     print("table retrieval")
     for name, fn in [
@@ -154,6 +197,11 @@ def main() -> int:
         ("the merged list stays at k", the_list_stays_at_k),
         ("a page with no indexed text is skipped", a_page_without_text_is_skipped),
         ("a missing chunk file changes nothing", a_missing_chunk_file_changes_nothing),
+        ("the content flag off leaves the passages alone", content_flag_off_is_a_no_op),
+        ("a page with a table gains its rows", a_page_gains_its_rows),
+        ("a page without a table is unchanged", a_page_without_a_table_is_unchanged),
+        ("the rows are capped", the_rows_are_capped),
+        ("the hit is copied, not mutated", the_hit_is_not_mutated),
     ]:
         check(name, fn)
     print()

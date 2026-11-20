@@ -456,13 +456,6 @@
     if (state.autoScroll) el.scroll.scrollTop = el.scroll.scrollHeight;
   };
 
-  const showEvidence = (index) => {
-    state.evidenceIndex = index;
-    el.app.classList.remove("app--evidence-hidden");
-    renderEvidence();
-    save();
-  };
-
   // ---------------------------------------------------------------- streaming
 
   const setStreaming = (flag) => {
@@ -566,7 +559,10 @@
       setStreaming(false);
       state.controller = null;
       renderThread();
-      showEvidence(index);
+      // The rail is a toggle, not something an answer opens (owner, 2026-11-20): most
+      // readers never need it, so an answer only fills it in when it is already open.
+      state.evidenceIndex = index;
+      if (!el.app.classList.contains("app--evidence-hidden")) renderEvidence();
       scrollDown();
       save();
     }
@@ -670,11 +666,7 @@
 
   document.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
-    if (!target) {
-      const message = event.target.closest(".message--assistant");
-      if (message) showEvidence(Number(message.dataset.index));
-      return;
-    }
+    if (!target) return;
     const action = target.dataset.action;
 
     if (action === "new-chat") {

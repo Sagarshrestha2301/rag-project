@@ -43,6 +43,13 @@ CHUNKS = ROOT / "index" / "chunks.jsonl"
 FLAG = "CHAT_TABLE_RETRIEVAL"
 SLOTS = 2          # pages a table pass may take from the tail of the route's list
 
+# D-073: the second table experiment. The first one (D-070) changed *which* pages the
+# model reads and changed nothing, because the page was already rank 1. This one changes
+# what the model sees of a page it already has: the cleaned rows of the table on it,
+# which is the text a table question has to quote (q047's gold quote is a row).
+CONTENT_FLAG = "CHAT_TABLE_CONTENT"
+ROWS_CHARS = 900   # characters of one page's table text a passage may add
+
 _CACHE: dict[str, tuple[int, list[dict], BM25 | None]] = {}
 
 
@@ -93,6 +100,50 @@ def _page_hit(page: dict, score: float, terms: list[str]) -> dict:
         "snippet": snippet(page["text"], terms),
         "via": "table",
     }
+
+
+def rows_enabled() -> bool:
+    """Is the table-content pass switched on for this process? (Separate flag, D-073.)"""
+    return os.environ.get(CONTENT_FLAG, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def rows_by_page(path: pathlib.Path = CHUNKS) -> dict[tuple[str, int], str]:
+    """The table text indexed under each page, joined when a page holds several tables."""
+    pages: dict[tuple[str, int], list[str]] = {}
+    for chunk in table_chunks(path):
+        key = (chunk["file"], int(chunk["page_start"]))
+        pages.setdefault(key, []).append(chunk["text"].strip())
+    return {key: "\n".join(texts) for key, texts in pages.items()}
+
+
+def with_rows(hits: list[dict], *, rows: dict[tuple[str, int], str] | None = None,
+              limit: int = ROWS_CHARS) -> list[dict]:
+    """Append each hit page's own table rows to its passage body, in place-safe copies.
+
+    A page keeps its heading and its prose window; the rows are added after them, so the
+    model can quote a row exactly as the page holds it. A page with no table is returned
+    unchanged, and so is every hit when the flag is off.
+
+    Usage (the D-073 experiment; off unless CHAT_TABLE_CONTENT=1):
+        >>> tables.with_rows(search(index, q, k=6))[0]["context"].count("TABLE ROWS")
+        1
+    """
+    if not rows_enabled():
+        return hits
+    lookup = rows if rows is not None else rows_by_page()
+    if not lookup:
+        return hits
+    out = []
+    for hit in hits:
+        text = lookup.get((hit.get("doc"), hit.get("page")))
+        if not text:
+            out.append(hit)
+            continue
+        body = (hit.get("context") or hit.get("text") or "").rstrip()
+        out.append({**hit, "context": (f"{body}\n\nTABLE ROWS FROM THIS PAGE "
+                                      f"(quoted from the page, one row per line):\n"
+                                      f"{text[:limit]}")})
+    return out
 
 
 def merge(index: dict, query: str, hits: list[dict], *, k: int, slots: int = SLOTS,

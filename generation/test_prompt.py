@@ -77,6 +77,16 @@ def version_is_set() -> None:
     assert prompt.PROMPT_VERSION, "the prompt needs a version: the answer cache is keyed on it"
 
 
+def retry_message_can_say_the_answer_is_gone() -> None:
+    kept = prompt.retry_message(["quote not on the page"])
+    assert "Your answer failed citation check:" in kept
+    assert "not repeated here" not in kept
+    dropped = prompt.retry_message(["quote not on the page"], previous_kept=False)
+    assert "not repeated here" in dropped, "a retry that drops the answer must say so"
+    assert "- quote not on the page" in dropped, "the problems must survive"
+    assert prompt.NOT_FOUND_TEXT in dropped
+
+
 def main() -> int:
     cases = [
         ("five passages are numbered 1-5", five_passages_are_numbered),
@@ -86,6 +96,8 @@ def main() -> int:
         ("the rules force the citation shape and the refusal", rules_force_the_format),
         ("empty retrieval is stated, not left blank", empty_retrieval_says_so),
         ("the prompt carries a version", version_is_set),
+        ("a retry can say the failed answer is not repeated",
+         retry_message_can_say_the_answer_is_gone),
     ]
     for name, fn in cases:
         check(name, fn)

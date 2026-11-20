@@ -90,6 +90,7 @@ def row_for(question: dict, record: dict, paths: dict[str, str]) -> dict:
         "status": record["status"],
         "route": (record.get("route") or {}).get("route"),
         "attempts": record["attempts"],
+        "retry_dropped_answer": bool(record.get("retry_dropped_answer")),
         "search_question": record["search_question"],
         "seconds": record["seconds"],
         "timing": record["timing"],

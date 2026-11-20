@@ -121,16 +121,28 @@ def build_system(hits: list[dict], *, mode: str = "normal") -> str:
     return "\n\n".join(blocks) + "\n\n" + SYSTEM_RULES + extra
 
 
-def retry_message(problems: list[str]) -> str:
+def retry_message(problems: list[str], *, previous_kept: bool = True) -> str:
     """What the model is told after its first answer failed verification.
 
     It names the failure and nothing else: the passages are not repeated, because a
     second copy of the context doubles the prompt and the model starts citing the
     second copy's numbering.
+
+    `previous_kept=False` is for a retry whose context is already nearly full
+    (D-072): the caller drops the failed answer from the conversation, and this
+    sentence tells the model why it cannot see what it wrote. Measured on q047, whose
+    retry prompt was 4,063 of 4,096 tokens, so its second answer was cut at 33.
+
+    Example: retry_message(["quote not on the page"], previous_kept=False) opens with
+    "Your previous answer failed citation check. It is not repeated here...".
     """
     listed = "\n".join(f"- {problem}" for problem in problems)
+    opening = "Your answer failed citation check:"
+    if not previous_kept:
+        opening = ("Your previous answer failed citation check. It is not repeated here "
+                   "because the context is nearly full:")
     return (
-        "Your answer failed citation check:\n"
+        f"{opening}\n"
         f"{listed}\n\n"
         "Answer the same question again, in the same format. Every quotation must be "
         "copied from the page you cite, unchanged, without \"...\" and without joining "

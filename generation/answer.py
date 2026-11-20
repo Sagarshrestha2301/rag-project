@@ -40,6 +40,11 @@ from retrieval import tables as table_retrieval
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 MODEL = os.environ.get("CHAT_MODEL", "qwen3.5:4b")
 NUM_CTX = int(os.environ.get("CHAT_NUM_CTX", "4096"))
+
+# D-072: a retry keeps the failed answer only while the first call left this much of
+# `num_ctx` free. q047 measured the failure: its retry prompt was 4,063 of 4,096 tokens,
+# so the second answer was cut at 33 tokens and the question could not be answered.
+RETRY_HEADROOM = 0.85
 KEEP_ALIVE = os.environ.get("CHAT_KEEP_ALIVE", "30m")
 # Temperature 0 makes sampling greedy, and the seed is pinned anyway (EVAL.md run
 # protocol): a later Ollama default must not be able to make two eval runs incomparable.
@@ -73,6 +78,28 @@ def _timing(payload: dict) -> dict:
         "prompt_tokens": payload.get("prompt_eval_count"),
         "answer_tokens": payload.get("eval_count"),
     }
+
+
+def _retry_messages(messages: list[dict], text: str, problems: list[str],
+                    timing: dict) -> tuple[list[dict], bool]:
+    """The conversation to retry with, and whether the failed answer was dropped.
+
+    Ollama reports what the first call actually used, so this is decided on measured
+    counts rather than an estimate (D-072). Keeping the answer is the default, because
+    the model corrects faster when it can read what it wrote; it is dropped only when
+    prompt plus answer already reached `RETRY_HEADROOM` of `num_ctx`, where the retry
+    would otherwise have less room left than a short answer needs.
+
+    Example: a first call that used 3,900 of 4,096 tokens comes back with
+    `([... user], True)` - the failed text is gone and the retry names why.
+    """
+    used = (timing.get("prompt_tokens") or 0) + (timing.get("answer_tokens") or 0)
+    if used and used > NUM_CTX * RETRY_HEADROOM:
+        return messages + [{"role": "user",
+                            "content": prompt.retry_message(problems,
+                                                            previous_kept=False)}], True
+    return messages + [{"role": "assistant", "content": text},
+                       {"role": "user", "content": prompt.retry_message(problems)}], False
 
 
 def _ask(messages: list[dict], model: str, temperature: float = TEMPERATURE,
@@ -260,6 +287,11 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     # whose cleaned table rows match, without growing the passage list the route chose.
     if routed["route"] == "table" and table_retrieval.enabled():
         passages = table_retrieval.merge(source, search_question, passages, k=wanted)
+    # Step 9 / D-073, behind `CHAT_TABLE_CONTENT`: the pages the route already chose keep
+    # their prose and gain their own table rows, which is the text a table question has
+    # to quote. Measured separately from the page-level pass above.
+    if routed["route"] == "table" and table_retrieval.rows_enabled():
+        passages = table_retrieval.with_rows(passages)
     marks["retrieval"] = stage(mark)
 
     # Task 3's floor: a question nothing scores against is refused without spending a
@@ -290,14 +322,13 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     verdict = verify.verify_answer(text, passages)
     marks["verify"] = stage(mark)
     attempts = 1
+    retry_dropped = False
 
     # D-010: a failed answer is retried once. A refusal is not a failure — the model
     # read the passages and said they do not contain the answer.
     if not verdict["ok"] and not verdict["said_not_found"] and verdict["problems"]:
-        messages = messages + [
-            {"role": "assistant", "content": text},
-            {"role": "user", "content": prompt.retry_message(verdict["problems"])},
-        ]
+        messages, retry_dropped = _retry_messages(messages, text, verdict["problems"],
+                                                  timing)
         mark = time.perf_counter()
         text, timing = _ask(messages, model, temperature, on_token)
         marks["model_wait"] = round(marks["model_wait"] + stage(mark), 1)
@@ -313,7 +344,8 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
 
     record = done({"answer": text, "status": status, "gate": {**checked, **decision},
                    "citations": verdict["citations"], "problems": verdict["problems"],
-                   "attempts": attempts, "route": routed,
+                   "attempts": attempts, "retry_dropped_answer": retry_dropped,
+                   "route": routed,
                    "search_question": search_question, "condensed": condensed,
                    "passages": _passages(passages), "model": model, "timing": timing,
                    "seconds": round(time.perf_counter() - started, 2)})

@@ -306,6 +306,17 @@ try {
     throw new Error("the answer never settled: " + JSON.stringify(state.debug));
   }
 
+  // The evidence rail is a toggle, not something an answer opens (owner, 2026-11-20):
+  // most readers never need it. The check opens it the way a reader does, so the source
+  // cards it then inspects exist at all.
+  state.railHiddenAfterAnswer = await session.evaluate(
+    'document.getElementById("app").classList.contains("app--evidence-hidden")');
+  await session.evaluate(`(() => {
+    const button = document.querySelector('#app [data-action="toggle-evidence"]');
+    if (button) button.click();
+    return Boolean(button);
+  })()`);
+
   const dom = await session.evaluate(`(() => {
     const message = [...document.querySelectorAll(".message--assistant")].pop();
     const badge = message ? message.querySelector(".state-badge") : null;
@@ -374,11 +385,13 @@ try {
       state.warning.title === "Some pages cannot be read" &&
       body.includes("still have no readable text after OCR") &&
       body.includes("pages were read by OCR") &&
-      layout.bodyTop >= layout.titleBottom - 1);
+      layout.bodyTop >= layout.titleBottom - 1 &&
+      state.railHiddenAfterAnswer === true);
   } else {
     state.ok = state.chips.length > 0 &&
       state.chips.every((chip) => chip.text === `[${chip.n}]` && Boolean(chip.doc)) &&
-      state.refs.length > 0 && state.chipsInRefs === 0;
+      state.refs.length > 0 && state.chipsInRefs === 0 &&
+      state.railHiddenAfterAnswer === true;
   }
 
   // The citation viewer: the chip opens the cited page with the quoted passage
@@ -408,6 +421,7 @@ if (state.warning) {
     + `body top ${layout.bodyTop}px`);
 }
 for (const item of state.warning ? state.warning.items : []) console.log(`per document ${item}`);
+console.log(`rail         ${state.railHiddenAfterAnswer ? "hidden after the answer, opened by its toggle" : "OPENED ITSELF after the answer"}`);
 console.log(`chips        ${state.chips.length}  ${state.chips.map((chip) => chip.text).join(" ")}`);
 for (const ref of state.refs || []) console.log(`reference    ${ref.slice(0, 110)}`);
 console.log(`chips in refs ${state.chipsInRefs}`);
