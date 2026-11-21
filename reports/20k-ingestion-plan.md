@@ -33,6 +33,40 @@ from a measured per-page/per-chunk rate. Projections are not results.
 | Disk free | 717 GB on `C:` | `df -h` |
 | Hardware ceiling | RTX 3050 Laptop, 4 GB, model already 50/50 CPU/GPU | `nvidia-smi`, `ollama ps` |
 
+### 1a. Measured pilot (2026-11-21, Step 11) — 118 documents
+
+What was actually run: 7 PDFs per leaf folder planned (212), fetched 210 with 2 same-batch name
+duplicates skipped; 91 staged files were byte-identical to already-indexed documents and were
+removed, leaving **119**; one of those (a 21-page NSO report) reproducibly crashes PyMuPDF's
+ONNX table detector with a native access violation on page 6, so the throwaway build covered
+**118 documents / 2,275 pages / 8,910 chunks**. Nothing here touched `data/corpus` or
+`index/`; the live index still reported 97 documents afterwards.
+
+| Stage | Measured | Per document | Projection used in §2 | Verdict |
+|---|---|---|---|---|
+| Drive download | 210 files, 257.1 MB in 426 s (29.6 files/min, 1.17 MB/s) | 2.0 s | not projected | — |
+| Parse | 2,660 s for 2,275 pages (1.17 s/page, 51.4 pages/min) | 22.5 s | 1.66 s/page, 57 h at 20k | **matches** the 51.3 pages/min baseline |
+| Embed | 584.6 s for 8,910 chunks (15.2 chunks/s) | 5.0 s | 0.0999 s/chunk, 18.5 h at 20k | **faster**: 0.0656 s/chunk |
+| Bibliography | 82.5 s for 12 re-extracted documents (6.9 s/doc, Ollama warm) | 6.9 s | 14.3 s/doc, 79 h at 20k | **faster**; the 118-document run itself is invalid (Ollama was down, see below) |
+| Whole build | 3,528 s wall for 118 documents (add-batch 2,187 s + resumed build 1,341 s) | **29.9 s** | pilot 2.3 h for 200 | 200 docs at this rate = **1.7 h** |
+
+Consequences for §2:
+
+- Parse and embed confirm the model within a few percent. At 29.9 s/document, 20k documents is
+  **~166 h ≈ 7 days** of continuous compute, against the 194 h / 8 days projected — the plan's
+  number was conservative, which is the safe direction.
+- The pilot's pages and bytes per document are **larger** than the corpus average (19.3 pages and
+  1.76 MB on the 119 staged files versus 8.77 pages and 0.505 MB), so 20k at this mix means more pages, not fewer.
+  Per-page rates, not per-document rates, are what §2 should be re-derived from once the real
+  mix is known (175,400 projected pages at 51.4 pages/min = 57 h, unchanged).
+- **The bibliography measurement above is a 12-document sample, not the wave:** the 118-document
+  build ran while Ollama was down, so all 118 records carry `ConnectError`, and its 265 s is a
+  failed-call timing, not an LLM timing. The 6.9 s/doc sample was taken afterwards with Ollama
+  up. A full-wave bibliography timing is therefore **not measured**.
+- Document contexts are not a separate stage in `ingest.pipeline` any more; `chunk` produced
+  8,910 chunks in the same build with no LLM calls of its own, so the 7 s/document context line in
+  §2 is legacy and should be dropped when the plan is next revised.
+
 ---
 
 ## 2. Size at 20,000 documents (projected)

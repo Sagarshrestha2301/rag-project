@@ -26,12 +26,12 @@
    projected). No eval run is part of this step.
 
 ## Definition of done
-- [ ] `--dest` downloads without writing the corpus or the default download log
-- [ ] The pilot folder holds ~200 real PDFs, each with a SHA-256 in `logs/drive-pilot.jsonl`
-- [ ] Staged duplicates of indexed documents removed and counted
-- [ ] `add-batch` over the pilot succeeds into a throwaway corpus/index, with wall time recorded
-- [ ] The live index still reports 97 documents afterwards
-- [ ] Measured per-document rates recorded next to the projections
+- [x] `--dest` downloads without writing the corpus or the default download log
+- [x] The pilot folder holds ~200 real PDFs, each with a SHA-256 in `logs/drive-pilot.jsonl`
+- [x] Staged duplicates of indexed documents removed and counted
+- [x] `add-batch` over the pilot succeeds into a throwaway corpus/index, with wall time recorded
+- [x] The live index still reports 97 documents afterwards
+- [x] Measured per-document rates recorded next to the projections
 
 ## Context to read
 This file, `reports/20k-ingestion-plan.md` sections 1-3 and 8, `ingest/drive.py`,

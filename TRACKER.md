@@ -31,10 +31,15 @@ step 09  tuning + docs    SIGNED OFF 5/5 boxes - six experiments measured; two k
                                     RUNBOOK.md written and followed; owner approval
                                     2026-11-20, tags are yours
 step 10  batch ingestion  BUILT     5/7  boxes - `add-batch` with an all-or-nothing
-                                    pre-flight, 19/19 pipeline cases; open: a real
-                                    pilot batch's wall time and your review
-step 11  pilot download   BLOCKED   start approved; Drive fetch fails with WinError 10013
-                                    because this sandbox blocks outbound sockets
+                                    pre-flight, 19/19 pipeline cases; the pilot batch
+                                    wall time is now measured (step 11); open: your review
+step 11  pilot wave       RAN       6/6  boxes - 210 real PDFs fetched, 118 built into a
+                                    throwaway index in 3,528 s (29.9 s/document,
+                                    51.4 pages/min parse); live index still 97 docs.
+                                    One PDF crashes PyMuPDF's table detector natively
+                                    (a parse-isolation fix is proposed); the 118-doc
+                                    bibliography ran with Ollama down, so its LLM
+                                    timing is a 12-doc sample (6.9 s/doc)
 ```
 
 `git tag` lists **step-00-approved … step-05-approved**. Steps 06-11 have start approvals
