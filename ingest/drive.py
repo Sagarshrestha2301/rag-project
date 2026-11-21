@@ -177,9 +177,15 @@ def download(entry: Entry, dest: pathlib.Path, retries: int = 3) -> dict:
     }
 
 
-def mirror(source: pathlib.Path, corpus_root: pathlib.Path = CORPUS) -> tuple[pathlib.Path, str]:
-    """Hardlink `source` into the corpus tree, keeping its folder path (D-030)."""
-    relative = source.relative_to(RAW)
+def mirror(source: pathlib.Path, corpus_root: pathlib.Path = CORPUS,
+           raw_root: pathlib.Path = RAW) -> tuple[pathlib.Path, str]:
+    """Hardlink `source` into the corpus tree, keeping its folder path (D-030).
+
+    `raw_root` is the tree the relative folder is taken from; it is a parameter so a
+    batch staged somewhere else on the same volume can be tested without touching
+    `data/raw` (Step 10).
+    """
+    relative = source.relative_to(raw_root)
     target = corpus_root / relative
     if target.exists():
         return target, "already there"

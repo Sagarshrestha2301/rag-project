@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import shutil
 import sys
@@ -283,7 +284,126 @@ def bibliography_stage_survives_a_missing_model() -> None:
     assert record["title"] is None and "no model" in record["error"], record
 
 
+# --- batch ingestion ---------------------------------------------------------
+
+def batch_workspace() -> tuple[pathlib.Path, pathlib.Path, pathlib.Path, pathlib.Path]:
+    """(corpus root, index dir, staged raw root, wave log) in a fresh temp folder."""
+    corpus_root, index_dir = workspace()
+    raw = corpus_root.parent / "raw"
+    raw.mkdir(parents=True)
+    return corpus_root, index_dir, raw, corpus_root.parent / "logs" / "wave.jsonl"
+
+
+def add_batch(corpus_root: pathlib.Path, index_dir: pathlib.Path, raw: pathlib.Path,
+              log: pathlib.Path, source: pathlib.Path | None = None,
+              wave: str = "00") -> dict:
+    return pipeline.add_batch(source or raw / "incoming", wave, corpus_root=corpus_root,
+                              index_dir=index_dir,
+                              stages=("scan", "parse", "assemble", "chunk"),
+                              raw_root=raw, log_path=log)
+
+
+def a_batch_links_and_indexes_every_file():
+    corpus_root, index_dir, raw, log = batch_workspace()
+    make_pdf(raw / "incoming" / "alpha.pdf", pages_for("alpha"))
+    make_pdf(raw / "incoming" / "nested" / "beta.pdf", pages_for("beta"))
+    result = add_batch(corpus_root, index_dir, raw, log)
+    assert result["added"] == 2 and not result["refused"], result
+    assert (corpus_root / "incoming" / "alpha.pdf").is_file()
+    assert (corpus_root / "incoming" / "nested" / "beta.pdf").is_file(), \
+        "the batch lost its folder relative to data/raw"
+    assert result["build"]["counts"]["chunked"] == 2, result["build"]["counts"]
+    assert len(log.read_text(encoding="utf-8").splitlines()) == 2, "one log row per file"
+    manifest = pipeline.Manifest(index_dir)
+    try:
+        assert json.loads(manifest.get_meta("wave-00"))["documents"] == 2
+    finally:
+        manifest.close()
+
+
+def a_repeated_name_inside_the_batch_refuses_everything():
+    corpus_root, index_dir, raw, log = batch_workspace()
+    make_pdf(raw / "incoming" / "a" / "same.pdf", pages_for("alpha"))
+    make_pdf(raw / "incoming" / "b" / "same.pdf", pages_for("beta"))
+    result = add_batch(corpus_root, index_dir, raw, log)
+    assert result["added"] == 0 and result["refused"], result
+    assert not (corpus_root / "incoming").exists(), "a refused batch placed files"
+
+
+def a_name_the_corpus_already_has_is_refused():
+    corpus_root, index_dir, raw, log = batch_workspace()
+    existing = make_pdf(corpus_root / "existing.pdf", pages_for("keep"))
+    before = existing.read_bytes()
+    make_pdf(raw / "incoming" / "existing.pdf", pages_for("other"))
+    result = add_batch(corpus_root, index_dir, raw, log)
+    assert result["added"] == 0 and any("different file" in line for line in result["refused"]), \
+        result
+    assert existing.read_bytes() == before, "a refused batch overwrote a corpus file"
+
+
+def the_same_bytes_under_another_name_is_refused():
+    corpus_root, index_dir, raw, log = batch_workspace()
+    make_pdf(raw / "incoming" / "alpha.pdf", pages_for("alpha"))
+    assert add_batch(corpus_root, index_dir, raw, log)["added"] == 1
+    shutil.copyfile(corpus_root / "incoming" / "alpha.pdf", raw / "incoming" / "copy.pdf")
+    result = add_batch(corpus_root, index_dir, raw, log)
+    assert result["added"] == 0 and any("same bytes" in line for line in result["refused"]), \
+        result
+
+
+def rerunning_a_landed_batch_changes_nothing():
+    corpus_root, index_dir, raw, log = batch_workspace()
+    make_pdf(raw / "incoming" / "alpha.pdf", pages_for("alpha"))
+    make_pdf(raw / "incoming" / "beta.pdf", pages_for("beta"))
+    add_batch(corpus_root, index_dir, raw, log)
+    again = add_batch(corpus_root, index_dir, raw, log)
+    assert again["added"] == 0 and again["unchanged"] == 2 and not again["refused"], again
+    assert (corpus_root / "incoming" / "alpha.pdf").is_file()
+
+
+def a_batch_outside_raw_or_with_word_files_is_refused():
+    corpus_root, index_dir, raw, log = batch_workspace()
+    elsewhere = corpus_root.parent / "staging"
+    make_pdf(elsewhere / "alpha.pdf", pages_for("alpha"))
+    outside = add_batch(corpus_root, index_dir, raw, log, source=elsewhere)
+    assert outside["added"] == 0 and any("data/raw" in line for line in outside["refused"]), \
+        outside
+
+    make_pdf(raw / "incoming" / "alpha.pdf", pages_for("alpha"))
+    (raw / "incoming" / "report.docx").write_text("not a pdf", encoding="utf-8")
+    word = add_batch(corpus_root, index_dir, raw, log)
+    assert word["added"] == 0 and any("docx.pdf" in line for line in word["refused"]), word
+    assert not (corpus_root / "incoming" / "alpha.pdf").exists(), "the valid file was placed"
+
+
+def a_batch_is_copied_when_the_hardlink_fails():
+    corpus_root, index_dir, raw, log = batch_workspace()
+    source = make_pdf(raw / "incoming" / "alpha.pdf", pages_for("alpha"))
+    original = os.link
+
+    def refuse(*args, **kwargs):
+        raise OSError("links disabled in this test")
+
+    os.link = refuse
+    try:
+        result = add_batch(corpus_root, index_dir, raw, log)
+    finally:
+        os.link = original
+    assert result["modes"]["copied"] == 1, result
+    target = corpus_root / "incoming" / "alpha.pdf"
+    assert target.is_file() and target.read_bytes() == source.read_bytes()
+
+
 CASES = [
+    ("a batch links and indexes every file", a_batch_links_and_indexes_every_file),
+    ("a repeated name inside the batch refuses everything",
+     a_repeated_name_inside_the_batch_refuses_everything),
+    ("a name the corpus already has is refused", a_name_the_corpus_already_has_is_refused),
+    ("the same bytes under another name is refused", the_same_bytes_under_another_name_is_refused),
+    ("rerunning a landed batch changes nothing", rerunning_a_landed_batch_changes_nothing),
+    ("a batch outside raw or with Word files is refused",
+     a_batch_outside_raw_or_with_word_files_is_refused),
+    ("a batch is copied when the hardlink fails", a_batch_is_copied_when_the_hardlink_fails),
     ("pages.json matches a full corpus.build", pages_json_matches_a_full_build),
     ("the bibliography stage survives a dead model", bibliography_stage_survives_a_missing_model),
     ("chunk export is written and citable", chunk_export_is_written_and_citable),

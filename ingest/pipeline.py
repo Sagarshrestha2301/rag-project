@@ -24,6 +24,7 @@ skipped from the index. Nothing is ever deleted or renamed - the report lists it
 
 Usage:
     .venv\\Scripts\\python.exe -m ingest.pipeline build         # everything still pending
+    .venv\\Scripts\\python.exe -m ingest.pipeline add-batch --from data/raw/incoming-wave-00 --wave 00
     .venv\\Scripts\\python.exe -m ingest.pipeline build --limit 5
     .venv\\Scripts\\python.exe -m ingest.pipeline status
     .venv\\Scripts\\python.exe -m ingest.pipeline backup --out backups/2026-11-19
@@ -53,11 +54,14 @@ sys.path.insert(0, str(ROOT))
 import corpus                                     # noqa: E402
 from chunk import cli as chunk_cli                # noqa: E402
 from ingest import bibliography                   # noqa: E402
+from ingest import drive                          # noqa: E402
 from ingest import manifest as structure          # noqa: E402
 from ingest import text                           # noqa: E402
 
 DEFAULT_CORPUS = ROOT / "data" / "corpus"
 DEFAULT_INDEX = ROOT / "index"
+DEFAULT_RAW = ROOT / "data" / "raw"
+DEFAULT_WAVE_LOG = ROOT / "logs" / "wave-additions.jsonl"
 DB_NAME = "manifest.sqlite"
 SHARDS = "parsed/shards"
 
@@ -169,6 +173,10 @@ class Manifest:
     def set_meta(self, key: str, value: str) -> None:
         self.db.execute("INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)", (key, value))
         self.db.commit()
+
+    def get_meta(self, key: str) -> str | None:
+        row = self.db.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+        return row["value"] if row else None
 
     def close(self) -> None:
         self.db.close()
@@ -654,6 +662,128 @@ def restore(backup_dir: pathlib.Path, index_dir: pathlib.Path = DEFAULT_INDEX) -
     return status(index_dir)
 
 
+def _is_within(path: pathlib.Path, root: pathlib.Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def add_batch(source_dir: pathlib.Path, wave: str, *,
+              corpus_root: pathlib.Path = DEFAULT_CORPUS,
+              index_dir: pathlib.Path = DEFAULT_INDEX,
+              stages: tuple[str, ...] = ("scan", "parse", "assemble", "bibliography",
+                                         "chunk", "embed"),
+              limit: int | None = None, build_after: bool = True,
+              raw_root: pathlib.Path = DEFAULT_RAW,
+              log_path: pathlib.Path = DEFAULT_WAVE_LOG) -> dict:
+    """Bring one staged folder of PDFs into the corpus, all or nothing (Step 10).
+
+    Every refusal is decided before a single file is linked, so a batch with one bad
+    name leaves the corpus exactly as it was. Files keep their folder relative to
+    `raw_root` (D-030) and are hardlinked, copied only if the link fails. Rerunning a
+    batch that already landed reports the files as `unchanged` instead of refusing.
+
+    Example:
+        .venv\\Scripts\\python.exe -m ingest.pipeline add-batch \\
+            --from data/raw/incoming-wave-00 --wave 00
+        {'wave': '00', 'added': 2, 'unchanged': 0, 'refused': [], 'bytes': 48123,
+         'modes': {'hardlink': 2}, 'build': {...}}
+
+    A duplicate name prints every offending file and returns `added: 0`.
+    """
+    source = pathlib.Path(source_dir).resolve()
+    raw = pathlib.Path(raw_root).resolve()
+    corpus_dir = pathlib.Path(corpus_root).resolve()
+    refused: list[str] = []
+    added: list[dict] = []
+    unchanged: list[str] = []
+    modes: dict[str, int] = {"hardlink": 0, "copied": 0}
+    report: dict | None = None
+
+    if not source.is_dir():
+        refused.append(f"{source} is not a folder")
+    else:
+        if not _is_within(source, raw):
+            refused.append(f"{source} is not inside {raw}; a staged batch keeps its folder "
+                           "relative to data/raw")
+        if _is_within(source, corpus_dir):
+            refused.append(f"{source} is already inside the corpus ({corpus_dir})")
+
+    files = sorted(path for path in source.rglob("*") if path.is_file()) if not refused else []
+    if not refused and not files:
+        refused.append(f"{source} holds no files")
+
+    manifest = Manifest(index_dir)
+    try:
+        if not refused:
+            indexed = {row["sha256"]: row["name"] for row in manifest.rows()}
+            existing = ({path.name: path for path in corpus.files(corpus_dir)}
+                        if corpus_dir.is_dir() else {})
+            names: dict[str, pathlib.Path] = {}
+            hashes: dict[str, pathlib.Path] = {}
+            accepted: list[pathlib.Path] = []
+            for path in files:
+                if path.suffix.lower() != ".pdf":
+                    refused.append(f"{path.name}: not a .pdf - convert Word files with the "
+                                   "pinned LibreOffice to <name>.docx.pdf first")
+                    continue
+                digest = sha256(path)
+                if path.name in names:
+                    refused.append(f"{path.name}: appears twice in the batch "
+                                   f"({names[path.name]} and {path})")
+                    continue
+                names[path.name] = path
+                if path.name in existing:
+                    if sha256(existing[path.name]) == digest:
+                        unchanged.append(path.name)
+                    else:
+                        refused.append(f"{path.name}: the corpus already has a different "
+                                       f"file with that name ({existing[path.name]})")
+                    continue
+                if digest in hashes:
+                    refused.append(f"{path.name}: same bytes as {hashes[digest].name} "
+                                   "in this batch")
+                    continue
+                hashes[digest] = path
+                if digest in indexed:
+                    refused.append(f"{path.name}: same bytes as the indexed document "
+                                   f"{indexed[digest]}")
+                    continue
+                accepted.append(path)
+
+        if not refused:
+            for path in accepted:
+                target, mode = drive.mirror(path, corpus_dir, raw)
+                if mode == "already there":
+                    unchanged.append(path.name)
+                    continue
+                modes["hardlink" if mode == "hardlink" else "copied"] += 1
+                relative = target.relative_to(corpus_dir).as_posix()
+                drive.record({"name": path.name, "path": relative, "wave": str(wave),
+                              "sha256": sha256(path), "bytes": path.stat().st_size,
+                              "source": str(path)}, corpus_dir, mode, manifest=log_path)
+                added.append({"name": path.name, "path": relative,
+                              "bytes": path.stat().st_size, "mode": mode})
+
+            key = f"wave-{wave}"
+            previous = json.loads(manifest.get_meta(key) or "{}")
+            manifest.set_meta(key, json.dumps({
+                "documents": previous.get("documents", 0) + len(added),
+                "bytes": previous.get("bytes", 0) + sum(item["bytes"] for item in added),
+                "at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            }))
+
+            if build_after:
+                report = build(corpus_dir, index_dir, stages, limit)
+    finally:
+        manifest.close()
+
+    return {"wave": str(wave), "added": len(added), "unchanged": len(unchanged),
+            "refused": refused, "bytes": sum(item["bytes"] for item in added),            "modes": modes, "files": added, "build": report}
+
+
 # ---------------------------------------------------------------------- cli
 
 def main(argv: list[str]) -> int:
@@ -682,6 +812,19 @@ def main(argv: list[str]) -> int:
     restore_cmd.add_argument("--from", dest="source", required=True)
     restore_cmd.add_argument("--index", default=str(DEFAULT_INDEX))
 
+    batch_cmd = sub.add_parser("add-batch",
+                               help="link a staged folder of PDFs into the corpus, all or nothing")
+    batch_cmd.add_argument("--from", dest="source", required=True,
+                           help="staged folder, inside data/raw")
+    batch_cmd.add_argument("--wave", required=True, help="wave label, e.g. 00")
+    batch_cmd.add_argument("--corpus", default=str(DEFAULT_CORPUS))
+    batch_cmd.add_argument("--index", default=str(DEFAULT_INDEX))
+    batch_cmd.add_argument("--stages", default="scan,parse,assemble,bibliography,chunk,embed")
+    batch_cmd.add_argument("--limit", type=int, default=None)
+    batch_cmd.add_argument("--no-build", action="store_true",
+                           help="place the files and stop before parsing anything")
+    batch_cmd.add_argument("--log", default=str(DEFAULT_WAVE_LOG))
+
     args = parser.parse_args(argv)
 
     if args.command == "build":
@@ -701,6 +844,18 @@ def main(argv: list[str]) -> int:
                         pathlib.Path(args.out) if args.out else None)
         print(json.dumps(result, indent=1))
         return 0
+    if args.command == "add-batch":
+        summary = add_batch(pathlib.Path(args.source), args.wave,
+                            corpus_root=pathlib.Path(args.corpus),
+                            index_dir=pathlib.Path(args.index),
+                            stages=tuple(part.strip() for part in args.stages.split(",")
+                                         if part.strip()),
+                            limit=args.limit, build_after=not args.no_build,
+                            log_path=pathlib.Path(args.log))
+        print(json.dumps(summary, indent=1))
+        if summary["refused"]:
+            return 1
+        return 1 if summary["build"] and summary["build"]["failures"] else 0
     result = restore(pathlib.Path(args.source), pathlib.Path(args.index))
     print(json.dumps(result, indent=1))
     return 0

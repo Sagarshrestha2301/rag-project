@@ -104,6 +104,22 @@ name the corpus already has, then runs `ingest.pipeline build`, which parses onl
 or changed document, and prints the document and page counts before and after with the
 measured time. **PDFs only.**
 
+### 3.1a A staged folder of PDFs (a wave)
+
+Stage the files under `data\raw\incoming-wave-NN\` (owner-only), then:
+
+```powershell
+.venv\Scripts\python.exe -m ingest.pipeline add-batch --from data\raw\incoming-wave-00 --wave 00
+```
+
+It checks every file before placing anything, and exits 1 with a list when a file is not a
+PDF, is outside `data\raw`, repeats a name or bytes already in the corpus or in the same
+batch, or repeats a name the corpus has with different bytes. A refused batch places
+nothing. Accepted files are hardlinked with their folder relative to `data\raw`, one row
+per file goes to `logs\wave-additions.jsonl`, the wave is recorded in the manifest's `meta`
+table, and `build` runs on the new documents. Re-running the same folder reports
+`unchanged` and adds nothing; `--no-build` places the files without parsing.
+
 ### 3.2 Re-check the not-found questions
 
 ```powershell

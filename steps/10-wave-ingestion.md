@@ -42,11 +42,11 @@ wave of the 20k set can be added without a per-file script and without a half-la
      is no existing drive test to borrow this from).
 
 ## Definition of done
-- [ ] `add-batch` exists with the behaviour above and a docstring usage example
-- [ ] Refusal is all-or-nothing: one bad file leaves the corpus unchanged
-- [ ] Rerunning a landed batch is a no-op that reports `unchanged`
-- [ ] All seven test cases pass, and the existing 12 `ingest/test_pipeline.py` cases still pass
-- [ ] `RUNBOOK.md` "add documents" section mentions `add-batch` for multi-file batches
+- [x] `add-batch` exists with the behaviour above and a docstring usage example
+- [x] Refusal is all-or-nothing: one bad file leaves the corpus unchanged
+- [x] Rerunning a landed batch is a no-op that reports `unchanged`
+- [x] All seven test cases pass, and the existing 12 `ingest/test_pipeline.py` cases still pass
+- [x] `RUNBOOK.md` "add documents" section mentions `add-batch` for multi-file batches
 - [ ] `STATUS.md` records the command, its measured time on the pilot batch, and any TODO
 - [ ] Owner reviews a refusal message and a landed batch before sign-off
 
