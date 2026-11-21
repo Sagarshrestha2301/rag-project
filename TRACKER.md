@@ -37,9 +37,10 @@ step 11  pilot wave       RAN       6/6  boxes - 210 real PDFs fetched, 118 buil
                                     throwaway index in 3,528 s (29.9 s/document,
                                     51.4 pages/min parse); live index still 97 docs.
                                     One PDF crashes PyMuPDF's table detector natively
-                                    (a parse-isolation fix is proposed); the 118-doc
-                                    bibliography ran with Ollama down, so its LLM
-                                    timing is a 12-doc sample (6.9 s/doc)
+                                    (D-075 parse isolation proposed and approved by
+                                    the owner, not yet implemented); bibliography
+                                    re-timed with Ollama up: 866 s / 106 docs =
+                                    8.2 s/doc, 1 doc left in error
 ```
 
 `git tag` lists **step-00-approved … step-05-approved**. Steps 06-11 have start approvals
