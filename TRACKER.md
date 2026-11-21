@@ -38,9 +38,16 @@ step 11  pilot wave       RAN       6/6  boxes - 210 real PDFs fetched, 118 buil
                                     51.4 pages/min parse); live index still 97 docs.
                                     One PDF crashes PyMuPDF's table detector natively
                                     (D-075 parse isolation proposed and approved by
-                                    the owner, not yet implemented); bibliography
-                                    re-timed with Ollama up: 866 s / 106 docs =
-                                    8.2 s/doc, 1 doc left in error
+                                    the owner); bibliography re-timed with Ollama
+                                    up: 866 s / 106 docs = 8.2 s/doc, 1 doc left
+                                    in error
+step 12  parse isolation  BUILT     4/6  boxes - each document parses in its own
+                                    `parse-one` subprocess; pilot rerun 118
+                                    parsed / 1 failed / 2,275 pages in 48 m 03 s,
+                                    22/22 pipeline cases. Open: `add-batch` exits
+                                    1 on the crashed file (box says 0), and
+                                    `summary.json` timing fields; no
+                                    `APPROVALS.md` line yet
 ```
 
 `git tag` lists **step-00-approved … step-05-approved**. Steps 06-11 have start approvals

@@ -45,7 +45,9 @@ import json
 import pathlib
 import shutil
 import sqlite3
+import subprocess
 import sys
+import tempfile
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -62,6 +64,8 @@ DEFAULT_CORPUS = ROOT / "data" / "corpus"
 DEFAULT_INDEX = ROOT / "index"
 DEFAULT_RAW = ROOT / "data" / "raw"
 DEFAULT_WAVE_LOG = ROOT / "logs" / "wave-additions.jsonl"
+CRASH_PREFIX = "crash: exit code"   # parse_stage's record for a dead child (D-075)
+PARSE_ENTRY = [sys.executable, "-m", "ingest.pipeline", "parse-one"]
 DB_NAME = "manifest.sqlite"
 SHARDS = "parsed/shards"
 
@@ -265,11 +269,86 @@ def _near_duplicate(name: str, hashes: list[str], manifest: Manifest) -> str | N
     return None
 
 
+def parse_document(path: pathlib.Path, index_dir: pathlib.Path, sha: str,
+                   rel: str) -> dict:
+    """Parse one document into its three shards; returns only what the parent needs.
+
+    This function is run by a child process (see `parse_stage`), so it must stay
+    importable at module level and its arguments stay paths and strings, because the
+    caller passes them on a command line. A native crash inside PyMuPDF cannot be caught
+    in Python, which is exactly why the caller isolates it here (D-075).
+
+    Example:
+        >>> parse_document(pathlib.Path("data/corpus/a.pdf"), index / "parsed", sha, "a.pdf")
+        {'page_count': 5, 'unreadable': [3], 'page_hashes': ['9f2c…', …]}
+    """
+    search = corpus.parse_document(path)
+    pages, summary = structure.parse_document(path)
+    summary["furniture_lines"] = text.strip_furniture(pages)
+    _write(_shard(index_dir, sha, "search.json"),
+           json.dumps({**search, "sha256": sha, "path": rel}))
+    _write(_shard(index_dir, sha, "structure.jsonl"),
+           "".join(json.dumps(page.as_dict(), ensure_ascii=False) + "\n"
+                   for page in pages))
+    _write(_shard(index_dir, sha, "summary.json"),
+           json.dumps(summary, ensure_ascii=False))
+    return {"page_count": search["page_count"], "unreadable": search["unreadable"],
+            "page_hashes": _page_hashes(search["pages"])}
+
+
+def _run_isolated(path: pathlib.Path, index_dir: pathlib.Path, sha: str, rel: str,
+                  entry: list[str] | None = None) -> tuple[str, object]:
+    """Parse one document in a fresh interpreter: ('ok', result), ('error', text), ('crash', code).
+
+    A separate `python -m` process rather than `multiprocessing`: a native access
+    violation cannot be caught, and spawn was measured here to stall PyMuPDF's table
+    detector on a 198-page scanned report (`find_tables` -> `table.py:make_chars`, 1400 s
+    CPU, no return) where a plain new interpreter parsed the same file in 308 s.
+
+    `entry` is the command prefix, so a test can point the isolation at a fake parser.
+    """
+    entry = entry or PARSE_ENTRY
+    handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
+                                         encoding="utf-8")
+    result_file = pathlib.Path(handle.name)
+    handle.close()
+    try:
+        try:
+            completed = subprocess.run(
+                [*entry, "--path", str(path), "--index", str(index_dir),
+                 "--sha", sha, "--rel", rel, "--result", str(result_file)],
+                cwd=ROOT, check=False,
+                # The child prints parser banners; they belong with the progress lines,
+                # so `build`'s stdout stays the one JSON summary a script can read.
+                stdout=sys.stderr)
+        except OSError as exc:
+            return "error", f"{exc.__class__.__name__}: {exc}"
+        try:
+            report = json.loads(result_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return "crash", completed.returncode
+        if completed.returncode != 0 or "error" in report:
+            return "error", report.get("error", f"exit code {completed.returncode}")
+        return "ok", report
+    finally:
+        result_file.unlink(missing_ok=True)
+
+
 def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
-                limit: int | None = None) -> dict:
-    """Parse every pending or changed document, one shard per parse, with progress+ETA."""
+                limit: int | None = None, entry: list[str] | None = None) -> dict:
+    """Parse every pending or changed document in its own child process (D-075).
+
+    Each parse is a fresh interpreter (see `_run_isolated`), so a document that kills the
+    parser with a native access violation costs that one document (`crash: exit code N`)
+    instead of the whole batch; `assemble` skips the failed row, and still reports a row
+    marked `parsed` whose shards are missing. `entry` exists so tests can point the child
+    at a parser that exits or raises on purpose.
+    """
     todo = [row for row in manifest.rows() if row["status"] in ("pending", "failed")
-            and not row["duplicate_of"]]
+            and not row["duplicate_of"]
+            # A native crash is reproducible; retrying it every restart only burns time.
+            # A changed file gets a new SHA-256, which `upsert` turns back into `pending`.
+            and not (row["error"] or "").startswith(CRASH_PREFIX)]
     if limit:
         todo = todo[:limit]
     started = time.perf_counter()
@@ -278,23 +357,21 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
     for position, row in enumerate(todo, start=1):
         path = root / row["path"]
         began = time.perf_counter()
+        state, payload = _run_isolated(path, index_dir, row["sha256"], row["path"], entry)
+        if state != "ok":
+            failed += 1
+            error = (f"{CRASH_PREFIX} {payload}" if state == "crash" else str(payload))
+            manifest.set_status(row["name"], "failed", error=error)
+            print(f"  ! {row['name'][:56]}: {error}", file=sys.stderr)
+            continue
         try:
-            search = corpus.parse_document(path)
-            pages, summary = structure.parse_document(path)
-            summary["furniture_lines"] = text.strip_furniture(pages)
-            _write(_shard(index_dir, row["sha256"], "search.json"),
-                   json.dumps({**search, "sha256": row["sha256"], "path": row["path"]}))
-            _write(_shard(index_dir, row["sha256"], "structure.jsonl"),
-                   "".join(json.dumps(page.as_dict(), ensure_ascii=False) + "\n"
-                           for page in pages))
-            _write(_shard(index_dir, row["sha256"], "summary.json"),
-                   json.dumps(summary, ensure_ascii=False))
-            hashes = _page_hashes(search["pages"])
+            result = dict(payload)
+            hashes = result["page_hashes"]
             duplicate_of = _near_duplicate(row["name"], hashes, manifest)
             manifest.set_status(
                 row["name"], "duplicate" if duplicate_of else "parsed",
-                duplicate_of=duplicate_of, pages=search["page_count"],
-                unreadable_pages=json.dumps(search["unreadable"]),
+                duplicate_of=duplicate_of, pages=result["page_count"],
+                unreadable_pages=json.dumps(result["unreadable"]),
                 page_hashes=json.dumps(hashes),
                 seconds=round(time.perf_counter() - began, 1))
             if duplicate_of:
@@ -313,7 +390,7 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
         done = time.perf_counter() - started
         eta = (done / position) * (len(todo) - position)
         print(f"  [{position}/{len(todo)}] {row['name'][:52]:54s} "
-              f"{search['page_count']:>3}p {time.perf_counter() - began:>6.1f}s "
+              f"{result['page_count']:>3}p {time.perf_counter() - began:>6.1f}s "
               f"eta {eta:>5.0f}s", file=sys.stderr)
 
     manifest.set_meta("last_parse", time.strftime("%Y-%m-%dT%H:%M:%S"))
@@ -833,7 +910,26 @@ def main(argv: list[str]) -> int:
                            help="place the files and stop before parsing anything")
     batch_cmd.add_argument("--log", default=str(DEFAULT_WAVE_LOG))
 
+    # Not for people: the child half of parse isolation (D-075), spawned by parse_stage.
+    one_cmd = sub.add_parser("parse-one", help=argparse.SUPPRESS)
+    one_cmd.add_argument("--path", required=True)
+    one_cmd.add_argument("--index", required=True)
+    one_cmd.add_argument("--sha", required=True)
+    one_cmd.add_argument("--rel", required=True)
+    one_cmd.add_argument("--result", required=True)
+
     args = parser.parse_args(argv)
+
+    if args.command == "parse-one":
+        try:
+            report = parse_document(pathlib.Path(args.path), pathlib.Path(args.index),
+                                    args.sha, args.rel)
+        except Exception as exc:              # noqa: BLE001 - the parent records the text
+            _write(pathlib.Path(args.result),
+                   json.dumps({"error": f"{exc.__class__.__name__}: {exc}"}))
+            return 2
+        _write(pathlib.Path(args.result), json.dumps(report))
+        return 0
 
     if args.command == "build":
         report = build(pathlib.Path(args.corpus), pathlib.Path(args.index),

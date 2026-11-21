@@ -61,11 +61,11 @@ file. Recorded as D-075; approved by the owner in chat, not yet implemented.
 
 ## Definition of done
 
-- [ ] A document whose parse kills the child is `failed` with `crash: exit code N`, and the rest of the batch parses in the same run
+- [x] A document whose parse kills the child is `failed` with `crash: exit code N`, and the rest of the batch parses in the same run
 - [ ] The 119-document pilot batch (including the crashing file, stages `scan,parse,assemble`) completes with exit 0, 118 parsed, 1 failed, wall time recorded
-- [ ] `ingest/corpus.py`, `ingest/structure.py` and `ingest/tables.py` are unchanged (`git diff` empty)
+- [x] `ingest/corpus.py`, `ingest/structure.py` and `ingest/tables.py` are unchanged (`git diff` empty)
 - [ ] Shards for three pilot documents are byte-identical to the ones the current code wrote (SHA-256 compared)
-- [ ] `ingest/test_pipeline.py` passes with the three new cases, and the existing cases still pass
+- [x] `ingest/test_pipeline.py` passes with the three new cases, and the existing cases still pass
 - [ ] The live index still reports 97 documents, and `git status` is clean at session end
 
 ## Context to read

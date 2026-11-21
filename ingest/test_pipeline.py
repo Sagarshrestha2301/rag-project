@@ -284,6 +284,100 @@ def bibliography_stage_survives_a_missing_model() -> None:
     assert record["title"] is None and "no model" in record["error"], record
 
 
+# --- parse isolation (D-075) ------------------------------------------------
+
+# A parser to point the isolation at: `boom` dies with no result (like a native crash),
+# `sulk` reports a normal exception, anything else parses for real.
+FAKE_PARSER = """
+import json, pathlib, sys
+sys.path.insert(0, __ROOT__)
+from ingest import pipeline
+args = dict(zip(sys.argv[1::2], sys.argv[2::2]))
+if "boom" in args["--path"]:
+    sys.exit(17)
+if "sulk" in args["--path"]:
+    pathlib.Path(args["--result"]).write_text(
+        json.dumps({"error": "ValueError: cannot read this page"}), encoding="utf-8")
+    sys.exit(2)
+report = pipeline.parse_document(pathlib.Path(args["--path"]),
+                                 pathlib.Path(args["--index"]),
+                                 args["--sha"], args["--rel"])
+pathlib.Path(args["--result"]).write_text(json.dumps(report), encoding="utf-8")
+"""
+
+
+def fake_entry() -> list[str]:
+    """The isolation command prefix pointing at `FAKE_PARSER`."""
+    return [sys.executable, "-c", FAKE_PARSER.replace("__ROOT__", repr(str(ROOT)))]
+
+
+def staged_manifest(root: pathlib.Path, index: pathlib.Path):
+    manifest = pipeline.Manifest(index)
+    pipeline.scan(root, manifest)
+    return manifest
+
+
+def a_crashed_parse_costs_one_document():
+    root, index = workspace()
+    for name in ("a", "boom", "c"):
+        make_pdf(root / f"1970_{name}_test.pdf", pages_for(name))
+    manifest = staged_manifest(root, index)
+    try:
+        report = pipeline.parse_stage(root, index, manifest, entry=fake_entry())
+        assert report["parsed"] == 2 and report["failed"] == 1, report
+        row = manifest.row("1970_boom_test.pdf")
+        assert row["status"] == "failed", row["status"]
+        assert row["error"] == "crash: exit code 17", row["error"]
+        assert manifest.row("1970_c_test.pdf")["status"] == "parsed", "the batch stopped"
+    finally:
+        manifest.close()
+    # Same wave, second pass: a recorded crash is not retried (it would just die again).
+    again_manifest = pipeline.Manifest(index)
+    try:
+        again = pipeline.parse_stage(root, index, again_manifest, entry=fake_entry())
+    finally:
+        again_manifest.close()
+    assert again["parsed"] == 0 and again["failed"] == 0, again
+    assembled = pipeline.assemble(root, index, pipeline.Manifest(index))
+    assert assembled["documents"] == 2, assembled
+    docs = json.loads((index / "pages.json").read_text(encoding="utf-8"))["docs"]
+    assert "1970_boom_test.pdf" not in [doc["doc"] for doc in docs], docs
+    # A status that claims `parsed` without shards on disk (a kill between the two) is
+    # reported, not assembled into pages with no text.
+    guard = pipeline.Manifest(index)
+    try:
+        guard.set_status("1970_boom_test.pdf", "parsed")
+        assert pipeline.assemble(root, index, guard)["missing_shards"] == ["1970_boom_test.pdf"]
+    finally:
+        guard.close()
+
+
+def a_raising_parse_keeps_its_error_text():
+    root, index = workspace()
+    make_pdf(root / "1970_sulk_test.pdf", pages_for("a"))
+    manifest = staged_manifest(root, index)
+    try:
+        report = pipeline.parse_stage(root, index, manifest, entry=fake_entry())
+        assert report["failed"] == 1 and report["parsed"] == 0, report
+        row = manifest.row("1970_sulk_test.pdf")
+        assert row["error"] == "ValueError: cannot read this page", row["error"]
+    finally:
+        manifest.close()
+
+
+def isolated_counters_add_up():
+    root, index = workspace()
+    for name in "ABC":
+        make_pdf(root / f"1970_{name}_test.pdf", pages_for(name))
+    manifest = staged_manifest(root, index)
+    try:
+        report = pipeline.parse_stage(root, index, manifest)
+    finally:
+        manifest.close()
+    assert report["parsed"] == 3 and report["failed"] == 0, report
+    assert report["seconds"] > 0, report
+
+
 # --- batch ingestion ---------------------------------------------------------
 
 def batch_workspace() -> tuple[pathlib.Path, pathlib.Path, pathlib.Path, pathlib.Path]:
@@ -401,6 +495,9 @@ def a_batch_is_copied_when_the_hardlink_fails():
 
 
 CASES = [
+    ("a crashed parse costs one document", a_crashed_parse_costs_one_document),
+    ("a raising parse keeps its error text", a_raising_parse_keeps_its_error_text),
+    ("isolated parse counters add up", isolated_counters_add_up),
     ("a batch links and indexes every file", a_batch_links_and_indexes_every_file),
     ("a repeated name inside the batch refuses everything",
      a_repeated_name_inside_the_batch_refuses_everything),
