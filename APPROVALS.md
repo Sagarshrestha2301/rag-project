@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-21 | start | step 11 | owner
 2026-11-21 | start | step 10 | owner
 2026-11-20 | approval | D-068, D-070, D-071, D-072, D-073 (five Step 9 experiment outcomes) | owner
 2026-11-20 | completion | step 07 | owner
@@ -77,6 +78,13 @@ omitted so the log matches what happened; see "Proposals for owner" in `STATUS.m
 explicit instruction in chat - "approve all the remaining" - and committed in an `OWNER:`
 commit, the same way the 2026-11-13 lines were. The owner has not yet created the
 `step-06-approved` tag; rule 12 leaves that to the owner.)
+
+(2026-11-21: the step 11 start line above, and the pilot download it authorises, were
+requested by the owner in chat - "download it from the drive link i have provided and do
+the recommend part" - after choosing "Pilot 200 first" from the two scope options. The
+folder id was taken from `logs/drive-tree.json` because no link was present in the
+session; the owner confirmed that root when choosing the option. Typed in an `OWNER:`
+commit by the agent, as on 2026-11-13, 2026-11-17 and 2026-11-20.
 
 (2026-11-21: the step 10 start line above was typed by the coding agent on the owner's
 explicit chat instruction - "Add the step-10 start approval line and step file so the
