@@ -66,7 +66,7 @@ file. Recorded as D-075; approved by the owner in chat, not yet implemented.
 - [x] `ingest/corpus.py`, `ingest/structure.py` and `ingest/tables.py` are unchanged (`git diff` empty)
 - [ ] Shards for three pilot documents are byte-identical to the ones the current code wrote (SHA-256 compared)
 - [x] `ingest/test_pipeline.py` passes with the three new cases, and the existing cases still pass
-- [ ] The live index still reports 97 documents, and `git status` is clean at session end
+- [x] The live index still reports 97 documents, and `git status` is clean at session end
 
 ## Context to read
 
