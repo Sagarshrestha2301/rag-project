@@ -341,14 +341,20 @@ def a_name_the_corpus_already_has_is_refused():
     assert existing.read_bytes() == before, "a refused batch overwrote a corpus file"
 
 
-def the_same_bytes_under_another_name_is_refused():
+def the_same_bytes_under_another_name_is_skipped():
+    """Owner request 2026-11-21: a duplicate is reported, not a reason to lose the batch."""
     corpus_root, index_dir, raw, log = batch_workspace()
     make_pdf(raw / "incoming" / "alpha.pdf", pages_for("alpha"))
     assert add_batch(corpus_root, index_dir, raw, log)["added"] == 1
     shutil.copyfile(corpus_root / "incoming" / "alpha.pdf", raw / "incoming" / "copy.pdf")
+    make_pdf(raw / "incoming" / "beta.pdf", pages_for("beta"))
     result = add_batch(corpus_root, index_dir, raw, log)
-    assert result["added"] == 0 and any("same bytes" in line for line in result["refused"]), \
-        result
+    assert result["added"] == 1, result
+    assert [item["name"] for item in result["skipped"]] == ["copy.pdf"], result
+    assert "same bytes" in result["skipped"][0]["reason"], result
+    assert not result["refused"], result
+    assert (corpus_root / "incoming" / "beta.pdf").is_file(), "the new file was not placed"
+    assert not (corpus_root / "incoming" / "copy.pdf").exists(), "the duplicate was placed"
 
 
 def rerunning_a_landed_batch_changes_nothing():
@@ -399,7 +405,7 @@ CASES = [
     ("a repeated name inside the batch refuses everything",
      a_repeated_name_inside_the_batch_refuses_everything),
     ("a name the corpus already has is refused", a_name_the_corpus_already_has_is_refused),
-    ("the same bytes under another name is refused", the_same_bytes_under_another_name_is_refused),
+    ("the same bytes under another name is skipped", the_same_bytes_under_another_name_is_skipped),
     ("rerunning a landed batch changes nothing", rerunning_a_landed_batch_changes_nothing),
     ("a batch outside raw or with Word files is refused",
      a_batch_outside_raw_or_with_word_files_is_refused),

@@ -113,9 +113,10 @@ Stage the files under `data\raw\incoming-wave-NN\` (owner-only), then:
 ```
 
 It checks every file before placing anything, and exits 1 with a list when a file is not a
-PDF, is outside `data\raw`, repeats a name or bytes already in the corpus or in the same
-batch, or repeats a name the corpus has with different bytes. A refused batch places
-nothing. Accepted files are hardlinked with their folder relative to `data\raw`, one row
+PDF, is outside `data\raw`, repeats a name inside the batch, or repeats a name the corpus
+has with different bytes. A file whose bytes are already indexed, or repeat an earlier
+file in the same batch, is **skipped** and listed with the document it repeats; the rest
+of the batch still lands. A refused batch places nothing. Accepted files are hardlinked with their folder relative to `data\raw`, one row
 per file goes to `logs\wave-additions.jsonl`, the wave is recorded in the manifest's `meta`
 table, and `build` runs on the new documents. Re-running the same folder reports
 `unchanged` and adds nothing; `--no-build` places the files without parsing.

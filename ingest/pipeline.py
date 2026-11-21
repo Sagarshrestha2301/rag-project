@@ -688,10 +688,12 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
     Example:
         .venv\\Scripts\\python.exe -m ingest.pipeline add-batch \\
             --from data/raw/incoming-wave-00 --wave 00
-        {'wave': '00', 'added': 2, 'unchanged': 0, 'refused': [], 'bytes': 48123,
-         'modes': {'hardlink': 2}, 'build': {...}}
+        {'wave': '00', 'added': 2, 'unchanged': 0, 'skipped': [], 'refused': [],
+         'bytes': 48123, 'modes': {'hardlink': 2}, 'build': {...}}
 
-    A duplicate name prints every offending file and returns `added: 0`.
+    A duplicate name prints every offending file and returns `added: 0`. A file whose
+    bytes are already indexed is **skipped** with its reason and the rest of the batch
+    still lands, so re-fetching a folder that overlaps the corpus is harmless.
     """
     source = pathlib.Path(source_dir).resolve()
     raw = pathlib.Path(raw_root).resolve()
@@ -699,6 +701,7 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
     refused: list[str] = []
     added: list[dict] = []
     unchanged: list[str] = []
+    skipped: list[dict] = []
     modes: dict[str, int] = {"hardlink": 0, "copied": 0}
     report: dict | None = None
 
@@ -743,13 +746,16 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
                                        f"file with that name ({existing[path.name]})")
                     continue
                 if digest in hashes:
-                    refused.append(f"{path.name}: same bytes as {hashes[digest].name} "
-                                   "in this batch")
+                    # A duplicate is skipped, not fatal: the batch still lands and the
+                    # report says which file it repeats (owner request, 2026-11-21).
+                    skipped.append({"name": path.name,
+                                    "reason": f"same bytes as {hashes[digest].name} in this batch"})
                     continue
                 hashes[digest] = path
                 if digest in indexed:
-                    refused.append(f"{path.name}: same bytes as the indexed document "
-                                   f"{indexed[digest]}")
+                    skipped.append({"name": path.name,
+                                    "reason": f"same bytes as the indexed document "
+                                              f"{indexed[digest]}"})
                     continue
                 accepted.append(path)
 
@@ -781,7 +787,9 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
         manifest.close()
 
     return {"wave": str(wave), "added": len(added), "unchanged": len(unchanged),
-            "refused": refused, "bytes": sum(item["bytes"] for item in added),            "modes": modes, "files": added, "build": report}
+            "skipped": skipped, "refused": refused,
+            "bytes": sum(item["bytes"] for item in added),
+            "modes": modes, "files": added, "build": report}
 
 
 # ---------------------------------------------------------------------- cli
