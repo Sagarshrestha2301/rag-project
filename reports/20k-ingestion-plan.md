@@ -233,6 +233,22 @@ hunch; change on one of these measured triggers:
 The reranker is the change I expect to need first, and the pilot is designed to say so at
 200 documents rather than after 20,000.
 
+**Measured 2026-11-21: the sharding trigger arrives around 9,000 documents, not 20,000.**
+Loading `index/pages.json` and building its page BM25 on the real 851-page index, then on a
+synthetic 1,702-page copy of it (every page duplicated, token counts unchanged), gives
+linear growth in both memory and query time:
+
+| | 851 pages | 1,702 pages |
+|---|---|---|
+| BM25 top-5 latency | p50 2.54 ms, p95 3.18 ms | p50 5.15 ms, p95 7.16 ms |
+| RSS after BM25 | 73 MB | 95 MB |
+
+Doubling pages doubles the latency, so the section's own **p95 > 300 ms** trigger is reached
+at about **80,000 pages (~9,100 documents)** and **2 GB RSS** at about **81,000 pages
+(~9,200 documents)** - during wave 4 or 5, not near the end. That is a linear extrapolation
+from two measured points, not a 20k measurement, but it is enough to plan the SQLite
+FTS5-or-shard step *before* wave 4 rather than after the corpus is built.
+
 ---
 
 ## 7. Decisions the owner has to make before wave 0
