@@ -1,6 +1,6 @@
 # Tracker — where this project stands and what is yours to decide
 
-One page, checked against the repository on **2026-11-20**: `git log`, `git tag`,
+One page, checked against the repository on **2026-11-21**: `git log`, `git tag`,
 `APPROVALS.md`, `STATUS.md`, `DECISIONS.md`, `EVAL.md` and the DoD boxes in `steps/`. If
 this page and those files disagree, the files win — this is a summary.
 
@@ -21,18 +21,24 @@ step 03  parsing          TAGGED    4/7  boxes (97 docs, 851 pages, 242 tables);
 step 04  chunk + embed    DONE      5/5  boxes, tagged (3,226 chunks with contexts)
 step 05  hybrid retrieval DONE      7/7  boxes, tagged (hybrid rejected on measurement; BM25 kept)
 step 06  generation       DONE      7/7  boxes - completion line recorded, tag still yours
-step 07  web UI           BUILT     7/8  boxes - only the Wi-Fi-off session left, and it
-                                    needs an elevated prompt
-step 08  full ingestion   BUILT     9/10 boxes - the offline proof (elevated) and the
-                                    100k-page scope (D-063) are the two open items
-step 09  tuning + docs    BUILT     4/5  boxes - RUNBOOK.md written and followed; three
-                                    experiments measured: prose refusals and the table pass
-                                    rejected (D-068, D-070), the per-sentence citation
-                                    prompt kept (D-071) and now the baseline
+step 07  web UI           DONE      8/8  boxes - the Wi-Fi-off session passed on the
+                                    owner's own run (reported 2026-11-20)
+step 08  full ingestion   BUILT     10/10 boxes - the offline proof passed on the owner's
+                                    run (reported 2026-11-21); only the 100k-page scope
+                                    decision (D-063) is open before the tag
+step 09  tuning + docs    SIGNED OFF 5/5 boxes - six experiments measured; two kept
+                                    (D-071, D-072), three rejected (D-068, D-070, D-073),
+                                    RUNBOOK.md written and followed; owner approval
+                                    2026-11-20, tags are yours
+step 10  batch ingestion  BUILT     5/7  boxes - `add-batch` with an all-or-nothing
+                                    pre-flight, 19/19 pipeline cases; open: a real
+                                    pilot batch's wall time and your review
+step 11  pilot download   BLOCKED   start approved; Drive fetch fails with WinError 10013
+                                    because this sandbox blocks outbound sockets
 ```
 
-`git tag` lists **step-00-approved … step-05-approved**. Steps 06-09 have start approvals
-in `APPROVALS.md`; step 06 also has its completion line. Only you create tags.
+`git tag` lists **step-00-approved … step-05-approved**. Steps 06-11 have start approvals
+in `APPROVALS.md`; step 06 and step 09 also have completion lines. Only you create tags.
 
 ## 2. What actually works today
 
@@ -65,6 +71,10 @@ One answer path, and it is the one the eval measures:
 - **`scripts/add-document.ps1 -Path <pdf>`** adds a document in one command and ingests only
   that document; `scripts/recheck-not-found.py` re-checks every unanswerable question after a
   corpus change. Both are refusals-tested and in `RUNBOOK.md` §3.
+- **`python -m ingest.pipeline add-batch --from <staged folder> --wave NN`** brings a whole
+  folder of PDFs in at once: it checks every file before placing any, refuses the batch on a
+  bad name or a non-PDF, skips files whose bytes are already indexed (with the reason), then
+  runs the build. `RUNBOOK.md` §3.1a; 19/19 pipeline cases.
 - **`eval/gate.py`** enforces `EVAL.md`'s regression gate (two baselines, per-question diff,
   non-zero exit when a rule breaks — `RUNNING.md` §3c). It is what rejected D-060.
 - **`scripts/offline-generation-proof.ps1`** proves the pipeline runs with the network
@@ -83,8 +93,8 @@ Measured, not claimed (2026-11-19 unless a row says otherwise):
 | Held-out milestone | **5/10 passed**, recall@5 8/9, MRR 0.806 — both gates pass |
 | Experiments tried 2026-11-20 | prose refusals **rejected** (D-068); page-level table pass **rejected** (D-070); per-sentence citation prompt **kept** (D-071); retry guard **kept** (**37/55**, q047 fixed, D-072); table rows in the passage **rejected** (overflows the context, D-073) |
 | Backup / restore | 40 MB snapshot restores byte-identically, 3,226 dense rows, same top BM25 page (re-run 2026-11-20) |
-| Offline proof | step 06 **PASS** 2026-11-17 (6 firewall rules + refused probes, run identical to online); steps 07 and 08 **not run** — they need an elevated prompt |
-| Unit suites | 26 verifier, 21 cache, 11 condense, 9 gate, 7 prompt, 16 router, 10 think, 12 ingest pipeline, 8 UI server, 7 UI pipeline, 7 corpus, 6 chunk suites pass; `eval/test_scorer.py` is stale (its fixtures still assume 30 questions) |
+| Offline proof | step 06 **PASS** 2026-11-17 (6 firewall rules + refused probes, run identical to online); steps 07 and 08 **PASS on the owner's own run** (reported 2026-11-20 and 2026-11-21). No output file from those two runs was supplied to the repository |
+| Unit suites | 26 verifier, 21 cache, 11 condense, 9 gate, 7 prompt, 16 router, 10 think, **19 ingest pipeline**, 8 UI server, 7 UI pipeline, 7 corpus, 6 chunk suites pass; `eval/test_scorer.py` was rebuilt 2026-11-20 and passes |
 
 ## 3. Open decisions only you can sign
 
@@ -119,19 +129,23 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
    are not retrieved at all (D-069).
 4. **Citation 31/48** is under the strict rule you chose (D-041) and stays that way: the
    failures are paraphrase and extra pages, not invented sources.
-5. **The offline proofs for Steps 07 and 08 need an elevated prompt.** This shell cannot
-   create firewall rules (`Access is denied`, Windows System Error 5); the scripts are
-   written and parse-checked, and Step 06's identical script passed.
+5. **The offline proofs for Steps 07 and 08 were run by the owner, not by an agent.** Both
+   boxes are ticked on the owner's report (2026-11-20 and 2026-11-21); no console output or
+   artifact from those runs is in `artifacts/`, so the repository cannot show them. Step 06's
+   identical script is the only offline run with recorded output. Note also that the six
+   `step7-offline-proof` firewall rules are still enabled; removing them needs an elevated
+   shell (`Access is denied`).
 6. **19 of 851 pages (2.2%) stay unreadable after OCR**, above the 1–2% band D-020 uses to
    decide. OCR is already applied (86 pages), so the remaining action is a decision.
 
 ## 5. What to do, in this order
 
-1. **Step 6:** `git tag step-06-approved` (the completion line is already in `APPROVALS.md`).
-2. **Offline proofs, elevated prompt:** `scripts\offline-ui-proof.ps1` for Step 07 and
-   `scripts\offline-generation-proof.ps1` for Step 08.
-3. **Decide D-063 / D-064 / D-065** (one line each), then tag `step-07-approved` and
-   `step-08-approved`.
+1. **Tags:** `step-06-approved` (completion line already recorded), then
+   `step-07-approved` and `step-08-approved` now that their offline boxes are ticked.
+2. **Decide D-063 / D-064 / D-065** (one line each); D-063 is the only thing between
+   Step 08 and its completion line.
+3. **Step 10:** stage the pilot and run `add-batch`, then review one refusal and one landed
+   batch; Step 11 waits on a network the sandbox does not have.
 4. **Confirm the not-found questions:** `reports/not-found-recheck.md` lists all 7 with the
    best pages and the pages containing every term, and leaves the verdict to you (D-027).
 5. **D-068:** accept that D-060 is rejected, or tell me to take the not-found (b) drop for
