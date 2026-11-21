@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-21 | start | step 10 | owner
 2026-11-20 | approval | D-068, D-070, D-071, D-072, D-073 (five Step 9 experiment outcomes) | owner
 2026-11-20 | completion | step 07 | owner
 2026-11-20 | completion | step 09 | owner
@@ -76,6 +77,12 @@ omitted so the log matches what happened; see "Proposals for owner" in `STATUS.m
 explicit instruction in chat - "approve all the remaining" - and committed in an `OWNER:`
 commit, the same way the 2026-11-13 lines were. The owner has not yet created the
 `step-06-approved` tag; rule 12 leaves that to the owner.)
+
+(2026-11-21: the step 10 start line above was typed by the coding agent on the owner's
+explicit chat instruction - "Add the step-10 start approval line and step file so the
+add-batch work can begin" - and committed in an `OWNER:` commit, as on 2026-11-13,
+2026-11-17 and 2026-11-20. The step file was drafted by the agent from
+`reports/20k-ingestion-plan.md` and the ingest audit, and the owner has not yet edited it.)
 
 (2026-11-20: the three newest lines were typed by the coding agent on the owner's explicit
 instruction in chat - "approve all the remaining and open all the remaining steps or task" -
