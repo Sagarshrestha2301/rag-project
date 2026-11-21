@@ -120,11 +120,16 @@ def pdfs_by_folder(folder_id: str, include_parked: bool = False) -> dict[tuple[s
     return folders
 
 
-def plan(folder_id: str, per_category: int, include_parked: bool = False) -> list[tuple[pathlib.Path, Entry]]:
-    """The files to download: fill each leaf folder up to `per_category` PDFs."""
+def plan(folder_id: str, per_category: int, include_parked: bool = False,
+         raw_root: pathlib.Path = RAW) -> list[tuple[pathlib.Path, Entry]]:
+    """The files to download: fill each leaf folder up to `per_category` PDFs.
+
+    `raw_root` is where the tree is mirrored; a pilot stages into its own folder so the
+    live corpus keeps its 97 documents (Step 11).
+    """
     wanted: list[tuple[pathlib.Path, Entry]] = []
     for prefix, entries in pdfs_by_folder(folder_id, include_parked).items():
-        local = RAW.joinpath(*prefix)
+        local = raw_root.joinpath(*prefix)
         have = {p.name for p in local.glob("*.pdf")} if local.is_dir() else set()
         missing = [e for e in entries if e.name not in have]
         room = per_category - len(have)
@@ -233,9 +238,13 @@ def main() -> int:
                         help="PDFs to keep in each leaf folder (default 2)")
     parser.add_argument("--include-parked", action="store_true",
                         help="also fetch folders whose name starts with '_'")
+    parser.add_argument("--dest", default=None,
+                        help="stage into this tree instead of data/raw; nothing is mirrored "
+                             "into the corpus and rows go to logs/drive-pilot.jsonl")
     args = parser.parse_args()
 
-    wanted = plan(args.folder_id, args.per_category, args.include_parked)
+    raw_root = pathlib.Path(args.dest) if args.dest else RAW
+    wanted = plan(args.folder_id, args.per_category, args.include_parked, raw_root)
     print(f"{len(wanted)} PDFs to fetch ({args.per_category} per leaf folder)")
     for folder, entry in wanted:
         print(f"  {folder / entry.name}")
@@ -243,7 +252,7 @@ def main() -> int:
     if args.command == "plan":
         return 0
 
-    known = local_hashes()
+    known = local_hashes(raw_root)
     added = skipped = 0
     for number, (folder, entry) in enumerate(wanted, start=1):
         dest = folder / entry.name
@@ -255,10 +264,17 @@ def main() -> int:
             print(f"  duplicate of {known[info['sha256']]}; not added")
             continue
         known[info["sha256"]] = str(dest)
+        if raw_root != RAW:
+            # Staged for the wave pipeline: no corpus write until add-batch is run, and
+            # its own log so the 97-document download record stays as it was.
+            record(info, raw_root, "staged", manifest=pathlib.Path("logs/drive-pilot.jsonl"))
+            added += 1
+            continue
         corpus, mode = mirror(dest)
         record(info, corpus, mode)
         added += 1
-    print(f"done: {added} added, {skipped} duplicates skipped; manifest at {MANIFEST}")
+    log = MANIFEST if raw_root == RAW else pathlib.Path("logs/drive-pilot.jsonl")
+    print(f"done: {added} added, {skipped} duplicates skipped; manifest at {log}")
     return 0
 
 
