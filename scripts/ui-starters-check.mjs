@@ -107,6 +107,30 @@ const clickChip = async (session, index) => session.evaluate(`(() => {
   return true;
 })()`);
 
+const readReferences = async (session) => session.evaluate(`(() => {
+  const lines = [...document.querySelectorAll(".message--assistant .message__ref-link")];
+  return lines.map((line, index) => ({
+    index,
+    page: Number(line.dataset.page || 0),
+    doc: line.dataset.doc || "",
+    text: line.textContent.trim(),
+    hasQuote: Boolean((line.dataset.text || "").trim()),
+  }));
+})()`);
+
+const clickReference = async (session, index) => session.evaluate(`(() => {
+  const line = [...document.querySelectorAll(".message--assistant .message__ref-link")][${index}];
+  if (!line) return false;
+  line.click();
+  return true;
+})()`);
+
+const viewerOpen = (session) => session.evaluate(`(() => {
+  const link = document.querySelector(".cite-viewer__open");
+  return link ? { href: link.getAttribute("href") || "",
+                  label: link.textContent.trim() } : null;
+})()`);
+
 const closeViewer = async (session) => {
   await session.evaluate(`(() => {
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
@@ -182,6 +206,34 @@ try {
       if (!(await closeViewer(session))) card.failed.push("the viewer did not close");
     }
 
+    // The reference line under the answer is a control too (owner, 2026-11-21): the
+    // whole line opens its cited page in the same viewer, with the quote highlighted.
+    card.references = await readReferences(session);
+    if (!card.references.length) {
+      card.failed.push("the answer carries no clickable reference line");
+    }
+    for (const reference of card.references) {
+      if (!(await clickReference(session, reference.index))) {
+        card.failed.push(`reference ${reference.index + 1} could not be clicked`);
+        continue;
+      }
+      const seen = await waitForViewer(session,
+        (view) => Number(view.page) === reference.page && view.hits > 0);
+      if (!seen) {
+        card.failed.push(`reference line opened no highlighted page ${reference.page}`);
+      } else {
+        const link = await viewerOpen(session);
+        if (!link || !link.href.endsWith(`#page=${reference.page}`)) {
+          card.failed.push(`reference viewer does not offer the original PDF at page ${reference.page}`);
+        } else if (link.label !== "Open original PDF") {
+          card.failed.push(`the original-PDF button reads "${link.label}"`);
+        } else {
+          card.openedReferences = (card.openedReferences || 0) + 1;
+        }
+      }
+      if (!(await closeViewer(session))) card.failed.push("the viewer did not close");
+    }
+
     if (card.status !== "verified") card.failed.push(`the answer settled as ${card.status}`);
     if (!card.chips.length) card.failed.push("the answer carries no citation chip");
     state.cards.push(card);
@@ -199,8 +251,10 @@ writeFileSync(OUT, JSON.stringify(state, null, 1));
 
 for (const card of state.cards) {
   const chips = card.chips.length;
+  const references = (card.references || []).length;
   console.log(`card ${card.index}  ${card.status || "no answer"}  chips ${chips}  `
-    + `viewer ${card.opened}/${chips}  "${(card.question || "").slice(0, 70)}"`);
+    + `viewer ${card.opened}/${chips}  references ${card.openedReferences || 0}/${references}  `
+    + `"${(card.question || "").slice(0, 70)}"`);
   for (const problem of card.failed) console.log(`  ! ${problem}`);
 }
 console.log(`console errors ${state.consoleErrors.length}`);

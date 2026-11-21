@@ -192,7 +192,10 @@
 
   /* The citation line the prompt asks for — `[1] <file>, p. <n>: "<quote>"` — is a
      reference, not a claim marker: its number is already a source in the evidence rail,
-     so turning it into a chip only repeats the same marker after the last sentence. */
+     so its `[n]` does not become a chip. The line itself is a control: clicking it opens
+     the cited page in the viewer, like a chip (owner, 2026-11-21). */
+  const REFERENCE_LINE = /^\[(\d{1,2})\]\s+(.+?),\s*p\.\s*(\d+)\s*(?::\s*(.*))?$/i;
+
   const isReferenceLine = (node) => {
     const block = node.parentElement && node.parentElement.closest("p, li, h2, h3, h4");
     if (!block) return false;
@@ -228,6 +231,37 @@
       }
       frag.append(document.createTextNode(text.slice(last)));
       node.replaceWith(frag);
+    }
+  };
+
+  /* Every reference line becomes one button over the same cited page the chip opens.
+     The citation the verifier parsed for this number is the authority on file, page and
+     quote; the retrieved source is the fallback, and the printed line the last one. No
+     payload yet (still streaming) leaves the line as text instead of a dead control. */
+  const linkReferences = (container, sources, citations, disabled) => {
+    const byN = new Map((sources || []).map((s) => [String(s.n), s]));
+    const citeByN = new Map((citations || []).map((c) => [String(c.n), c]));
+    for (const block of container.querySelectorAll("p.message__ref")) {
+      const text = block.textContent.trim();
+      const match = REFERENCE_LINE.exec(text);
+      if (!match) continue;
+      const source = byN.get(match[1]) || null;
+      const citation = citeByN.get(match[1]) || null;
+      const doc = (citation && citation.file) || (source && source.doc) || match[2].trim();
+      if (!doc) continue;
+      const page = Number((citation && citation.page) || (source && source.page))
+        || Number(match[3]) || 1;
+      const link = el2("button", "message__ref-link", text);
+      link.type = "button";
+      link.dataset.action = "open-source";
+      link.dataset.n = match[1];
+      link.dataset.doc = doc;
+      link.dataset.page = String(page);
+      link.dataset.text = (citation && citation.quote) || (source && source.snippet) || "";
+      link.dataset.title = (source && (source.reference || source.label)) || doc;
+      link.title = disabled ? "Unverified: the citation is not trusted"
+        : `Open page ${page} of ${link.dataset.title}`;
+      block.replaceChildren(link);
     }
   };
 
@@ -305,6 +339,7 @@
       const citations = (msg.payload && msg.payload.verification &&
         msg.payload.verification.citations) || [];
       linkCitations(body, sources, citations, msg.state === "unverified");
+      linkReferences(body, sources, citations, msg.state === "unverified");
       if (msg.state === "streaming") {
         if (!msg.content) {
           const typing = el2("span", "typing");

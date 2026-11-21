@@ -126,7 +126,8 @@ function build() {
   open.className = "cite-viewer__open";
   open.target = "_blank";
   open.rel = "noopener";
-  open.textContent = "Open PDF";
+  open.textContent = "Open original PDF";
+  open.title = "Open the original PDF in a new tab at this page";
   const close = button("cite-close", "✕", "Close", "cite-viewer__close");
 
   bar.append(titles, nav, zoomOut, zoomIn, open, close);
@@ -216,7 +217,7 @@ async function render({ keepZoom = false } = {}) {
   } catch (error) {
     ui.note.hidden = false;
     ui.note.textContent = `The PDF could not be opened (${error.message}). ` +
-      "Use “Open PDF” to read it in the browser's viewer.";
+      "Use “Open original PDF” to read it in the browser's viewer.";
     return;
   }
   if (token !== renderToken) return;
