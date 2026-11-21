@@ -287,14 +287,17 @@ def bibliography_stage_survives_a_missing_model() -> None:
 # --- parse isolation (D-075) ------------------------------------------------
 
 # A parser to point the isolation at: `boom` dies with no result (like a native crash),
-# `sulk` reports a normal exception, anything else parses for real.
+# `hang` never returns, `sulk` reports a normal exception, anything else parses for real.
 FAKE_PARSER = """
-import json, pathlib, sys
+import json, pathlib, sys, time
 sys.path.insert(0, __ROOT__)
 from ingest import pipeline
 args = dict(zip(sys.argv[1::2], sys.argv[2::2]))
 if "boom" in args["--path"]:
     sys.exit(17)
+if "hang" in args["--path"]:
+    time.sleep(120)
+    sys.exit(0)
 if "sulk" in args["--path"]:
     pathlib.Path(args["--result"]).write_text(
         json.dumps({"error": "ValueError: cannot read this page"}), encoding="utf-8")
@@ -363,6 +366,30 @@ def a_raising_parse_keeps_its_error_text():
         assert row["error"] == "ValueError: cannot read this page", row["error"]
     finally:
         manifest.close()
+
+
+def a_hung_parse_is_killed_and_recorded():
+    root, index = workspace()
+    for name in ("a", "hang", "c"):
+        make_pdf(root / f"1970_{name}_test.pdf", pages_for(name))
+    manifest = staged_manifest(root, index)
+    try:
+        report = pipeline.parse_stage(root, index, manifest, entry=fake_entry(), timeout=2)
+        assert report["parsed"] == 2 and report["failed"] == 1, report
+        row = manifest.row("1970_hang_test.pdf")
+        assert row["status"] == "failed", row["status"]
+        assert row["error"] == "timeout: no result after 2 s; killed it", row["error"]
+        assert manifest.row("1970_c_test.pdf")["status"] == "parsed", "the batch stopped"
+    finally:
+        manifest.close()
+    # A hang is as reproducible as a crash: the recorded row is not retried.
+    again_manifest = pipeline.Manifest(index)
+    try:
+        again = pipeline.parse_stage(root, index, again_manifest, entry=fake_entry(),
+                                     timeout=2)
+    finally:
+        again_manifest.close()
+    assert again["parsed"] == 0 and again["failed"] == 0, again
 
 
 def isolated_counters_add_up():
@@ -497,6 +524,7 @@ def a_batch_is_copied_when_the_hardlink_fails():
 CASES = [
     ("a crashed parse costs one document", a_crashed_parse_costs_one_document),
     ("a raising parse keeps its error text", a_raising_parse_keeps_its_error_text),
+    ("a hung parse is killed and recorded", a_hung_parse_is_killed_and_recorded),
     ("isolated parse counters add up", isolated_counters_add_up),
     ("a batch links and indexes every file", a_batch_links_and_indexes_every_file),
     ("a repeated name inside the batch refuses everything",

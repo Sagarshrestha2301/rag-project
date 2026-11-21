@@ -65,6 +65,8 @@ DEFAULT_INDEX = ROOT / "index"
 DEFAULT_RAW = ROOT / "data" / "raw"
 DEFAULT_WAVE_LOG = ROOT / "logs" / "wave-additions.jsonl"
 CRASH_PREFIX = "crash: exit code"   # parse_stage's record for a dead child (D-075)
+TIMEOUT_PREFIX = "timeout: no result after"   # parse_stage's record for a hung child
+PARSE_TIMEOUT = 900.0   # seconds per document; slowest measured pilot document took 310 s
 PARSE_ENTRY = [sys.executable, "-m", "ingest.pipeline", "parse-one"]
 DB_NAME = "manifest.sqlite"
 SHARDS = "parsed/shards"
@@ -297,15 +299,20 @@ def parse_document(path: pathlib.Path, index_dir: pathlib.Path, sha: str,
 
 
 def _run_isolated(path: pathlib.Path, index_dir: pathlib.Path, sha: str, rel: str,
-                  entry: list[str] | None = None) -> tuple[str, object]:
-    """Parse one document in a fresh interpreter: ('ok', result), ('error', text), ('crash', code).
+                  entry: list[str] | None = None,
+                  timeout: float = PARSE_TIMEOUT) -> tuple[str, object]:
+    """Parse one document in a fresh interpreter: ('ok', result), ('error', text), ('crash', code), ('timeout', seconds).
 
     A separate `python -m` process rather than `multiprocessing`: a native access
     violation cannot be caught, and spawn was measured here to stall PyMuPDF's table
     detector on a 198-page scanned report (`find_tables` -> `table.py:make_chars`, 1400 s
     CPU, no return) where a plain new interpreter parsed the same file in 308 s.
 
-    `entry` is the command prefix, so a test can point the isolation at a fake parser.
+    `timeout` bounds the wait, because a child that never returns (PyMuPDF's table code
+    has been seen to) would otherwise stall the whole wave. The child is killed and the
+    document recorded as failed; its partial shards are never assembled, because the row
+    never becomes `parsed`. `entry` is the command prefix, so a test can point the
+    isolation at a fake parser.
     """
     entry = entry or PARSE_ENTRY
     handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
@@ -317,10 +324,12 @@ def _run_isolated(path: pathlib.Path, index_dir: pathlib.Path, sha: str, rel: st
             completed = subprocess.run(
                 [*entry, "--path", str(path), "--index", str(index_dir),
                  "--sha", sha, "--rel", rel, "--result", str(result_file)],
-                cwd=ROOT, check=False,
+                cwd=ROOT, check=False, timeout=timeout,
                 # The child prints parser banners; they belong with the progress lines,
                 # so `build`'s stdout stays the one JSON summary a script can read.
                 stdout=sys.stderr)
+        except subprocess.TimeoutExpired:
+            return "timeout", timeout
         except OSError as exc:
             return "error", f"{exc.__class__.__name__}: {exc}"
         try:
@@ -335,7 +344,8 @@ def _run_isolated(path: pathlib.Path, index_dir: pathlib.Path, sha: str, rel: st
 
 
 def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
-                limit: int | None = None, entry: list[str] | None = None) -> dict:
+                limit: int | None = None, entry: list[str] | None = None,
+                timeout: float = PARSE_TIMEOUT) -> dict:
     """Parse every pending or changed document in its own child process (D-075).
 
     Each parse is a fresh interpreter (see `_run_isolated`), so a document that kills the
@@ -346,9 +356,10 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
     """
     todo = [row for row in manifest.rows() if row["status"] in ("pending", "failed")
             and not row["duplicate_of"]
-            # A native crash is reproducible; retrying it every restart only burns time.
-            # A changed file gets a new SHA-256, which `upsert` turns back into `pending`.
-            and not (row["error"] or "").startswith(CRASH_PREFIX)]
+            # A native crash or a hang is reproducible; retrying it every restart only
+            # burns time (or stalls it again). A changed file gets a new SHA-256, which
+            # `upsert` turns back into `pending`.
+            and not (row["error"] or "").startswith((CRASH_PREFIX, TIMEOUT_PREFIX))]
     if limit:
         todo = todo[:limit]
     started = time.perf_counter()
@@ -357,10 +368,16 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
     for position, row in enumerate(todo, start=1):
         path = root / row["path"]
         began = time.perf_counter()
-        state, payload = _run_isolated(path, index_dir, row["sha256"], row["path"], entry)
+        state, payload = _run_isolated(path, index_dir, row["sha256"], row["path"], entry,
+                                       timeout)
         if state != "ok":
             failed += 1
-            error = (f"{CRASH_PREFIX} {payload}" if state == "crash" else str(payload))
+            if state == "crash":
+                error = f"{CRASH_PREFIX} {payload}"
+            elif state == "timeout":
+                error = f"{TIMEOUT_PREFIX} {payload:.0f} s; killed it"
+            else:
+                error = str(payload)
             manifest.set_status(row["name"], "failed", error=error)
             print(f"  ! {row['name'][:56]}: {error}", file=sys.stderr)
             continue
@@ -563,7 +580,7 @@ def record_file(rows: list[dict]) -> str:
 def build(root: pathlib.Path = DEFAULT_CORPUS, index_dir: pathlib.Path = DEFAULT_INDEX,
           stages: tuple[str, ...] = ("scan", "parse", "assemble", "bibliography", "chunk",
                                      "embed"),
-          limit: int | None = None) -> dict:
+          limit: int | None = None, parse_timeout: float = PARSE_TIMEOUT) -> dict:
     """Run the requested stages in order and return what each one measured."""
     started = time.perf_counter()
     manifest = Manifest(index_dir)
@@ -572,7 +589,8 @@ def build(root: pathlib.Path = DEFAULT_CORPUS, index_dir: pathlib.Path = DEFAULT
         if "scan" in stages:
             report["stages"]["scan"] = scan(root, manifest)
         if "parse" in stages:
-            report["stages"]["parse"] = parse_stage(root, index_dir, manifest, limit)
+            report["stages"]["parse"] = parse_stage(root, index_dir, manifest, limit,
+                                                    timeout=parse_timeout)
         if "assemble" in stages:
             report["stages"]["assemble"] = assemble(root, index_dir, manifest)
         if "bibliography" in stages:
@@ -754,7 +772,8 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
                                          "chunk", "embed"),
               limit: int | None = None, build_after: bool = True,
               raw_root: pathlib.Path = DEFAULT_RAW,
-              log_path: pathlib.Path = DEFAULT_WAVE_LOG) -> dict:
+              log_path: pathlib.Path = DEFAULT_WAVE_LOG,
+              parse_timeout: float = PARSE_TIMEOUT) -> dict:
     """Bring one staged folder of PDFs into the corpus, all or nothing (Step 10).
 
     Every refusal is decided before a single file is linked, so a batch with one bad
@@ -859,7 +878,8 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
             }))
 
             if build_after:
-                report = build(corpus_dir, index_dir, stages, limit)
+                report = build(corpus_dir, index_dir, stages, limit,
+                               parse_timeout=parse_timeout)
     finally:
         manifest.close()
 
@@ -883,6 +903,9 @@ def main(argv: list[str]) -> int:
                                 "chunk,embed")
     build_cmd.add_argument("--limit", type=int, default=None,
                            help="work on at most N documents this run (dry run, resume test)")
+    build_cmd.add_argument("--parse-timeout", type=float, default=PARSE_TIMEOUT,
+                           help="seconds before a document's parse child is killed"
+                                " (default %(default)s)")
 
     status_cmd = sub.add_parser("status", help="print counts, failures and duplicates")
     status_cmd.add_argument("--index", default=str(DEFAULT_INDEX))
@@ -906,6 +929,9 @@ def main(argv: list[str]) -> int:
     batch_cmd.add_argument("--index", default=str(DEFAULT_INDEX))
     batch_cmd.add_argument("--stages", default="scan,parse,assemble,bibliography,chunk,embed")
     batch_cmd.add_argument("--limit", type=int, default=None)
+    batch_cmd.add_argument("--parse-timeout", type=float, default=PARSE_TIMEOUT,
+                           help="seconds before a document's parse child is killed"
+                                " (default %(default)s)")
     batch_cmd.add_argument("--no-build", action="store_true",
                            help="place the files and stop before parsing anything")
     batch_cmd.add_argument("--log", default=str(DEFAULT_WAVE_LOG))
@@ -934,7 +960,7 @@ def main(argv: list[str]) -> int:
     if args.command == "build":
         report = build(pathlib.Path(args.corpus), pathlib.Path(args.index),
                        tuple(part.strip() for part in args.stages.split(",") if part.strip()),
-                       args.limit)
+                       args.limit, parse_timeout=args.parse_timeout)
         print(json.dumps(report, indent=1))
         return 1 if report["failures"] else 0
     if args.command == "status":
@@ -955,7 +981,8 @@ def main(argv: list[str]) -> int:
                             stages=tuple(part.strip() for part in args.stages.split(",")
                                          if part.strip()),
                             limit=args.limit, build_after=not args.no_build,
-                            log_path=pathlib.Path(args.log))
+                            log_path=pathlib.Path(args.log),
+                            parse_timeout=args.parse_timeout)
         print(json.dumps(summary, indent=1))
         if summary["refused"]:
             return 1
