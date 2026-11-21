@@ -150,8 +150,8 @@ The six UI choices in `ui/SPEC.md` §12 became D-061/D-062 and are approved and 
    best pages and the pages containing every term, and leaves the verdict to you (D-027).
 5. **D-068:** accept that D-060 is rejected, or tell me to take the not-found (b) drop for
    the (a) 6/6 gain. The numbers are in `DECISIONS.md` and the 2026-11-20 row of `EVAL.md`.
-6. **D-070 / D-071 / D-072 / D-073:** accept the four experiment outcomes and sign off
-   Step 09. The ranked next experiments are in `reports/next-experiments.md`; the first one
+6. **D-070 / D-071 / D-072 / D-073:** accept the four experiment outcomes (Step 09 is
+   already signed off). The ranked next experiments are in `reports/next-experiments.md`; the first one
    is a one-rule change that should gain q020, q021 and q055 (refuse in exact words, count
    it as a refusal).
 7. **Step 3:** tick or reword the two review boxes (only you may edit step text).
