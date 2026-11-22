@@ -5,8 +5,9 @@ Date: 2026-11-22. Companion to `reports/20k-ingestion-plan.md` (the plan and its
 with the real expected output at each one.
 
 Everything here uses code that already ships. **No new script, flag or dependency is needed**
-for the download or the ingest. Where a number is a projection it says so; a projection is
-not a result (AGENTS.md rule 4).
+for the download or the ingest; the one optional code change (an 8-way parse, §6.1) is
+marked as such and needs approval before it exists. Where a number is a projection it says
+so; a projection is not a result (AGENTS.md rule 4).
 
 ---
 
@@ -30,8 +31,12 @@ Measured rates used for every time below (Step 11 pilot, 118 documents, and Step
 | Stage | Measured rate | Source |
 |---|---|---|
 | Drive download | 29.6 files/min, 1.22 MB/file | Step 11: 210 files / 257.1 MB in 426 s |
-| Parse | 1.17 s/page = 51.4 pages/min | Step 11 (`reports/20k-ingestion-plan.md` §1a) |
-| Embed (bge-small, CPU) | 0.0656 s/chunk | Step 11 |
+| Parse, one document at a time | 9.0 s/doc at 14.8 pages/doc = **87.9 pages/min** | **measured** 2026-11-22, 20 docs / 296 pages |
+| Parse, 8 documents at once | **134.3 pages/min** = **1.53x** | **measured** 2026-11-22, same 20 docs |
+| Embed (bge-small, CPU), encode only | 18.8 ms/chunk at 8 torch threads, 17.7 ms at 16 | **measured** 2026-11-22, 600 chunks |
+| Table detection share of one parse | **22%** (7.3 s of 32.6 s over 41 pages) | **measured** 2026-11-22 |
+| Parse, Step 11 pilot (superseded above) | 1.17 s/page = 51.4 pages/min | Step 11, tail-heavy 119-doc sample |
+| Embed, Step 11 pilot (includes LanceDB writes) | 0.0656 s/chunk | Step 11 |
 | Chunks per page | 3.92 | Step 11 (8,910 / 2,275) |
 | Bibliography (`qwen3.5:4b`) | 8.2 s/document | Step 11, re-timed with Ollama up |
 | Parse child start (isolation cost) | 1.04 s/document | Step 12 |
@@ -333,20 +338,78 @@ then `{"event":"done","payload":{...}}`.
 |---|---|---|---|
 | Download | ~68 min, ~2.4 GB | **~11 h, ~24 GB** | 29.6 files/min, 1.22 MB/file (measured) |
 | add-batch (walk + hash) | 1–3 min | ~30 min total | walk cost grows with tree size (projected) |
-| Parse | ~12.5 h | **~125 h** | 51.4 pages/min × 38,600 pages (measured rate) |
-| Embed (CPU) | ~2.8 h | **~28 h** | 0.0656 s/chunk × 151,000 chunks |
-| Bibliography | ~4.6 h | **~46 h** (skippable) | 8.2 s/document |
-| **Whole build with bibliography** | **~20 h** | **~200 h ≈ 8.3 days** | sum of the three stages |
-| **Whole build without it** | **~15.3 h** | **~153 h ≈ 6.4 days** | parse + embed |
+| Parse, one document at a time (today's code) | ~7 h | **~54 h** | 87.9 pages/min × 285,455 pages (measured rate, projected corpus) |
+| Parse, 8 at once (§6.1, needs approval) | ~4.6 h | **~35 h** | 134.3 pages/min (measured 1.53x) |
+| Embed (CPU, encode only) | ~0.8 h | **~6 h** | 18.8 ms/chunk × 1.1 M chunks (measured) |
+| Bibliography | ~4.5 h | **~45 h** (skippable) | 8.2 s/document |
+| **Whole build, today's code** | **~16 h** | **~105 h ≈ 4.4 days** | parse + embed + bibliography |
+| **Whole build, 8-way parse, no bibliography** | **~5.4 h** | **~41 h ≈ 1.7 days** | 35 + 6, see §6.1 |
 | Index on disk | +~1 GB | **~9.4 GB** (pages 561 MB, chunks 1.55 GB, parsed 3.0 GB, lancedb 4.3 GB) | plan §2 byte-per-page rates (projected) |
 | Canary run (retrieval only) | minutes | — | `eval/run_retrieval.py` |
 | Full 55-question generation run | **25–40 min** | per wave, or just after waves 1, 5, 10 | `RUNBOOK.md` §7 |
 | GPU | unchanged: qwen3.5:4b, 4 GB VRAM, 50/50 CPU/GPU | | `nvidia-smi` |
 
-The honest headline: **the 4B-model metadata calls cost more than parsing** (46 h of 200 h),
-and **8 days of continuous compute** is the real price. Disk is not a constraint (701 GB
-free). The machine must stay awake — an earlier eval was corrupted by the system sleeping
-(`STATUS.md`, q038).
+The honest headline, after the 2026-11-22 measurement in §6.1: **the 4B-model metadata
+calls still cost more than parsing** (45 h of 105 h), and dropping them plus parsing eight
+documents at once brings the whole 20k build to **~41 h ≈ 1.7 days**, not 8.3. Disk is not a
+constraint (701 GB free). The machine must stay awake — an earlier eval was corrupted by the
+system sleeping (`STATUS.md`, q038).
+
+### 6.1 Making it faster — measured 2026-11-22
+
+The 51.4 pages/min behind the 8.3-day figure came from a tail-heavy 119-document pilot. A
+20-document sample of the real corpus (296 pages, every 9th file) runs faster and shows what
+parallelism is worth here. Every number below was measured with the shipped
+`ingest.pipeline parse-one` child, so it is the same code path `add-batch` uses:
+
+| Configuration | Docs | Wall clock | Throughput | Speedup |
+|---|---|---|---|---|
+| one at a time (today's `parse_stage`) | 20 | 202.2 s | 87.9 pages/min | 1.00x |
+| 8 at once | 20 | 132.2 s | **134.3 pages/min** | **1.53x** |
+| 8 at once, spread sample (every 22nd file) | 8 | 48.4 → 32.0 s | — | 1.51x |
+| 4 / 8 / 16 at once, 1–2 threads each | 8 | 41.1 / 43.7 / 43.9 s | — | 1.64–1.75x |
+
+Page counts were identical serial and parallel, so this is a throughput change, not a
+extraction change. Four things follow, in the order they pay:
+
+1. **Leave bibliography out of the build** — that is what
+   `--stages scan,parse,assemble,chunk,embed` does. It removes **45 h** of the job and nothing
+   the RAG needs in order to answer. `title`/`authors` in the UI fall back to the file name
+   until `python -m ingest.bibliography build` is run later, on demand, for the documents you
+   actually cite.
+2. **Parse several documents at once.** `parse_stage` is a strictly serial `for` loop over
+   `_run_isolated` (`ingest/pipeline.py:368`) and every parse is already a separate `python -m`
+   child, so a thread pool over it plus a `--jobs N` flag (default 1, behaviour unchanged) is a
+   small, contained change. It must keep `ingest/test_pipeline.py` green and keep
+   `build`'s stdout one JSON summary. **This is the only code change on this page, and it must
+   be approved before it is written (AGENTS.md rule 2).**
+3. **Do not go past 8 workers.** 8×1, 8×2 and 16×1 threads all land within 1 s of each other
+   (43.2–43.9 s on the same 8 documents): the children contend for memory bandwidth and for
+   PyMuPDF's ONNX table detector, which ignores `OMP_NUM_THREADS`. On a 2,000-document wave the
+   slowest document stops setting the wall clock (in the 20-doc sample one 64 s document was
+   32% of the serial total), so treat **1.5x as the floor and ~1.7x as the likely wave figure**.
+4. **Do not tune embedding threads.** 600 real chunks: 61.7 ms/chunk at 1 thread, 18.8 ms at 8,
+   17.7 ms at 16 — the default 8 is already at the knee, and 6 threads' worth of extra speed is
+   not worth a config knob.
+
+**What is left, and its size.** Table detection is **22%** of a parse (7.3 s of 32.6 s over 41
+pages), so skipping it on pages that do not look like tables could save at most ~7 h of the
+35 h parse — and it would change the text the gold pages were written against, so it goes
+through the EVAL gate in §4, not into this guide as a quick win. The remaining cost is text
+extraction plus OCR, and OCR runs on every scanned page.
+
+Realistic wall clock for the corpus,
+projected at the measured rates (pages/doc 14.27 from 2,669 / 187):
+
+| Corpus | Pages | Parse (8 at once) | Embed | Total |
+|---|---|---|---|---|
+| 5,000 documents | 71,381 | 8.5 h | 1.5 h | **~10 h** |
+| 10,000 documents | 142,769 | 17.7 h | 2.9 h | **~21 h** |
+| 20,000 documents | 285,455 | 35.4 h | 5.8 h | **~41 h** |
+
+Download is I/O-bound and can run in the same window (11 h in total, wave by wave), so the
+long pole is parsing. What cannot be deleted: the §4 gate after each wave, and the machine
+staying awake.
 
 Where the job will actually be decided, in order: (1) the gate read in §4, (2) the BM25
 trigger at wave 05, (3) wave gold questions. Not disk, not the LLM.
