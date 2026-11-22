@@ -296,7 +296,10 @@ model's own words (it turned two answerable questions into a false "not found", 
 page-level table pass (no gold page gained, D-070), and adding a page's table rows to its
 passage (the table prompt is already ~4,100 tokens, so it truncated and the model refused,
 D-073). Both table passes are still in the code, off, behind `CHAT_TABLE_RETRIEVAL` and
-`CHAT_TABLE_CONTENT`. The two changes that **are** in the table above are the per-sentence
+`CHAT_TABLE_CONTENT`. A cross-encoder rerank of the top 10 (2026-11-22, D-081) is also in
+the code and **off**: `CHAT_RERANK=1` turns it on, `CHAT_RERANK_DEPTH` sets how many pages
+it reads (default 10) and `CHAT_RERANK_ANCHOR` keeps BM25's own first pages in front. It
+needs `models/ms-marco-MiniLM-L-6-v2` and adds about 0.4 s per question on CPU. The two changes that **are** in the table above are the per-sentence
 quotation rule in prompt `s6-3` (D-071) and the retry guard (D-072). The full row-by-row
 history is `EVAL.md`; the current run is `eval/runs/2026-11-20-step9-retry-guard/`, and the
 ranked next steps are in `reports/next-experiments.md`.

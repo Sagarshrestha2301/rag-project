@@ -35,7 +35,7 @@ import httpx
 
 from corpus import build as build_pages, search as search_pages
 from generation import cache, condense, gate, prompt, router, think, verify
-from retrieval import tables as table_retrieval
+from retrieval import rerank, tables as table_retrieval
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 MODEL = os.environ.get("CHAT_MODEL", "qwen3.5:4b")
@@ -269,8 +269,11 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     path = cache_path or cache.CACHE_PATH
     marks["cache_lookup"] = 0.0
     if use_cache:
+        # The prompt version carries the rerank state too (`+rerank10` when on): a
+        # reranked answer must not be replayed to a run with the flag off, or the other
+        # way round, because the passages behind it are different (D-080).
         versions = {"model_version": cache.model_version(model, model_digest(model)),
-                    "prompt_version": prompt.PROMPT_VERSION}
+                    "prompt_version": prompt.PROMPT_VERSION + rerank.cache_suffix()}
         mark = time.perf_counter()
         hit = cache.get(question, search_question=search_question, path=path,
                         index=source, **versions)
@@ -282,7 +285,16 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
 
     mark = time.perf_counter()
     wanted = k or routed["k"]
-    passages = search_pages(source, search_question, k=wanted)
+    # Step 13 / D-080, behind `CHAT_RERANK`: read the top `depth` pages and keep the best
+    # `wanted` of them, so a page BM25 ranks 5th on words alone can be dropped for one
+    # that answers the question. With the flag off this is the accepted call, unchanged.
+    depth = max(wanted, rerank.depth()) if rerank.enabled() else wanted
+    passages = search_pages(source, search_question, k=depth)
+    marks["rerank"] = 0.0
+    if rerank.enabled():
+        reranked = time.perf_counter()
+        passages = rerank.apply(passages, search_question, k=wanted)
+        marks["rerank"] = stage(reranked)
     # Step 9 / D-069, behind `CHAT_TABLE_RETRIEVAL`: a table question also reads the pages
     # whose cleaned table rows match, without growing the passage list the route chose.
     if routed["route"] == "table" and table_retrieval.enabled():
