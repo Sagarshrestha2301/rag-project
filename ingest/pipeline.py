@@ -7,7 +7,7 @@ changed. Killing it mid-run costs at most the document in flight.
 Stages, in order (`build` runs them all):
 
     scan         hash every corpus PDF, record size/pages, flag duplicates
-    parse        one document at a time -> two shards under index/parsed/shards/
+    parse        one child per document, `--jobs N` at once -> shards under index/parsed/shards/
     assemble     write index/pages.json (search) and index/parsed/pages.jsonl (chunking)
     bibliography one validated title/authors/year/venue/DOI record per document (D-066)
     chunk        one chunk record per unit into index/chunks.jsonl
@@ -49,6 +49,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -343,9 +344,47 @@ def _run_isolated(path: pathlib.Path, index_dir: pathlib.Path, sha: str, rel: st
         result_file.unlink(missing_ok=True)
 
 
+def _parse_child(row: dict, root: pathlib.Path, index_dir: pathlib.Path,
+                 entry: list[str] | None, timeout: float) -> tuple[str, object, float]:
+    """One document's child parse, returning `(state, payload, that child's seconds)`.
+
+    Both the serial and the parallel path call this, so there is one place that decides
+    what a parse child is (Step 13).
+    """
+    began = time.perf_counter()
+    state, payload = _run_isolated(root / row["path"], index_dir, row["sha256"],
+                                   row["path"], entry, timeout)
+    return state, payload, time.perf_counter() - began
+
+
+def _parse_outcomes(todo: list[dict], root: pathlib.Path, index_dir: pathlib.Path,
+                    entry: list[str] | None, timeout: float, jobs: int):
+    """Yield `(row, state, payload, seconds)` in **plan order**, `jobs` children at a time.
+
+    Plan order, not completion order: the parent records each row exactly where a serial
+    run would record it, so near-duplicate detection and the counters cannot depend on
+    which document happened to finish first. A thread pool is enough because the work is
+    a blocking `subprocess.run`; `multiprocessing` spawn was measured to stall PyMuPDF
+    (D-076), and the isolation unit is the `python -m` child, not a worker.
+    """
+    if jobs == 1:
+        for row in todo:
+            yield (row, *_parse_child(row, root, index_dir, entry, timeout))
+        return
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        running = [(row, pool.submit(_parse_child, row, root, index_dir, entry, timeout))
+                   for row in todo]
+        for row, future in running:
+            try:
+                outcome = future.result()
+            except Exception as exc:            # noqa: BLE001 - one file must not stop the run
+                outcome = ("error", f"{exc.__class__.__name__}: {exc}", 0.0)
+            yield (row, *outcome)
+
+
 def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
                 limit: int | None = None, entry: list[str] | None = None,
-                timeout: float = PARSE_TIMEOUT) -> dict:
+                timeout: float = PARSE_TIMEOUT, jobs: int = 1) -> dict:
     """Parse every pending or changed document in its own child process (D-075).
 
     Each parse is a fresh interpreter (see `_run_isolated`), so a document that kills the
@@ -353,6 +392,17 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
     instead of the whole batch; `assemble` skips the failed row, and still reports a row
     marked `parsed` whose shards are missing. `entry` exists so tests can point the child
     at a parser that exits or raises on purpose.
+
+    `jobs` runs that many children at once (Step 13). Measured on 2026-11-22 over 20 real
+    corpus documents: **202.2 s one at a time (87.9 pages/min)** and **132.2 s at 8
+    (134.3 pages/min, 1.53x)**, with identical page counts. Past 8 there is no further
+    gain: each child's table detector and OCR already use the cores and they contend.
+    The default 1 is the serial behaviour every earlier log and `STATUS.md` number was
+    produced with.
+
+    Example:
+        >>> parse_stage(root, index, manifest, jobs=8)
+        {'parsed': 1960, 'failed': 3, 'seconds': 127800.4}
     """
     todo = [row for row in manifest.rows() if row["status"] in ("pending", "failed")
             and not row["duplicate_of"]
@@ -362,14 +412,14 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
             and not (row["error"] or "").startswith((CRASH_PREFIX, TIMEOUT_PREFIX))]
     if limit:
         todo = todo[:limit]
+    if jobs < 1:
+        raise SystemExit(f"jobs must be at least 1, not {jobs}; 8 is the measured knee")
+    jobs = min(jobs, max(1, len(todo)))
     started = time.perf_counter()
     parsed = failed = 0
 
-    for position, row in enumerate(todo, start=1):
-        path = root / row["path"]
-        began = time.perf_counter()
-        state, payload = _run_isolated(path, index_dir, row["sha256"], row["path"], entry,
-                                       timeout)
+    outcomes = _parse_outcomes(todo, root, index_dir, entry, timeout, jobs)
+    for position, (row, state, payload, elapsed) in enumerate(outcomes, start=1):
         if state != "ok":
             failed += 1
             if state == "crash":
@@ -390,7 +440,7 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
                 duplicate_of=duplicate_of, pages=result["page_count"],
                 unreadable_pages=json.dumps(result["unreadable"]),
                 page_hashes=json.dumps(hashes),
-                seconds=round(time.perf_counter() - began, 1))
+                seconds=round(elapsed, 1))
             if duplicate_of:
                 print(f"  duplicate: {row['name']} repeats {duplicate_of}; kept, not indexed",
                       file=sys.stderr)
@@ -405,9 +455,11 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
             continue
 
         done = time.perf_counter() - started
-        eta = (done / position) * (len(todo) - position)
+        # `jobs` children share the wall clock, so the documents still queued take the
+        # per-document estimate divided by how many run at once.
+        eta = (done / position) * (len(todo) - position) / jobs
         print(f"  [{position}/{len(todo)}] {row['name'][:52]:54s} "
-              f"{result['page_count']:>3}p {time.perf_counter() - began:>6.1f}s "
+              f"{result['page_count']:>3}p {elapsed:>6.1f}s "
               f"eta {eta:>5.0f}s", file=sys.stderr)
 
     manifest.set_meta("last_parse", time.strftime("%Y-%m-%dT%H:%M:%S"))
@@ -580,8 +632,13 @@ def record_file(rows: list[dict]) -> str:
 def build(root: pathlib.Path = DEFAULT_CORPUS, index_dir: pathlib.Path = DEFAULT_INDEX,
           stages: tuple[str, ...] = ("scan", "parse", "assemble", "bibliography", "chunk",
                                      "embed"),
-          limit: int | None = None, parse_timeout: float = PARSE_TIMEOUT) -> dict:
-    """Run the requested stages in order and return what each one measured."""
+          limit: int | None = None, parse_timeout: float = PARSE_TIMEOUT,
+          parse_jobs: int = 1) -> dict:
+    """Run the requested stages in order and return what each one measured.
+
+    `parse_jobs` goes to `parse_stage`: 1 is one document at a time and 8 is the measured
+    knee (1.53x, Step 13).
+    """
     started = time.perf_counter()
     manifest = Manifest(index_dir)
     report: dict = {"root": str(root), "index": str(index_dir), "stages": {}}
@@ -590,7 +647,8 @@ def build(root: pathlib.Path = DEFAULT_CORPUS, index_dir: pathlib.Path = DEFAULT
             report["stages"]["scan"] = scan(root, manifest)
         if "parse" in stages:
             report["stages"]["parse"] = parse_stage(root, index_dir, manifest, limit,
-                                                    timeout=parse_timeout)
+                                                    timeout=parse_timeout,
+                                                    jobs=parse_jobs)
         if "assemble" in stages:
             report["stages"]["assemble"] = assemble(root, index_dir, manifest)
         if "bibliography" in stages:
@@ -773,7 +831,8 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
               limit: int | None = None, build_after: bool = True,
               raw_root: pathlib.Path = DEFAULT_RAW,
               log_path: pathlib.Path = DEFAULT_WAVE_LOG,
-              parse_timeout: float = PARSE_TIMEOUT) -> dict:
+              parse_timeout: float = PARSE_TIMEOUT,
+              parse_jobs: int = 1) -> dict:
     """Bring one staged folder of PDFs into the corpus, all or nothing (Step 10).
 
     Every refusal is decided before a single file is linked, so a batch with one bad
@@ -879,7 +938,7 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
 
             if build_after:
                 report = build(corpus_dir, index_dir, stages, limit,
-                               parse_timeout=parse_timeout)
+                               parse_timeout=parse_timeout, parse_jobs=parse_jobs)
     finally:
         manifest.close()
 
@@ -906,6 +965,9 @@ def main(argv: list[str]) -> int:
     build_cmd.add_argument("--parse-timeout", type=float, default=PARSE_TIMEOUT,
                            help="seconds before a document's parse child is killed"
                                 " (default %(default)s)")
+    build_cmd.add_argument("--jobs", type=int, default=1,
+                           help="documents to parse at once; 1 keeps today's serial run,"
+                                " 8 is the measured knee (1.53x, Step 13)")
 
     status_cmd = sub.add_parser("status", help="print counts, failures and duplicates")
     status_cmd.add_argument("--index", default=str(DEFAULT_INDEX))
@@ -932,6 +994,9 @@ def main(argv: list[str]) -> int:
     batch_cmd.add_argument("--parse-timeout", type=float, default=PARSE_TIMEOUT,
                            help="seconds before a document's parse child is killed"
                                 " (default %(default)s)")
+    batch_cmd.add_argument("--jobs", type=int, default=1,
+                           help="documents to parse at once; 1 keeps today's serial run,"
+                                " 8 is the measured knee (1.53x, Step 13)")
     batch_cmd.add_argument("--no-build", action="store_true",
                            help="place the files and stop before parsing anything")
     batch_cmd.add_argument("--log", default=str(DEFAULT_WAVE_LOG))
@@ -960,7 +1025,8 @@ def main(argv: list[str]) -> int:
     if args.command == "build":
         report = build(pathlib.Path(args.corpus), pathlib.Path(args.index),
                        tuple(part.strip() for part in args.stages.split(",") if part.strip()),
-                       args.limit, parse_timeout=args.parse_timeout)
+                       args.limit, parse_timeout=args.parse_timeout,
+                       parse_jobs=args.jobs)
         print(json.dumps(report, indent=1))
         return 1 if report["failures"] else 0
     if args.command == "status":
@@ -982,7 +1048,8 @@ def main(argv: list[str]) -> int:
                                          if part.strip()),
                             limit=args.limit, build_after=not args.no_build,
                             log_path=pathlib.Path(args.log),
-                            parse_timeout=args.parse_timeout)
+                            parse_timeout=args.parse_timeout,
+                            parse_jobs=args.jobs)
         print(json.dumps(summary, indent=1))
         if summary["refused"]:
             return 1

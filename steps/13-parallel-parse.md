@@ -58,13 +58,13 @@ contend. **So the option is a throughput knob around 8, not a core-count knob.**
 
 ## Definition of done
 
-- [ ] `--jobs N` exists on `build` and `add-batch`, default 1, and a `jobs=1` run prints the same per-document lines and summary keys as today
-- [ ] `jobs=8` yields the same manifest rows and `pages.json` as `jobs=1` on the same synthetic documents
-- [ ] Under `jobs=3` a crashing child is still `failed` with its exit code, the rest of the batch parses, and the crash row is not retried
-- [ ] Measured on 20 real corpus documents against throwaway paths: wall time and pages/min for `--jobs 1` and `--jobs 8`, page counts identical
-- [ ] `ingest/test_pipeline.py` passes with the new cases and every existing case still passes
-- [ ] `ingest/corpus.py`, `ingest/structure.py`, `ingest/tables.py` unchanged (`git diff` empty)
-- [ ] The live index is untouched (`ingest.pipeline status` still reports its current counts) and `git status` is clean at session end
+- [x] `--jobs N` exists on `build` and `add-batch`, default 1, and a `jobs=1` run prints the same per-document lines and summary keys as today
+- [x] `jobs=8` yields the same manifest rows and `pages.json` as `jobs=1` on the same synthetic documents
+- [x] Under `jobs=3` a crashing child is still `failed` with its exit code, the rest of the batch parses, and the crash row is not retried
+- [x] Measured on 20 real corpus documents against throwaway paths: wall time and pages/min for `--jobs 1` and `--jobs 8`, page counts identical
+- [x] `ingest/test_pipeline.py` passes with the new cases and every existing case still passes
+- [x] `ingest/corpus.py`, `ingest/structure.py`, `ingest/tables.py` unchanged (`git diff` empty)
+- [x] The live index is untouched (`ingest.pipeline status` still reports its current counts) and `git status` is clean at session end
 
 ## Context to read
 

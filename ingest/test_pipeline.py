@@ -405,6 +405,77 @@ def isolated_counters_add_up():
     assert report["seconds"] > 0, report
 
 
+# --- parallel parse (Step 13) ------------------------------------------------
+
+def parallel_parse_records_what_a_serial_run_records():
+    """jobs=8 must leave the same rows and the same pages as jobs=1.
+
+    The parallel path consumes children in plan order, so near-duplicate decisions and
+    the counters cannot depend on which document finished first.
+    """
+    names = list("ABCDEF")
+
+    def run_stage(jobs: int) -> tuple[dict, dict, list]:
+        root, index = workspace()
+        for name in names:
+            make_pdf(root / f"1970_{name}_test.pdf", pages_for(name))
+        manifest = staged_manifest(root, index)
+        try:
+            report = pipeline.parse_stage(root, index, manifest, jobs=jobs)
+            rows = {row["name"]: (row["status"], row["pages"], row["page_hashes"])
+                    for row in manifest.rows()}
+        finally:
+            manifest.close()
+        pipeline.assemble(root, index, pipeline.Manifest(index))
+        return report, rows, json.loads((index / "pages.json").read_text(encoding="utf-8"))["pages"]
+
+    serial, serial_rows, serial_pages = run_stage(1)
+    parallel, parallel_rows, parallel_pages = run_stage(8)
+    assert serial["parsed"] == 6 and parallel["parsed"] == 6, (serial, parallel)
+    assert parallel["failed"] == 0 and parallel["seconds"] > 0, parallel
+    assert parallel_rows == serial_rows, {
+        name: (parallel_rows.get(name), serial_rows.get(name))
+        for name in serial_rows if parallel_rows.get(name) != serial_rows.get(name)}
+    assert parallel_pages == serial_pages, "jobs=8 assembled different pages"
+
+
+def parallel_parse_isolates_a_crash():
+    root, index = workspace()
+    for name in ("a", "boom", "c", "d", "e", "f"):
+        make_pdf(root / f"1970_{name}_test.pdf", pages_for(name))
+    manifest = staged_manifest(root, index)
+    try:
+        report = pipeline.parse_stage(root, index, manifest, entry=fake_entry(), jobs=3)
+        assert report["parsed"] == 5 and report["failed"] == 1, report
+        row = manifest.row("1970_boom_test.pdf")
+        assert row["status"] == "failed" and row["error"] == "crash: exit code 17", row["error"]
+        assert manifest.row("1970_f_test.pdf")["status"] == "parsed", "the batch stopped"
+    finally:
+        manifest.close()
+    again_manifest = pipeline.Manifest(index)
+    try:
+        again = pipeline.parse_stage(root, index, again_manifest, entry=fake_entry(), jobs=3)
+    finally:
+        again_manifest.close()
+    assert again["parsed"] == 0 and again["failed"] == 0, again
+
+
+def a_jobs_value_below_one_is_refused():
+    root, index = workspace()
+    make_pdf(root / "1970_A_test.pdf", pages_for("A"))
+    manifest = staged_manifest(root, index)
+    try:
+        for bad in (0, -3):
+            try:
+                pipeline.parse_stage(root, index, manifest, jobs=bad)
+            except SystemExit as exc:
+                assert "jobs" in str(exc), exc
+            else:
+                raise AssertionError(f"jobs={bad} was accepted")
+    finally:
+        manifest.close()
+
+
 # --- batch ingestion ---------------------------------------------------------
 
 def batch_workspace() -> tuple[pathlib.Path, pathlib.Path, pathlib.Path, pathlib.Path]:
@@ -526,6 +597,10 @@ CASES = [
     ("a raising parse keeps its error text", a_raising_parse_keeps_its_error_text),
     ("a hung parse is killed and recorded", a_hung_parse_is_killed_and_recorded),
     ("isolated parse counters add up", isolated_counters_add_up),
+    ("parallel parse records what a serial run records",
+     parallel_parse_records_what_a_serial_run_records),
+    ("parallel parse isolates a crash", parallel_parse_isolates_a_crash),
+    ("a jobs value below one is refused", a_jobs_value_below_one_is_refused),
     ("a batch links and indexes every file", a_batch_links_and_indexes_every_file),
     ("a repeated name inside the batch refuses everything",
      a_repeated_name_inside_the_batch_refuses_everything),
