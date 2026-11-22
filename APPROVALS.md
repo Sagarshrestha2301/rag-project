@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-22 | start | step 13 | owner
 2026-11-21 | start | step 11 | owner
 2026-11-21 | start | step 10 | owner
 2026-11-20 | approval | D-068, D-070, D-071, D-072, D-073 (five Step 9 experiment outcomes) | owner
@@ -98,3 +99,10 @@ and committed in an `OWNER:` commit, as on 2026-11-13 and 2026-11-17. Step 07's 
 box was ticked on the owner's report that they ran it with Wi-Fi off; step 08's offline box
 is still open because it asks for the run's output to be recorded and no output was supplied.
 The tags `step-06-approved` ... `step-09-approved` remain for the owner to create.)
+
+(2026-11-22: the step 13 start line above was typed by the coding agent on the owner's
+explicit chat instruction - "Add a --jobs pool to parse_stage so waves parse 8 documents at
+once, keeping today's behaviour as the default and test_pipeline green" - and committed in an
+`OWNER:` commit, as on 2026-11-13, 2026-11-17, 2026-11-20 and 2026-11-21. The step file
+`steps/13-parallel-parse.md` was drafted by the agent from the 2026-11-22 parse measurements
+(`reports/20k-download-and-rag-guide.md` section 6.1); the owner has not yet edited it.)
