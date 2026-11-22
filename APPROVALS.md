@@ -45,6 +45,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
 2026-11-22 | start | step 13 | owner
+2026-11-22 | start | step 14 | owner
 2026-11-21 | start | step 11 | owner
 2026-11-21 | start | step 10 | owner
 2026-11-20 | approval | D-068, D-070, D-071, D-072, D-073 (five Step 9 experiment outcomes) | owner
@@ -106,3 +107,9 @@ once, keeping today's behaviour as the default and test_pipeline green" - and co
 `OWNER:` commit, as on 2026-11-13, 2026-11-17, 2026-11-20 and 2026-11-21. The step file
 `steps/13-parallel-parse.md` was drafted by the agent from the 2026-11-22 parse measurements
 (`reports/20k-download-and-rag-guide.md` section 6.1); the owner has not yet edited it.)
+
+(2026-11-22, step 14: typed by the coding agent on the owner's explicit chat instruction -
+"Make bibliography on-demand by default so waves skip its 45 hours, with the UI falling back
+to file names" - and committed in an `OWNER:` commit, as for steps 06-11 and step 13 above.
+`steps/14-bibliography-on-demand.md` was drafted by the agent from the Step 11 timing
+(8.2 s/document) and the UI fallback already in `ui/static/app.js`.)
