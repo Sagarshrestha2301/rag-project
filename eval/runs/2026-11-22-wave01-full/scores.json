@@ -1,0 +1,1659 @@
+{
+  "label": "run",
+  "summary": {
+    "n": 55,
+    "retrieval": {
+      "recall@5": {
+        "pass": {
+          "count": 45,
+          "of": 48,
+          "pct": 93.8
+        }
+      },
+      "recall@10": {
+        "pass": {
+          "count": 46,
+          "of": 48,
+          "pct": 95.8
+        }
+      },
+      "recall@30": {
+        "pass": {
+          "count": 46,
+          "of": 48,
+          "pct": 95.8
+        }
+      }
+    },
+    "mrr": 0.837,
+    "citation": {
+      "count": 33,
+      "of": 48,
+      "pct": 68.8
+    },
+    "numeric": {
+      "count": 35,
+      "of": 43,
+      "pct": 81.4
+    },
+    "notfound_a": {
+      "count": 2,
+      "of": 6,
+      "pct": 33.3
+    },
+    "notfound_a_scope": "dev",
+    "notfound_b": {
+      "count": 47,
+      "of": 48,
+      "pct": 97.9
+    },
+    "passed": {
+      "count": 33,
+      "of": 55,
+      "pct": 60.0
+    },
+    "points_per_question": null,
+    "by_split": {
+      "dev": {
+        "n": 45,
+        "retrieval": {
+          "recall@5": {
+            "pass": {
+              "count": 37,
+              "of": 39,
+              "pct": 94.9
+            }
+          },
+          "recall@10": {
+            "pass": {
+              "count": 38,
+              "of": 39,
+              "pct": 97.4
+            }
+          },
+          "recall@30": {
+            "pass": {
+              "count": 38,
+              "of": 39,
+              "pct": 97.4
+            }
+          }
+        },
+        "mrr": 0.844,
+        "citation": {
+          "count": 26,
+          "of": 39,
+          "pct": 66.7
+        },
+        "numeric": {
+          "count": 28,
+          "of": 35,
+          "pct": 80.0
+        },
+        "notfound_a": {
+          "count": 2,
+          "of": 6,
+          "pct": 33.3
+        },
+        "notfound_a_scope": "dev",
+        "notfound_b": {
+          "count": 38,
+          "of": 39,
+          "pct": 97.4
+        },
+        "passed": {
+          "count": 26,
+          "of": 45,
+          "pct": 57.8
+        },
+        "points_per_question": 2.22
+      },
+      "heldout": {
+        "n": 10,
+        "retrieval": {
+          "recall@5": {
+            "pass": {
+              "count": 8,
+              "of": 9,
+              "pct": 88.9
+            }
+          },
+          "recall@10": {
+            "pass": {
+              "count": 8,
+              "of": 9,
+              "pct": 88.9
+            }
+          },
+          "recall@30": {
+            "pass": {
+              "count": 8,
+              "of": 9,
+              "pct": 88.9
+            }
+          }
+        },
+        "mrr": 0.806,
+        "citation": {
+          "count": 7,
+          "of": 9,
+          "pct": 77.8
+        },
+        "numeric": {
+          "count": 7,
+          "of": 8,
+          "pct": 87.5
+        },
+        "notfound_a": {
+          "count": 1,
+          "of": 1,
+          "pct": 100.0
+        },
+        "notfound_a_scope": "heldout",
+        "notfound_b": {
+          "count": 9,
+          "of": 9,
+          "pct": 100.0
+        },
+        "passed": {
+          "count": 7,
+          "of": 10,
+          "pct": 70.0
+        },
+        "points_per_question": 10.0
+      }
+    },
+    "points_per_question_by_split": {
+      "dev": 2.22,
+      "heldout": 10.0
+    }
+  },
+  "results": [
+    {
+      "id": "q001",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q002",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 4,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.25,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q003",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q004",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q005",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 4,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.25,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q006",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q007",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q008",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q009",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q010",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q011",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q012",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q013",
+      "type": "summary",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q014",
+      "type": "summary",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q015",
+      "type": "summary",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": null,
+      "recall": {
+        "5": [
+          0.0,
+          false
+        ],
+        "10": [
+          0.0,
+          false
+        ],
+        "30": [
+          0.0,
+          false
+        ]
+      },
+      "mrr": 0.0,
+      "citation_ok": false,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q016",
+      "type": "comparison",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q017",
+      "type": "comparison",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q018",
+      "type": "comparison",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q019",
+      "type": "notfound",
+      "answerable": false,
+      "retrieval_scored": false,
+      "first_rank": 3,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.3333333333333333,
+      "citation_ok": null,
+      "numeric_ok": null,
+      "notfound_correct": false,
+      "notfound_case": "a",
+      "passed": false
+    },
+    {
+      "id": "q020",
+      "type": "notfound",
+      "answerable": false,
+      "retrieval_scored": false,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": null,
+      "numeric_ok": null,
+      "notfound_correct": false,
+      "notfound_case": "a",
+      "passed": false
+    },
+    {
+      "id": "q021",
+      "type": "notfound",
+      "answerable": false,
+      "retrieval_scored": false,
+      "first_rank": 2,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.5,
+      "citation_ok": null,
+      "numeric_ok": null,
+      "notfound_correct": false,
+      "notfound_case": "a",
+      "passed": false
+    },
+    {
+      "id": "q022",
+      "type": "notfound",
+      "answerable": false,
+      "retrieval_scored": false,
+      "first_rank": 2,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.5,
+      "citation_ok": null,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "a",
+      "passed": true
+    },
+    {
+      "id": "q023",
+      "type": "followup",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q024",
+      "type": "followup",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q025",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 2,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.5,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q026",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": false,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q027",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": false,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q028",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": false,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q029",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": false,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q030",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q031",
+      "type": "number",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q032",
+      "type": "number",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q033",
+      "type": "number",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q034",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q035",
+      "type": "number",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q036",
+      "type": "list",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": false,
+      "notfound_correct": false,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q037",
+      "type": "number",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 4,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.25,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q038",
+      "type": "comparison",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 2,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.5,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q039",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": false,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q040",
+      "type": "number",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q041",
+      "type": "exact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 2,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.5,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q042",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": false,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q043",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q044",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q045",
+      "type": "number",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": null,
+      "recall": {
+        "5": [
+          0.0,
+          false
+        ],
+        "10": [
+          0.0,
+          false
+        ],
+        "30": [
+          0.0,
+          false
+        ]
+      },
+      "mrr": 0.0,
+      "citation_ok": false,
+      "numeric_ok": false,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q046",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 6,
+      "recall": {
+        "5": [
+          0.0,
+          false
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.16666666666666666,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q047",
+      "type": "table",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 4,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.25,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q048",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q049",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 2,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 0.5,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q050",
+      "type": "list",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": true,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": true
+    },
+    {
+      "id": "q051",
+      "type": "fact",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q052",
+      "type": "summary",
+      "answerable": true,
+      "retrieval_scored": true,
+      "first_rank": 1,
+      "recall": {
+        "5": [
+          1.0,
+          true
+        ],
+        "10": [
+          1.0,
+          true
+        ],
+        "30": [
+          1.0,
+          true
+        ]
+      },
+      "mrr": 1.0,
+      "citation_ok": false,
+      "numeric_ok": true,
+      "notfound_correct": true,
+      "notfound_case": "b",
+      "passed": false
+    },
+    {
+      "id": "q053",
+      "type": "notfound",
+      "answerable": false,
+      "retrieval_scored": false,
+      "first_rank": null,
+      "recall": {
+        "5": [
+          0.0,
+          false
+        ],
+        "10": [
+          0.0,
+          false
+        ],
+        "30": [
+          0.0,
+          false
+        ]
+      },
+      "mrr": 0.0,
+      "citation_ok": null,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "a",
+      "passed": true
+    },
+    {
+      "id": "q054",
+      "type": "notfound",
+      "answerable": false,
+      "retrieval_scored": false,
+      "first_rank": null,
+      "recall": {
+        "5": [
+          0.0,
+          false
+        ],
+        "10": [
+          0.0,
+          false
+        ],
+        "30": [
+          0.0,
+          false
+        ]
+      },
+      "mrr": 0.0,
+      "citation_ok": null,
+      "numeric_ok": null,
+      "notfound_correct": true,
+      "notfound_case": "a",
+      "passed": true
+    },
+    {
+      "id": "q055",
+      "type": "notfound",
+      "answerable": false,
+      "retrieval_scored": false,
+      "first_rank": null,
+      "recall": {
+        "5": [
+          0.0,
+          false
+        ],
+        "10": [
+          0.0,
+          false
+        ],
+        "30": [
+          0.0,
+          false
+        ]
+      },
+      "mrr": 0.0,
+      "citation_ok": null,
+      "numeric_ok": null,
+      "notfound_correct": false,
+      "notfound_case": "a",
+      "passed": false
+    }
+  ],
+  "diff": null
+}
