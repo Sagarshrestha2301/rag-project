@@ -171,12 +171,19 @@ that is the shell, not the pipeline.
 .venv\Scripts\python.exe -m ingest.pipeline status --report        # also writes reports/full-ingestion.md
 ```
 
-Six stages: `scan`, `parse`, `assemble`, `bibliography`, `chunk`, `embed`. A row's status
+Five stages run by default: `scan`, `parse`, `assemble`, `chunk`, `embed` — add `--jobs 8`
+to parse eight documents at once (1.41x measured 2026-11-22). A row's status
 is written only after that document's work is on disk, so killing the run costs at most
 the document in flight and the next run continues. **A build with nothing changed takes
 a few seconds** (6.9 s measured 2026-11-20, mostly the corpus signature walk) — if it is
-parsing, something did change (the SHA-256 comparison is the detector). `bibliography` is the only stage that calls the model: if Ollama is down it
-degrades instead of failing.
+parsing, something did change (the SHA-256 comparison is the detector).
+
+`bibliography` is the sixth stage and is **opt-in**: one model call per document (8.2 s
+measured, ~45 h for 20,000), for the reference line in the evidence rail only. Fill it on
+demand with `python -m ingest.bibliography build` (resumes per document by SHA-256), or add
+it to a build with `--stages scan,parse,assemble,bibliography,chunk,embed`. A document with
+no record keeps its file-name label in the UI. It is the only stage that calls the model:
+if Ollama is down it degrades instead of failing.
 
 Expect `embedded 97`, `failed 0`, `duplicate 0`, 3,226 chunks and 3,226 dense rows.
 

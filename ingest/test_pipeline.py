@@ -12,6 +12,7 @@ Usage:
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import pathlib
@@ -460,6 +461,25 @@ def parallel_parse_isolates_a_crash():
     assert again["parsed"] == 0 and again["failed"] == 0, again
 
 
+def bibliography_is_on_demand_by_default():
+    """Step 14: a wave must not spend 8.2 s/document on metadata unless it asks.
+
+    The default is what a wave uses, so it is asserted on the function defaults and on the
+    parsed command line, not on a docstring.
+    """
+    for fn in (pipeline.build, pipeline.add_batch):
+        default = inspect.signature(fn).parameters["stages"].default
+        assert "bibliography" not in default, (fn.__name__, default)
+        assert "parse" in default and "embed" in default, (fn.__name__, default)
+    parser = pipeline._parser()
+    for argv in (["build"], ["add-batch", "--from", "data/raw/bulk", "--wave", "01"]):
+        stages = parser.parse_args(argv).stages
+        assert "bibliography" not in stages, (argv, stages)
+    # Still reachable on demand, so the stage did not go away.
+    asked = parser.parse_args(["build", "--stages", "scan,parse,bibliography"]).stages
+    assert "bibliography" in asked, asked
+
+
 def a_jobs_value_below_one_is_refused():
     root, index = workspace()
     make_pdf(root / "1970_A_test.pdf", pages_for("A"))
@@ -601,6 +621,7 @@ CASES = [
      parallel_parse_records_what_a_serial_run_records),
     ("parallel parse isolates a crash", parallel_parse_isolates_a_crash),
     ("a jobs value below one is refused", a_jobs_value_below_one_is_refused),
+    ("the bibliography is on demand by default", bibliography_is_on_demand_by_default),
     ("a batch links and indexes every file", a_batch_links_and_indexes_every_file),
     ("a repeated name inside the batch refuses everything",
      a_repeated_name_inside_the_batch_refuses_everything),

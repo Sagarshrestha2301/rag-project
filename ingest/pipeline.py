@@ -9,7 +9,8 @@ Stages, in order (`build` runs them all):
     scan         hash every corpus PDF, record size/pages, flag duplicates
     parse        one child per document, `--jobs N` at once -> shards under index/parsed/shards/
     assemble     write index/pages.json (search) and index/parsed/pages.jsonl (chunking)
-    bibliography one validated title/authors/year/venue/DOI record per document (D-066)
+    bibliography one validated title/authors/year/venue/DOI record per document (D-066);
+                 **not run by default** - one model call per document, ~8 s (Step 14)
     chunk        one chunk record per unit into index/chunks.jsonl
     embed        append each new document's chunks to the LanceDB table
 
@@ -455,9 +456,10 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
             continue
 
         done = time.perf_counter() - started
-        # `jobs` children share the wall clock, so the documents still queued take the
-        # per-document estimate divided by how many run at once.
-        eta = (done / position) * (len(todo) - position) / jobs
+        # `position` counts *completed* documents, so `done / position` is already the
+        # amortised wall time per document at this concurrency; dividing by `jobs` again
+        # would promise a speedup the machine does not deliver (1.41x measured, not 8x).
+        eta = (done / position) * (len(todo) - position)
         print(f"  [{position}/{len(todo)}] {row['name'][:52]:54s} "
               f"{result['page_count']:>3}p {elapsed:>6.1f}s "
               f"eta {eta:>5.0f}s", file=sys.stderr)
@@ -630,14 +632,18 @@ def record_file(rows: list[dict]) -> str:
 # ------------------------------------------------------------------- build
 
 def build(root: pathlib.Path = DEFAULT_CORPUS, index_dir: pathlib.Path = DEFAULT_INDEX,
-          stages: tuple[str, ...] = ("scan", "parse", "assemble", "bibliography", "chunk",
-                                     "embed"),
+          stages: tuple[str, ...] = ("scan", "parse", "assemble", "chunk", "embed"),
           limit: int | None = None, parse_timeout: float = PARSE_TIMEOUT,
           parse_jobs: int = 1) -> dict:
     """Run the requested stages in order and return what each one measured.
 
     `parse_jobs` goes to `parse_stage`: 1 is one document at a time and 8 is the measured
     knee (1.53x, Step 13).
+
+    The bibliography is **not** in the default stages: it is one model call per document
+    (~8.2 s measured, ~45 h for 20,000 documents) for metadata only the evidence rail
+    shows, so a wave skips it unless asked (`--stages ...,bibliography,...`). Its own
+    command fills it on demand: `python -m ingest.bibliography build` (Step 14).
     """
     started = time.perf_counter()
     manifest = Manifest(index_dir)
@@ -826,8 +832,7 @@ def _is_within(path: pathlib.Path, root: pathlib.Path) -> bool:
 def add_batch(source_dir: pathlib.Path, wave: str, *,
               corpus_root: pathlib.Path = DEFAULT_CORPUS,
               index_dir: pathlib.Path = DEFAULT_INDEX,
-              stages: tuple[str, ...] = ("scan", "parse", "assemble", "bibliography",
-                                         "chunk", "embed"),
+              stages: tuple[str, ...] = ("scan", "parse", "assemble", "chunk", "embed"),
               limit: int | None = None, build_after: bool = True,
               raw_root: pathlib.Path = DEFAULT_RAW,
               log_path: pathlib.Path = DEFAULT_WAVE_LOG,
@@ -950,16 +955,18 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
 
 # ---------------------------------------------------------------------- cli
 
-def main(argv: list[str]) -> int:
+def _parser() -> argparse.ArgumentParser:
+    """The command line, split out so a test can read its defaults (Step 14)."""
     parser = argparse.ArgumentParser(prog="ingest.pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
 
     build_cmd = sub.add_parser("build", help="run the stages that have work to do")
     build_cmd.add_argument("--corpus", default=str(DEFAULT_CORPUS))
     build_cmd.add_argument("--index", default=str(DEFAULT_INDEX))
-    build_cmd.add_argument("--stages", default="scan,parse,assemble,bibliography,chunk,embed",
+    build_cmd.add_argument("--stages", default="scan,parse,assemble,chunk,embed",
                            help="comma-separated subset: scan,parse,assemble,bibliography,"
-                                "chunk,embed")
+                                "chunk,embed; bibliography is opt-in (one model call per"
+                                " document)")
     build_cmd.add_argument("--limit", type=int, default=None,
                            help="work on at most N documents this run (dry run, resume test)")
     build_cmd.add_argument("--parse-timeout", type=float, default=PARSE_TIMEOUT,
@@ -989,7 +996,8 @@ def main(argv: list[str]) -> int:
     batch_cmd.add_argument("--wave", required=True, help="wave label, e.g. 00")
     batch_cmd.add_argument("--corpus", default=str(DEFAULT_CORPUS))
     batch_cmd.add_argument("--index", default=str(DEFAULT_INDEX))
-    batch_cmd.add_argument("--stages", default="scan,parse,assemble,bibliography,chunk,embed")
+    batch_cmd.add_argument("--stages", default="scan,parse,assemble,chunk,embed",
+                           help="bibliography is opt-in: one model call per document")
     batch_cmd.add_argument("--limit", type=int, default=None)
     batch_cmd.add_argument("--parse-timeout", type=float, default=PARSE_TIMEOUT,
                            help="seconds before a document's parse child is killed"
@@ -1009,7 +1017,11 @@ def main(argv: list[str]) -> int:
     one_cmd.add_argument("--rel", required=True)
     one_cmd.add_argument("--result", required=True)
 
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str]) -> int:
+    args = _parser().parse_args(argv)
 
     if args.command == "parse-one":
         try:

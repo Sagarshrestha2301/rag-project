@@ -5,9 +5,8 @@ Date: 2026-11-22. Companion to `reports/20k-ingestion-plan.md` (the plan and its
 with the real expected output at each one.
 
 Everything here uses code that already ships. **No new script, flag or dependency is needed**
-for the download or the ingest; the one optional code change (an 8-way parse, §6.1) is
-marked as such and needs approval before it exists. Where a number is a projection it says
-so; a projection is not a result (AGENTS.md rule 4).
+for the download or the ingest; the 8-way parse is shipped as `--jobs` (§6.1). Where a
+number is a projection it says so; a projection is not a result (AGENTS.md rule 4).
 
 ---
 
@@ -53,13 +52,13 @@ Measured rates used for every time below (Step 11 pilot, 118 documents, and Step
                      v
      data/raw/bulk/...            one staging tree, resumable, nothing touches the corpus
                      |
-                     |  ingest.pipeline add-batch --from data/raw/bulk --wave NN
+                     |  ingest.pipeline add-batch --from data/raw/bulk --wave NN --jobs 8
                      |    hash every staged file, refuse/ skip / hardlink into data/corpus
                      v
      data/corpus/...  (187 + N PDFs, same relative folders, SHA-256 per file, D-030)
                      |
                      |  the same command runs build: scan -> parse -> assemble
-                     |      -> bibliography -> chunk -> embed
+                     |      -> chunk -> embed        (bibliography is on demand, B.1)
                      v
      index/  pages.json  chunks.jsonl  parsed/  lancedb/  manifest.sqlite
                      |
@@ -77,8 +76,8 @@ Mermaid, same picture, for a viewer that renders it:
 ```mermaid
 flowchart TD
   A[Drive tree<br/>22,710 PDFs / 31 folders] -->|ingest.drive fetch<br/>--per-category N --dest data/raw/bulk| B[data/raw/bulk<br/>staging, resumable]
-  B -->|ingest.pipeline add-batch<br/>--from data/raw/bulk --wave NN| C[data/corpus<br/>hardlinks + SHA-256]
-  C --> D[ingest.pipeline build<br/>scan parse assemble bib chunk embed]
+  B -->|ingest.pipeline add-batch<br/>--from data/raw/bulk --wave NN --jobs 8| C[data/corpus<br/>hardlinks + SHA-256]
+  C --> D[ingest.pipeline build<br/>scan parse assemble chunk embed]
   D --> E[(index/<br/>pages.json chunks.jsonl lancedb)]
   E --> F{eval gate}
   F -->|fail| G[stop the next wave<br/>fix retrieval]
@@ -90,7 +89,7 @@ flowchart TD
 **The wave loop, which is the whole discipline:**
 
 ```
-wave NN:  fetch ~2,000  ->  add-batch  ->  build  ->  status  ->  canary gate
+wave NN:  fetch ~2,000  ->  add-batch --jobs 8  ->  build  ->  status  ->  canary gate
           ->  not-found recheck  ->  backup  ->  record in STATUS.md
           ->  gate PASS?  next wave  :  STOP, fix, re-measure
 ```
@@ -198,7 +197,7 @@ is shared with 'anyone with the link'`, the share changed. Stop; do not re-run r
 ## 3. Step B — ingest one wave into the corpus and the index
 
 ```powershell
-.venv\Scripts\python.exe -m ingest.pipeline add-batch --from data\raw\bulk --wave 01
+.venv\Scripts\python.exe -m ingest.pipeline add-batch --from data\raw\bulk --wave 01 --jobs 8
 ```
 
 **Expect, in this order:**
@@ -210,18 +209,25 @@ is shared with 'anyone with the link'`, the share changed. Stop; do not re-run r
    start (it hashes the tree: ~1 min at 20k files).
 2. Hardlinks into `data/corpus/` keeping the relative folder, one row per file in
    `logs/wave-additions.jsonl`, and `wave-01` recorded in the manifest's `meta` table.
-3. `build` runs and prints per-stage progress. **~20 h for 2,000 documents** (12.5 h parse at
-   51.4 pages/min for ~38,600 pages, 2.8 h embed for ~151,000 chunks, 4.6 h bibliography at
-   8.2 s/document). This is resumable: killing it costs the document in flight.
+3. `build` runs and prints per-stage progress. **~4.5 h for 2,000 documents** (~3.5 h parse
+   at 134.3 pages/min for ~28,540 pages with `--jobs 8`, ~0.8 h embed for ~112,000 chunks;
+   the bibliography is no longer run, §B.1). This is resumable: killing it costs the
+   document in flight.
 
-### B.1 Two cost levers, in the order I would use them
+### B.1 The two cost levers, both now the default
 
-- **Skip the bibliography for early waves.** It is pure 4B-model time (4.6 h per wave) for
-  metadata only the UI rail uses:
-  `.venv\Scripts\python.exe -m ingest.pipeline add-batch --from data\raw\bulk --wave 01 --stages scan,parse,assemble,chunk,embed`
-  Saves ~46 h across ten waves. **Not measured:** re-running `build --stages bibliography`
-  on documents that are already `embedded`. The pilot re-extracted by deleting the error
-  records first. Test it on three documents before relying on it, and record the result.
+- **The bibliography is no longer part of a wave.** `build` and `add-batch` run
+  `scan,parse,assemble,chunk,embed` by default, so the 4B-model call per document (8.2 s
+  measured, ~45 h over ten waves) happens only when you ask for it:
+  `.venv\Scripts\python.exe -m ingest.bibliography build`
+  Metadata is only the reference line in the evidence rail, and a document without a record
+  keeps its file-name label (`ui/static/app.js` falls back `reference -> label -> doc`), so
+  answers and citations do not change. **Not measured:** running it later over documents that
+  are already `embedded`; it resumes per document by SHA-256, but no run has done that yet —
+  try it on three documents first and record the result.
+- **Parse eight at a time, never more.** `--jobs 8` is in the commands above. Measured
+  **1.41x** through the real `build` (1.53x on a direct-child sample), and 8×1 / 8×2 / 16×1
+  land within a second of each other, so a bigger number buys nothing.
 - **Nothing else.** `--limit 5` exists for a smoke test; do not use it to "spread" a wave.
 
 ### B.2 What will go wrong, and what it looks like
@@ -339,7 +345,7 @@ then `{"event":"done","payload":{...}}`.
 | Download | ~68 min, ~2.4 GB | **~11 h, ~24 GB** | 29.6 files/min, 1.22 MB/file (measured) |
 | add-batch (walk + hash) | 1–3 min | ~30 min total | walk cost grows with tree size (projected) |
 | Parse, one document at a time (today's code) | ~7 h | **~54 h** | 87.9 pages/min × 285,455 pages (measured rate, projected corpus) |
-| Parse, 8 at once (§6.1, needs approval) | ~4.6 h | **~35 h** | 134.3 pages/min (measured 1.53x) |
+| Parse, 8 at once (`--jobs 8`) | ~4.6 h | **~35 h** | 134.3 pages/min (measured 1.53x) |
 | Embed (CPU, encode only) | ~0.8 h | **~6 h** | 18.8 ms/chunk × 1.1 M chunks (measured) |
 | Bibliography | ~4.5 h | **~45 h** (skippable) | 8.2 s/document |
 | **Whole build, today's code** | **~16 h** | **~105 h ≈ 4.4 days** | parse + embed + bibliography |
@@ -377,12 +383,12 @@ extraction change. Four things follow, in the order they pay:
    the RAG needs in order to answer. `title`/`authors` in the UI fall back to the file name
    until `python -m ingest.bibliography build` is run later, on demand, for the documents you
    actually cite.
-2. **Parse several documents at once.** `parse_stage` is a strictly serial `for` loop over
-   `_run_isolated` (`ingest/pipeline.py:368`) and every parse is already a separate `python -m`
-   child, so a thread pool over it plus a `--jobs N` flag (default 1, behaviour unchanged) is a
-   small, contained change. It must keep `ingest/test_pipeline.py` green and keep
-   `build`'s stdout one JSON summary. **This is the only code change on this page, and it must
-   be approved before it is written (AGENTS.md rule 2).**
+2. **Parse several documents at once — shipped as `--jobs N`.** `parse_stage` was a strictly
+   serial `for` loop over `_run_isolated`; it now runs N children in a pool and records them
+   in plan order, with **default 1** so nothing about an existing run changes.
+   `ingest/test_pipeline.py` is 26/26 and `build`'s stdout is still one JSON summary. Measured
+   through the real `build` on 20 corpus documents: **205.6 s (86.4 pages/min) at `--jobs 1`
+   and 145.3 s (122.2 pages/min) at 8 — 1.41x, identical page totals.**
 3. **Do not go past 8 workers.** 8×1, 8×2 and 16×1 threads all land within 1 s of each other
    (43.2–43.9 s on the same 8 documents): the children contend for memory bandwidth and for
    PyMuPDF's ONNX table detector, which ignores `OMP_NUM_THREADS`. On a 2,000-document wave the

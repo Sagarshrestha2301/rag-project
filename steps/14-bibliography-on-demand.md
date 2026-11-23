@@ -50,13 +50,13 @@ paid that cost on every document whether or not anyone opened the rail.
 
 ## Definition of done
 
-- [ ] `build` and `add-batch` default to `scan,parse,assemble,chunk,embed`, by function default and by parsed command line
-- [ ] `--stages ...,bibliography,...` and `python -m ingest.bibliography build` both still fill the artifact
-- [ ] A document with no bibliographic record yields `reference: null` and keeps its file-name label through the UI source list
-- [ ] The parse ETA for a `--jobs 8` run is no longer divided by `jobs` twice (comment says why)
-- [ ] `ingest/test_pipeline.py` passes with the new case and every existing case, and `ui/test_pipeline.py` still passes
-- [ ] `RUNBOOK.md` and the 20k guide match the defaults; `ingest/corpus.py`, `ingest/structure.py`, `ingest/tables.py`, `ingest/bibliography.py` unchanged
-- [ ] Live index untouched and `git status` clean at session end
+- [x] `build` and `add-batch` default to `scan,parse,assemble,chunk,embed`, by function default and by parsed command line
+- [x] `--stages ...,bibliography,...` and `python -m ingest.bibliography build` both still fill the artifact
+- [x] A document with no bibliographic record yields `reference: null` and keeps its file-name label through the UI source list
+- [x] The parse ETA for a `--jobs 8` run is no longer divided by `jobs` twice (comment says why)
+- [x] `ingest/test_pipeline.py` passes with the new case and every existing case, and `ui/test_pipeline.py` still passes
+- [x] `RUNBOOK.md` and the 20k guide match the defaults; `ingest/corpus.py`, `ingest/structure.py`, `ingest/tables.py`, `ingest/bibliography.py` unchanged
+- [x] Live index untouched and `git status` clean at session end
 
 ## Context to read
 
