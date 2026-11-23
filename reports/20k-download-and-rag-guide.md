@@ -226,8 +226,10 @@ is shared with 'anyone with the link'`, the share changed. Stop; do not re-run r
   are already `embedded`; it resumes per document by SHA-256, but no run has done that yet —
   try it on three documents first and record the result.
 - **Parse eight at a time, never more.** `--jobs 8` is in the commands above. Measured
-  **1.41x** through the real `build` (1.53x on a direct-child sample), and 8×1 / 8×2 / 16×1
-  land within a second of each other, so a bigger number buys nothing.
+  **1.41x** through the real `build` on a 20-document sample (1.53x on a direct-child sample),
+  and 8×1 / 8×2 / 16×1 land within a second of each other, so a bigger number buys nothing.
+  On a whole 119-document wave it is **1.22x** (2,884 s at 8-way against 3,528 s serial,
+  §6.2) — still worth having, but do not plan on 1.5x.
 - **Nothing else.** `--limit 5` exists for a smoke test; do not use it to "spread" a wave.
 
 ### B.2 What will go wrong, and what it looks like
@@ -237,7 +239,7 @@ is shared with 'anyone with the link'`, the share changed. Stop; do not re-run r
 | 1 document `failed` with `crash: exit code 3221225477` | The known PyMuPDF ONNX access violation in `find_tables` (the NSO report) | Nothing. Step 12 isolates it: the rest of the batch reaches 119/119. Rate seen: 1 in 119 |
 | `duplicate` with `duplicate_of` | Same bytes under another name, or ≥80 % of pages repeat an indexed document | Nothing is deleted. Review the list; a wave that is >3 % duplicates is a stop-and-fix (plan §6) |
 | `refused: [...]` and exit 1 | A non-PDF, a name collision with different bytes, or a repeated name inside the batch | Nothing was placed. Fix the staged folder and re-run |
-| `timeout: no result after 900 s; killed it` | Document slower than the watchdog (default 900 s ≈ 3× the slowest measured, 310 s) | Re-run with `--parse-timeout 1800` if it is a real 500-page report |
+| `timeout: no result after 900 s; killed it` | Document slower than the watchdog (default 900 s ≈ 3× the slowest *serial* document, 310 s; at `--jobs 8` a document costs ~6× more wall time) | Re-run with `--parse-timeout 3600`. Measured 2026-11-23: at 8-way three OCR-heavy pilot documents really needed 953 / 1,255 / 1,068 s, so 900 s kills work that would have finished |
 | 15–20 % of the wave is Nepali/Devanagari | The tree mixes languages; retrieval is English BM25 + `bge-small-en` | The 50 %-Latin rule (D-080) quarantines them after the build; better is to filter *before* embedding (§7) |
 
 ---
@@ -391,9 +393,10 @@ extraction change. Four things follow, in the order they pay:
    and 145.3 s (122.2 pages/min) at 8 — 1.41x, identical page totals.**
 3. **Do not go past 8 workers.** 8×1, 8×2 and 16×1 threads all land within 1 s of each other
    (43.2–43.9 s on the same 8 documents): the children contend for memory bandwidth and for
-   PyMuPDF's ONNX table detector, which ignores `OMP_NUM_THREADS`. On a 2,000-document wave the
-   slowest document stops setting the wall clock (in the 20-doc sample one 64 s document was
-   32% of the serial total), so treat **1.5x as the floor and ~1.7x as the likely wave figure**.
+   PyMuPDF's ONNX table detector, which ignores `OMP_NUM_THREADS`. The sample suggested ~1.7x
+   for a real wave; the one wave measured at 8-way (2026-11-23, §6.2) came in at **1.22x**, so
+   treat **1.2x as the measured wave figure and ~1.5x as the optimistic case**, not the other
+   way round.
 4. **Do not tune embedding threads.** 600 real chunks: 61.7 ms/chunk at 1 thread, 18.8 ms at 8,
    17.7 ms at 16 — the default 8 is already at the knee, and 6 threads' worth of extra speed is
    not worth a config knob.
@@ -413,12 +416,39 @@ projected at the measured rates (pages/doc 14.27 from 2,669 / 187):
 | 10,000 documents | 142,769 | 17.7 h | 2.9 h | **~21 h** |
 | 20,000 documents | 285,455 | 35.4 h | 5.8 h | **~41 h** |
 
+These projections use the 20-document sample's 122.2 pages/min. The one **whole wave** measured
+at 8-way ran at **60.7 pages/min** (§6.2), which would put 20k parse at **~78 h** and the total at
+**~84 h ≈ 3.5 days** — so read ~41 h as the best case on small, light documents and ~84 h as the
+rate a tail-heavy wave actually showed.
+
 Download is I/O-bound and can run in the same window (11 h in total, wave by wave), so the
 long pole is parsing. What cannot be deleted: the §4 gate after each wave, and the machine
 staying awake.
 
 Where the job will actually be decided, in order: (1) the gate read in §4, (2) the BM25
 trigger at wave 05, (3) wave gold questions. Not disk, not the LLM.
+
+### 6.2 The wave-level measurement (2026-11-23, 119 real files)
+
+The samples above are 8-20 documents. The pilot wave was then run end to end at 8-way on
+throwaway paths — `add-batch --from data/raw/incoming-wave-pilot --wave pilot-j8c --stages
+scan,parse,assemble,chunk,embed --jobs 8 --parse-timeout 3600` — and it finished:
+
+| Stage | Result | Time |
+|---|---|---|
+| scan + link | added 119, hardlinks 119, 209,141,991 bytes | seconds |
+| parse | 118 parsed, 1 failed (known `crash: exit code 3221225477`) | **2,248.3 s** |
+| assemble | 118 documents / **2,275 pages** / 145 OCR pages | — |
+| chunk | **8,910 chunks** | — |
+| embed | 118 documents / 8,910 chunks | **601.4 s** |
+| **build + link** | | **2,881.3 s build / 2,884 s wall (48 m 04 s)** |
+
+Pages and chunks match the serial pilot of the same files exactly, so 8-way parsing changes no
+output. The children genuinely run at once — the sum of the 118 per-document parse seconds is
+**17,280.9 s over 2,248.3 s wall = 7.69x overlap** — but each document is ~6x slower under
+load (the 198-page annual report: **1,749.6 s at 8-way vs 310.4 s serial**), which is why the
+wall-clock gain is only **1.22x** against the serial five-stage pilot (3,528 s). A 2,000-document
+wave should do better because the tail overlaps across more waves, but that is **not measured**.
 
 ---
 
