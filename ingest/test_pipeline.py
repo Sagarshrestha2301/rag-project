@@ -375,11 +375,13 @@ def a_hung_parse_is_killed_and_recorded():
         make_pdf(root / f"1970_{name}_test.pdf", pages_for(name))
     manifest = staged_manifest(root, index)
     try:
-        report = pipeline.parse_stage(root, index, manifest, entry=fake_entry(), timeout=2)
+        # 10 s, not 2: a healthy child already spends ~1.3 s importing the pipeline and
+        # more starting OCR, so a 2 s cap killed documents that were only starting up.
+        report = pipeline.parse_stage(root, index, manifest, entry=fake_entry(), timeout=10)
         assert report["parsed"] == 2 and report["failed"] == 1, report
         row = manifest.row("1970_hang_test.pdf")
         assert row["status"] == "failed", row["status"]
-        assert row["error"] == "timeout: no result after 2 s; killed it", row["error"]
+        assert row["error"] == "timeout: no result after 10 s; killed it", row["error"]
         assert manifest.row("1970_c_test.pdf")["status"] == "parsed", "the batch stopped"
     finally:
         manifest.close()
@@ -387,7 +389,7 @@ def a_hung_parse_is_killed_and_recorded():
     again_manifest = pipeline.Manifest(index)
     try:
         again = pipeline.parse_stage(root, index, again_manifest, entry=fake_entry(),
-                                     timeout=2)
+                                     timeout=10)
     finally:
         again_manifest.close()
     assert again["parsed"] == 0 and again["failed"] == 0, again
@@ -478,6 +480,22 @@ def bibliography_is_on_demand_by_default():
     # Still reachable on demand, so the stage did not go away.
     asked = parser.parse_args(["build", "--stages", "scan,parse,bibliography"]).stages
     assert "bibliography" in asked, asked
+
+
+def the_parse_watchdog_scales_with_jobs():
+    """2026-11-23: 8-way children are ~6x slower, so a flat 900 s cap killed real work.
+
+    Measured on a 119-document wave: the same documents that took 310.4 s serially took
+    1,749.6 s at `--jobs 8`, and three OCR-heavy reports needed 953 / 1,255 / 1,068 s.
+    """
+    assert pipeline.parse_timeout_for(1) == 900.0
+    assert pipeline.parse_timeout_for(8) == 7200.0
+    assert pipeline.parse_timeout_for(8, 45) == 45.0, "an explicit cap must win"
+    parser = pipeline._parser()
+    for argv in (["build", "--jobs", "8"],
+                 ["add-batch", "--from", "data/raw/bulk", "--wave", "01", "--jobs", "8"]):
+        assert parser.parse_args(argv).parse_timeout is None, argv
+    assert parser.parse_args(["build", "--parse-timeout", "60"]).parse_timeout == 60.0
 
 
 def a_jobs_value_below_one_is_refused():
@@ -621,6 +639,7 @@ CASES = [
      parallel_parse_records_what_a_serial_run_records),
     ("parallel parse isolates a crash", parallel_parse_isolates_a_crash),
     ("a jobs value below one is refused", a_jobs_value_below_one_is_refused),
+    ("the parse watchdog scales with jobs", the_parse_watchdog_scales_with_jobs),
     ("the bibliography is on demand by default", bibliography_is_on_demand_by_default),
     ("a batch links and indexes every file", a_batch_links_and_indexes_every_file),
     ("a repeated name inside the batch refuses everything",

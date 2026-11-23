@@ -239,7 +239,7 @@ is shared with 'anyone with the link'`, the share changed. Stop; do not re-run r
 | 1 document `failed` with `crash: exit code 3221225477` | The known PyMuPDF ONNX access violation in `find_tables` (the NSO report) | Nothing. Step 12 isolates it: the rest of the batch reaches 119/119. Rate seen: 1 in 119 |
 | `duplicate` with `duplicate_of` | Same bytes under another name, or ≥80 % of pages repeat an indexed document | Nothing is deleted. Review the list; a wave that is >3 % duplicates is a stop-and-fix (plan §6) |
 | `refused: [...]` and exit 1 | A non-PDF, a name collision with different bytes, or a repeated name inside the batch | Nothing was placed. Fix the staged folder and re-run |
-| `timeout: no result after 900 s; killed it` | Document slower than the watchdog (default 900 s ≈ 3× the slowest *serial* document, 310 s; at `--jobs 8` a document costs ~6× more wall time) | Re-run with `--parse-timeout 3600`. Measured 2026-11-23: at 8-way three OCR-heavy pilot documents really needed 953 / 1,255 / 1,068 s, so 900 s kills work that would have finished |
+| `timeout: no result after N s; killed it` | Document slower than the watchdog. The default is **900 s × `--jobs`** since 2026-11-23 (7,200 s at 8), because at 8-way a document costs ~6× more wall time and three OCR-heavy pilot documents really needed 953 / 1,255 / 1,068 s | Check the file is not book-length or corrupt; a genuinely longer document needs `--parse-timeout` raised by hand |
 | 15–20 % of the wave is Nepali/Devanagari | The tree mixes languages; retrieval is English BM25 + `bge-small-en` | The 50 %-Latin rule (D-080) quarantines them after the build; better is to filter *before* embedding (§7) |
 
 ---
@@ -432,7 +432,8 @@ trigger at wave 05, (3) wave gold questions. Not disk, not the LLM.
 
 The samples above are 8-20 documents. The pilot wave was then run end to end at 8-way on
 throwaway paths — `add-batch --from data/raw/incoming-wave-pilot --wave pilot-j8c --stages
-scan,parse,assemble,chunk,embed --jobs 8 --parse-timeout 3600` — and it finished:
+scan,parse,assemble,chunk,embed --jobs 8 --parse-timeout 3600` (`--parse-timeout` is no longer
+needed: the default is 900 × `--jobs` = 7,200 s at 8) — and it finished:
 
 | Stage | Result | Time |
 |---|---|---|

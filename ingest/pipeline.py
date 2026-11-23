@@ -68,7 +68,7 @@ DEFAULT_RAW = ROOT / "data" / "raw"
 DEFAULT_WAVE_LOG = ROOT / "logs" / "wave-additions.jsonl"
 CRASH_PREFIX = "crash: exit code"   # parse_stage's record for a dead child (D-075)
 TIMEOUT_PREFIX = "timeout: no result after"   # parse_stage's record for a hung child
-PARSE_TIMEOUT = 900.0   # seconds per document; slowest measured pilot document took 310 s
+PARSE_TIMEOUT = 900.0   # seconds per parse child at jobs=1; slowest serial pilot document 310 s
 PARSE_ENTRY = [sys.executable, "-m", "ingest.pipeline", "parse-one"]
 DB_NAME = "manifest.sqlite"
 SHARDS = "parsed/shards"
@@ -383,9 +383,26 @@ def _parse_outcomes(todo: list[dict], root: pathlib.Path, index_dir: pathlib.Pat
             yield (row, *outcome)
 
 
+def parse_timeout_for(jobs: int, timeout: float | None = None) -> float:
+    """Seconds one parse child gets. `None` means the default, which scales with `jobs`.
+
+    Parallel children contend: on 2026-11-23 the same 198-page annual report took 310.4 s
+    serial and **1,749.6 s at `--jobs 8`**, and three OCR-heavy reports needed
+    953 / 1,255 / 1,068 s, so a flat 900 s watchdog killed work that would have finished.
+    An explicit `timeout` always wins, so a caller that wants a short cap still gets it.
+
+    Example:
+        >>> parse_timeout_for(1), parse_timeout_for(8), parse_timeout_for(8, 3600)
+        (900.0, 7200.0, 3600.0)
+    """
+    if timeout is not None:
+        return float(timeout)
+    return PARSE_TIMEOUT * max(1, jobs)
+
+
 def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
                 limit: int | None = None, entry: list[str] | None = None,
-                timeout: float = PARSE_TIMEOUT, jobs: int = 1) -> dict:
+                timeout: float | None = None, jobs: int = 1) -> dict:
     """Parse every pending or changed document in its own child process (D-075).
 
     Each parse is a fresh interpreter (see `_run_isolated`), so a document that kills the
@@ -399,7 +416,8 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
     (134.3 pages/min, 1.53x)**, with identical page counts. Past 8 there is no further
     gain: each child's table detector and OCR already use the cores and they contend.
     The default 1 is the serial behaviour every earlier log and `STATUS.md` number was
-    produced with.
+    produced with. `timeout` defaults to `parse_timeout_for(jobs)`, so the watchdog grows
+    with the contention instead of killing documents that are actually progressing.
 
     Example:
         >>> parse_stage(root, index, manifest, jobs=8)
@@ -416,6 +434,7 @@ def parse_stage(root: pathlib.Path, index_dir: pathlib.Path, manifest: Manifest,
     if jobs < 1:
         raise SystemExit(f"jobs must be at least 1, not {jobs}; 8 is the measured knee")
     jobs = min(jobs, max(1, len(todo)))
+    timeout = parse_timeout_for(jobs, timeout)
     started = time.perf_counter()
     parsed = failed = 0
 
@@ -633,7 +652,7 @@ def record_file(rows: list[dict]) -> str:
 
 def build(root: pathlib.Path = DEFAULT_CORPUS, index_dir: pathlib.Path = DEFAULT_INDEX,
           stages: tuple[str, ...] = ("scan", "parse", "assemble", "chunk", "embed"),
-          limit: int | None = None, parse_timeout: float = PARSE_TIMEOUT,
+          limit: int | None = None, parse_timeout: float | None = None,
           parse_jobs: int = 1) -> dict:
     """Run the requested stages in order and return what each one measured.
 
@@ -836,7 +855,7 @@ def add_batch(source_dir: pathlib.Path, wave: str, *,
               limit: int | None = None, build_after: bool = True,
               raw_root: pathlib.Path = DEFAULT_RAW,
               log_path: pathlib.Path = DEFAULT_WAVE_LOG,
-              parse_timeout: float = PARSE_TIMEOUT,
+              parse_timeout: float | None = None,
               parse_jobs: int = 1) -> dict:
     """Bring one staged folder of PDFs into the corpus, all or nothing (Step 10).
 
@@ -969,9 +988,10 @@ def _parser() -> argparse.ArgumentParser:
                                 " document)")
     build_cmd.add_argument("--limit", type=int, default=None,
                            help="work on at most N documents this run (dry run, resume test)")
-    build_cmd.add_argument("--parse-timeout", type=float, default=PARSE_TIMEOUT,
-                           help="seconds before a document's parse child is killed"
-                                " (default %(default)s)")
+    build_cmd.add_argument("--parse-timeout", type=float, default=None,
+                           help="seconds before a document's parse child is killed;"
+                                " default 900 x --jobs (7200 at 8), because parallel"
+                                " children make each document ~6x slower")
     build_cmd.add_argument("--jobs", type=int, default=1,
                            help="documents to parse at once; 1 keeps today's serial run,"
                                 " 8 is the measured knee (1.53x, Step 13)")
@@ -999,9 +1019,10 @@ def _parser() -> argparse.ArgumentParser:
     batch_cmd.add_argument("--stages", default="scan,parse,assemble,chunk,embed",
                            help="bibliography is opt-in: one model call per document")
     batch_cmd.add_argument("--limit", type=int, default=None)
-    batch_cmd.add_argument("--parse-timeout", type=float, default=PARSE_TIMEOUT,
-                           help="seconds before a document's parse child is killed"
-                                " (default %(default)s)")
+    batch_cmd.add_argument("--parse-timeout", type=float, default=None,
+                           help="seconds before a document's parse child is killed;"
+                                " default 900 x --jobs (7200 at 8), because parallel"
+                                " children make each document ~6x slower")
     batch_cmd.add_argument("--jobs", type=int, default=1,
                            help="documents to parse at once; 1 keeps today's serial run,"
                                 " 8 is the measured knee (1.53x, Step 13)")
