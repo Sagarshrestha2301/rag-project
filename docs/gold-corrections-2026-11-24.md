@@ -147,3 +147,40 @@ the change as a free point:
 - the gate is **not** re-run to "earn" the point, and no already-recorded run's scores are
   rewritten. `eval/runs/` keeps its original `scores.json`; only future runs score against
   the corrected set.
+
+## EVAL.md edits that follow (owner's, not applied here)
+
+EVAL.md is protected except for appending rows to the Results table (AGENTS.md rule 13), so
+the point-value table below is an **owner edit**. Both texts are ready to paste.
+
+### 1. One-question point values — replace the four-row table
+
+It still describes the 30-question set (20 dev at 5 points). Current set: **45 dev, 10
+held-out** (55 records), so `100/45 = 2.22` and `100/10 = 10`.
+
+```markdown
+| Set | N | One question |
+|---|---|---|
+| Dev | 45 | 2.22 points |
+| Held-out | 10 | 10 points |
+| Not-found (a) on dev | 6 | 16.67 points |
+```
+
+The not-found (a) figure is context, not tolerance: rule 4 gives it zero tolerance, so one
+flip costs 16.67 points of the dev total.
+
+Also stale in the same file, one line, optional: the composition section still says
+`Split: 20 dev, 10 held-out`; the frozen split is 45 dev / 10 held-out.
+
+### 2. Results-table row — append only after the corrections are applied
+
+A row appended now would record a projection as a result, so it is held back. The exact row,
+using the accepted baseline's saved answers re-scored against the corrected set:
+
+```markdown
+| 2026-11-24 | **gold-data correction applied; accepted baseline re-scored, no new generation** — q042/q044/q050 gold fields corrected per `docs/gold-corrections-2026-11-24.md`; answers are the unchanged `eval/runs/2026-11-20-step9-retry-guard/run.jsonl` | 9 | dev+heldout | 55 | 45/48 | 46/48 | 46/48 | 0.826 | 36/48 | 38/43 | 3/6 / 46/48 | 11.4 | **38/55 passed (dev 31/45, held-out 7/10)**, one above the 37/55 baseline: **only q042 moved, fail -> pass**, numeric 37/43 -> 38/43, and no pass -> fail in any of the 17 saved runs (`reports/gold-corrections-rescore.md`). Not a new run and not an improvement: the gold data was wrong, and the gate was not re-run. |
+```
+
+Appending a Results row is the one EVAL.md edit an agent may make, so this row can be
+appended by the agent once the owner has applied the corrections — no owner edit needed for
+this half.
