@@ -51,6 +51,11 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
+# Follow a port pinned with $env:UI_PORT unless -UiPort was given explicitly.
+if (-not $PSBoundParameters.ContainsKey('UiPort') -and $env:UI_PORT) {
+    $UiPort = [int]$env:UI_PORT
+}
+
 $watch = [System.Diagnostics.Stopwatch]::StartNew()
 $problems = 0
 $reasons = [System.Collections.Generic.List[string]]::new()

@@ -75,7 +75,7 @@ Write-Host "status       : http://127.0.0.1:$Port   (this one answers GET: 'Olla
 # either way, and says plainly whether it will answer right now, so nobody opens
 # a link that only looks like it works (a dead port 8000 is what produced a 405
 # in the browser once: the request was answered by a static handler, not the app).
-$UiPort = 8000
+$UiPort = if ($env:UI_PORT) { [int]$env:UI_PORT } else { 8000 }
 $UiUrl  = "http://127.0.0.1:$UiPort"
 try {
     Invoke-RestMethod -Uri "$UiUrl/api/health" -TimeoutSec 3 | Out-Null

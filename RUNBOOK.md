@@ -54,6 +54,12 @@ curl.exe -s http://127.0.0.1:8000/api/health
 Expect `documents` 97, `pages` 851, `ocr_pages` 86 and a non-null `unreadable_documents`.
 The server binds **127.0.0.1 only**; another machine cannot reach it.
 
+The port is 8000 unless `$env:UI_PORT` says otherwise; `-Port` wins over both.
+`open-chat.ps1` measures the port first, because Windows reserves long ranges for
+Hyper-V/WinNAT and a bind inside one fails with WinError 10013 while nothing is
+listening. If 8000 is reserved it starts on a free port in 8300-8599 and prints
+which one. `health.ps1` follows `UI_PORT` but not that swap, so pass `-UiPort`.
+
 ### 1c. The same pipeline from a terminal
 
 ```powershell
@@ -78,11 +84,16 @@ ollama stop qwen3.5:4b     # frees the VRAM immediately
 ```
 
 Stop the UI with `Ctrl+C` in its window. If it is running detached, stop the process that
-is **listening** on 8000 — the `.venv` interpreter is a trampoline and its child is the
-real listener:
+is **listening** on the port the launcher printed (8000, or the substitute in 8300-8599) —
+the `.venv` interpreter is a trampoline and its child is the real listener:
 
 ```powershell
-netstat -ano | findstr :8000
+netstat -ano | findstr :8000        # or :8300 if the launcher reported a substitute
+```
+
+Read the **LISTENING** line; ignore `TIME_WAIT`.
+
+```powershell
 taskkill /PID <pid> /F
 ```
 
@@ -258,6 +269,7 @@ thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-40 min).
 | Restored answers differ from before the backup | Restore with `restore --from`, with the UI stopped. Copying folders by hand can mix a new `pages.json` with an old `lancedb/`. |
 | The not-found line is shown for a question you know is answered | Read the warning: 19 of 851 pages have no readable text after OCR, and the answer may be on one of them. Check `reports/not-found-recheck.md` before blaming the gate. |
 | `Access is denied` from an offline-proof script | The shell is not elevated. Firewall rules need an administrator prompt. |
+| `WinError 10013` binding `127.0.0.1:8000`, nothing in `netstat` | Windows reserved the port for Hyper-V/WinNAT. `netsh interface ipv4 show excludedportrange protocol=tcp` lists the ranges. `open-chat.ps1` works around it by starting on a free port in 8300-8599 and printing it; `$env:UI_PORT` pins one. To give 8000 back for good, in an **elevated** shell: `net stop winnat`, `netsh int ipv4 set dynamicport tcp start=49152 num=16384`, `net start winnat` (this stops Hyper-V from reserving ports below 49152; it affects every program on the machine). |
 
 `RUNNING.md`'s "If something fails" table has the rest.
 

@@ -7,9 +7,16 @@ condensation, cache, retrieval, gate, prompt, verifier and the one retry are the
 of its own; if this file grows answer logic again, the eval and the reader diverge.
 
 Usage:
+    .venv\\Scripts\\python.exe -m ui.server          # host 127.0.0.1, port UI_PORT or 8000
     .venv\\Scripts\\python.exe -m uvicorn ui.server:app --host 127.0.0.1 --port 8000
 
-Environment: OLLAMA_URL, CHAT_MODEL, CHAT_NUM_CTX, CHAT_KEEP_ALIVE, CHAT_THINK.
+Environment: OLLAMA_URL, UI_PORT (default 8000), CHAT_MODEL, CHAT_NUM_CTX,
+CHAT_KEEP_ALIVE, CHAT_THINK.
+
+On Windows a port can be unbindable even with nothing listening, when it falls in a
+Hyper-V/WinNAT reserved range (`netsh interface ipv4 show excludedportrange
+protocol=tcp`); the bind then fails with WinError 10013. `scripts/open-chat.ps1`
+checks for that and starts on a free port instead.
 
 Event stream on `POST /api/chat` (one JSON object per line):
     {"event": "start", "model": {...}}
@@ -150,7 +157,10 @@ def config() -> dict:
             "temperature": generator.TEMPERATURE, "pages": len(source["pages"])}
 
 
+PORT = int(os.environ.get("UI_PORT", "8000"))
+
+
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="info")
