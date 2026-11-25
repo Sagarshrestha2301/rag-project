@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-25 | start | step 15 | owner
 2026-11-22 | start | step 13 | owner
 2026-11-22 | start | step 14 | owner
 2026-11-21 | start | step 11 | owner
@@ -107,6 +108,13 @@ once, keeping today's behaviour as the default and test_pipeline green" - and co
 `OWNER:` commit, as on 2026-11-13, 2026-11-17, 2026-11-20 and 2026-11-21. The step file
 `steps/13-parallel-parse.md` was drafted by the agent from the 2026-11-22 parse measurements
 (`reports/20k-download-and-rag-guide.md` section 6.1); the owner has not yet edited it.)
+
+(2026-11-25, step 15: typed by the coding agent on the owner's explicit chat instruction -
+"Implement step 15's refusal-line rule and run the 55-question gate once the owner approves
+the start line" - and committed in an `OWNER:` commit, as for steps 06-11, 13 and 14 above.
+The step file `steps/15-refusal-line.md` was drafted by the agent on 2026-11-25 from the
+measured 2026-11-24 run and the owner has not yet edited it. The `step-15-approved` tag is
+the owner's, to be created only after the definition of done is met.)
 
 (2026-11-22, step 14: typed by the coding agent on the owner's explicit chat instruction -
 "Make bibliography on-demand by default so waves skip its 45 hours, with the UI falling back
