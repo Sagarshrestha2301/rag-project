@@ -17,7 +17,9 @@ The two steps happen at different times, so they are two functions:
 - `resolve(verdict)` -- after the model, from `generation.verify`'s verdict alone: a
   refusal in the prompt's exact words is "not found", a verified answer is an answer, and
   a failed check is `unverified`. A model that drifted is never reported as a corpus that
-  was silent.
+  was silent. Since Step 15 a refusal also counts when the exact line sits inside the
+  model's own prose and the answer cites nothing; `verdict["refusal_form"]` says which
+  form was accepted, so a record never claims a paraphrase was honoured.
 
 Usage:
     from generation import gate
@@ -76,8 +78,12 @@ def pre_ask(passages: list[dict], floor: float = FLOOR) -> dict:
 def resolve(verdict: dict) -> dict:
     """What the model's answer means, from its verification verdict alone."""
     if verdict.get("said_not_found"):
-        return {"decision": "not_found",
-                "reason": "the model refused: the passages do not answer the question"}
+        if verdict.get("refusal_form") == "exact_line_with_prose":
+            reason = ("the model refused in its own words, then wrote the prompt's exact "
+                      "line and cited no page (Step 15)")
+        else:
+            reason = "the model refused: the passages do not answer the question"
+        return {"decision": "not_found", "reason": reason}
 
     if verdict.get("ok"):
         return {"decision": "answer",

@@ -115,13 +115,13 @@ change before the next accepted run, that decision is the owner's, not this step
 
 ## Definition of done
 
-- [ ] A prose-then-exact-line refusal with no citation marker resolves as `not_found`, and the record names the form
-- [ ] A disclaimer that cites a page still resolves as `unverified` and is never rewritten into a refusal
-- [ ] `generation/verify.py`, `gate.py` and `eval/score.py` are the only code touched; prompt, retrieval, index and `eval/questions.jsonl` are byte-unchanged
-- [ ] The new cases and every existing `generation/` case pass
-- [ ] The full run is recorded with its gate output against both baselines, and the per-question diff matches the table above or the difference is explained
-- [ ] The D-086 accounting is stated in `STATUS.md` (how many of q003/q040/q052/q055 this change recovered)
-- [ ] `EVAL.md` has the Results row and `git status` is clean at session end
+- [x] A prose-then-exact-line refusal with no citation marker resolves as `not_found`, and the record names the form
+- [x] A disclaimer that cites a page still resolves as `unverified` and is never rewritten into a refusal
+- [x] `generation/verify.py`, `gate.py` and `eval/score.py` are the only code touched; prompt, retrieval, index and `eval/questions.jsonl` are byte-unchanged
+- [x] The new cases and every existing `generation/` case pass
+- [x] The full run is recorded with its gate output against both baselines, and the per-question diff matches the table above or the difference is explained
+- [x] The D-086 accounting is stated in `STATUS.md` (how many of q003/q040/q052/q055 this change recovered)
+- [x] `EVAL.md` has the Results row and `git status` is clean at session end
 
 ## Context to read
 

@@ -21,8 +21,16 @@ contain, about the question asked, counts as a refusal and is normalised to
 `NOT_FOUND_TEXT`. It fixed all three prose refusals (not-found (a) 3/6 -> 6/6) but also
 swallowed two answerable questions whose model answer opens with the same shape
 (q027, q028: "the provided passages do not contain Table 2 ..."), so not-found (b) fell
-37/39 -> 35/39 on dev and `eval/gate.py` rejected the change. Only the exact line counts;
-the cases in `test_verify.py` pin the measured behaviour.
+37/39 -> 35/39 on dev and `eval/gate.py` rejected the change.
+
+Step 15 adds the narrower half that D-068 left unmeasured: the prompt's **exact** line is
+accepted wherever it appears, but only when the answer cites nothing at all. The prose is
+never read, so this is not D-060. Measured on the 2026-11-24 run, 11 of 55 answers carry
+the exact line; the no-marker guard keeps the two prose refusals that should pass (q021,
+q055) and still misfiles one answerable question that never cited anything (q027), which
+is the one-question cost this rule was accepted with. `said_not_found()` stays strict; the
+wider form is reported by `refused_with_line()`, so a refusal can never be invented from a
+paraphrase.
 
 Usage:
     from generation import prompt, verify
@@ -160,6 +168,48 @@ def said_not_found(answer: str) -> bool:
     return first.rstrip(".").lower() == NOT_FOUND_TEXT.rstrip(".").lower()
 
 
+def refused_with_line(answer: str) -> dict:
+    """Did the model write the exact refusal line without citing anything?
+
+    Two accepted forms, both of which are the prompt's own words and nothing invented:
+
+    - `line_only`: the first non-empty line is the exact line (the old contract);
+    - `exact_line_with_prose`: the exact line appears as a whole line somewhere and the
+      answer carries **no `[n]` marker at all**, so it never tried to cite a page. This
+      is q021/q055, and it is why the rule cannot swallow a real answer attempt (q026,
+      q028 cite a page even while disclaiming one).
+
+    The prose is not read and no paraphrase is accepted: D-060's rule was measured and
+    rejected (D-068) because it guessed at meaning.
+
+    Usage:
+        >>> refused_with_line("The passages do not state it.  Not found in the indexed documents.")["accepted"]
+        True
+        >>> refused_with_line('No Table 2 here. [3] Das 1970, p. 4: "x"')["accepted"]
+        False
+    """
+    text = (answer or "").strip()
+    lines = [line.strip() for line in text.splitlines() if line.strip()] if text else []
+    target = NOT_FOUND_TEXT.rstrip(".").lower()
+    has_line = any(line.rstrip(".").lower() == target for line in lines)
+    markers = len(_INLINE.findall(text))
+
+    if not text:
+        return {"accepted": False, "form": None, "markers": 0,
+                "reason": "the answer is empty"}
+    if not has_line:
+        return {"accepted": False, "form": None, "markers": markers,
+                "reason": "the exact refusal line is not in the answer"}
+    if markers:
+        return {"accepted": False, "form": None, "markers": markers,
+                "reason": f"the answer cites {markers} page(s), so it is an answer attempt"}
+    if len(lines) == 1:
+        return {"accepted": True, "form": "line_only", "markers": 0,
+                "reason": "the refusal line is the whole answer"}
+    return {"accepted": True, "form": "exact_line_with_prose", "markers": 0,
+            "reason": "the model wrote the refusal line and cited no page"}
+
+
 def verify_answer(answer: str, passages: list[dict], *, check_page=None) -> dict:
     """Decide whether every quotation in `answer` is on the page it names.
 
@@ -168,14 +218,19 @@ def verify_answer(answer: str, passages: list[dict], *, check_page=None) -> dict
     a corpus on disk.
     """
     read_page = check_page or page_text
-    result: dict = {"said_not_found": said_not_found(answer), "citations": [],
+    refusal = refused_with_line(answer)
+    result: dict = {"said_not_found": said_not_found(answer) or refusal["accepted"],
+                    "refusal_form": refusal["form"], "citations": [],
                     "problems": [], "ok": False, "verified_quotes": 0}
 
     if result["said_not_found"]:
-        extra = [line for line in (answer or "").strip().splitlines()[1:] if line.strip()]
-        if extra:
-            result["problems"].append(
-                "the refusal line must be the whole answer, but more text follows it")
+        # A strict refusal that keeps talking is still a problem; the wide form is the
+        # one that deliberately allows prose around the line (Step 15).
+        if refusal["form"] != "exact_line_with_prose":
+            extra = [line for line in (answer or "").strip().splitlines()[1:] if line.strip()]
+            if extra:
+                result["problems"].append(
+                    "the refusal line must be the whole answer, but more text follows it")
         result["ok"] = not result["problems"]
         return result
 

@@ -76,6 +76,20 @@ def a_refusal_is_not_found() -> None:
     assert "refused" in decision["reason"], decision["reason"]
 
 
+def a_refusal_with_prose_is_also_not_found() -> None:
+    """Step 15: the verifier accepts the wide form, and the gate must say why."""
+    decision = gate.resolve({"said_not_found": True, "ok": True, "problems": [],
+                             "refusal_form": "exact_line_with_prose"})
+    assert decision["decision"] == "not_found", decision
+    assert "exact" in decision["reason"], decision["reason"]
+
+
+def a_strict_refusal_does_not_mention_the_wide_form() -> None:
+    decision = gate.resolve({"said_not_found": True, "ok": True, "problems": [],
+                             "refusal_form": "line_only"})
+    assert "Step 15" not in decision["reason"], decision["reason"]
+
+
 def a_verified_answer_is_an_answer() -> None:
     decision = gate.resolve({"said_not_found": False, "ok": True, "problems": []})
     assert decision["decision"] == "answer", decision
@@ -100,6 +114,8 @@ def main() -> int:
         ]),
         ("after the model: the verdict", [
             ("a refusal is not-found", a_refusal_is_not_found),
+            ("a refusal with prose is not-found and says so", a_refusal_with_prose_is_also_not_found),
+            ("a strict refusal keeps the plain reason", a_strict_refusal_does_not_mention_the_wide_form),
             ("a verified answer is an answer", a_verified_answer_is_an_answer),
             ("a failed check is unverified, not a refusal",
              a_failed_check_is_unverified_not_a_refusal),

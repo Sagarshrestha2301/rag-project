@@ -146,9 +146,18 @@ def refusal_passes() -> None:
     assert result["ok"] and result["said_not_found"], result
 
 
-def refusal_with_extra_text_fails() -> None:
+def refusal_line_with_prose_passes() -> None:
+    """Step 15: the exact line plus prose is a refusal when nothing is cited."""
     result = run(prompt.NOT_FOUND_TEXT + "\nThe documents do not cover this.")
-    assert not result["ok"] and result["said_not_found"], result
+    assert result["ok"] and result["said_not_found"], result
+    assert result["refusal_form"] == "exact_line_with_prose", result
+
+
+def a_refusal_that_then_cites_is_still_a_problem() -> None:
+    """The line followed by a citation is an answer attempt, so it is not normalised."""
+    result = run(prompt.NOT_FOUND_TEXT +
+                 '\n[1] 1970_Test_Paper_W1.pdf, p. 2: "Hydrological data"')
+    assert result["said_not_found"] and not result["ok"], result
 
 
 def prose_refusal_is_not_a_refusal() -> None:
@@ -160,10 +169,26 @@ def prose_refusal_is_not_a_refusal() -> None:
     assert not result["said_not_found"], result
 
 
-def refusal_on_the_second_line_is_not_a_refusal() -> None:
-    """q021's shape: only the first non-empty line is the contract."""
+def refusal_on_the_second_line_is_a_refusal() -> None:
+    """q021's shape: prose, then the exact line, nothing cited (Step 15)."""
     answer = ("The provided passages do not state the total economic loss caused by the "
               "July 1993 floods.\n" + prompt.NOT_FOUND_TEXT)
+    result = run(answer)
+    assert result["said_not_found"] and result["ok"], result
+    assert result["refusal_form"] == "exact_line_with_prose", result
+
+
+def a_disclaimer_that_cites_is_not_a_refusal() -> None:
+    """q026's shape: the disclaimer points at a page, so the model did answer."""
+    answer = ("The provided passages do not contain Table 2 [1].\n" + prompt.NOT_FOUND_TEXT)
+    result = run(answer)
+    assert not result["said_not_found"], result
+
+
+def a_quoted_refusal_line_is_not_a_refusal() -> None:
+    """The line inside a quotation is page text the model is reporting, not a refusal."""
+    answer = ('The report says "Not found in the indexed documents." [1]\n\n'
+              '[1] 1970_Test_Paper_W1.pdf, p. 2: "Hydrological data"')
     result = run(answer)
     assert not result["said_not_found"], result
 
@@ -269,11 +294,18 @@ def main() -> int:
         ]),
         ("the refusal is its own case", [
             ("exact refusal is accepted", refusal_passes),
-            ("refusal followed by extra text is refused", refusal_with_extra_text_fails),
+            ("the exact line plus prose is a refusal (Step 15)",
+             refusal_line_with_prose_passes),
+            ("a refusal that then cites a page is a problem",
+             a_refusal_that_then_cites_is_still_a_problem),
             ("a prose disclaimer is not a refusal (measured, D-060)",
              prose_refusal_is_not_a_refusal),
-            ("a refusal on the second line is not a refusal",
-             refusal_on_the_second_line_is_not_a_refusal),
+            ("the line after prose is a refusal when nothing is cited",
+             refusal_on_the_second_line_is_a_refusal),
+            ("a disclaimer that cites a page is not a refusal",
+             a_disclaimer_that_cites_is_not_a_refusal),
+            ("the line inside a quotation is not a refusal",
+             a_quoted_refusal_line_is_not_a_refusal),
             ("an answer then the exact line is not a refusal",
              an_answer_then_the_exact_line_is_not_a_refusal),
         ]),
