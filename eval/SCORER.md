@@ -37,7 +37,11 @@ All are reported as a **count and a percentage** (`17/20`, `85%`), never a perce
 - `MRR`: reciprocal rank of the first retrieved `(file, page)` that is a gold source; `0` if none.
 
 **Answer**
-- `citation_correct`: every cited `(file, page)` is in `gold_sources` **and** every cited quote exists in the parsed text of that page after whitespace normalisation. A run with no citations fails.
+- `citation_correct` **(changed 2026-11-26, D-097, step 18)**: **at least one** cited `(file, page)` is in `gold_sources`, **every** cited quote exists in the parsed text of the page it names after whitespace normalisation, and **at most two** cited pages lie outside `gold_sources` (`MAX_EXTRA_CITATIONS` in `eval/score.py`). A run with no citations, or with no gold page among them, fails.
+
+  `extra_citations` records how many cited pages were outside the gold set — per question, and per set as a total, a maximum and a count of answers with any. It is a diagnostic, not a penalty: it keeps citation padding visible now that a padded answer can still pass.
+
+  **The gold-page clause was relaxed on 2026-11-26** because five questions failed with every quotation verbatim on the page it named, only because a second cited page was not in the gold set (`reports/citation-contract-rescore-2026-11-26.md`). The quote check is still strict and still applies to every cited page; the cap of two and the counter are the safeguards the owner accepted (D-097).
 
   **Matching is strict, by the owner's decision (2026-11-13, D-041).** Surrounding quotation marks are *not* stripped and a hyphen the PDF split across a line (`East- Rapti`) is *not* joined, so both count as failures. Do not "fix" this in a later step: on the `qwen2.5` oracle run the strict rule scores citations 14/26 against 19/26 for the lenient one, and the stricter number is the one the project agreed to track. The fix belongs in the Step 6 prompt, which must return unquoted verbatim sentences.
 - `numeric_exact`: after normalisation (strip thousands separators, unify `m3/s` / `m3 s-1` / `m³ s⁻¹`, unify `mm h-1` / `mm/h` / `mm per hour`), every gold number appears with the same value; units must match after the same normalisation.

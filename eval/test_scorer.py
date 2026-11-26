@@ -38,6 +38,8 @@ import tempfile
 import pymupdf
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "eval"))
+import score  # noqa: E402  (the rule cases below call it directly)
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
 FIXTURES = ROOT / "eval" / "fixtures"
 QUESTIONS = ROOT / "eval" / "questions.jsonl"
@@ -288,6 +290,39 @@ def main() -> int:
         check("exit 3", r.returncode == 3, f"exit {r.returncode}")
         check("reports SHA-256 mismatch", "SHA-256 mismatch" in r.stdout, r.stdout.strip()[:90])
         check("no scores written", not (out / "scores.json").exists(), "scores.json absent")
+
+        # ------------------------------------------------ extra pages (step 18, D-097)
+        print("case 6: a verified extra page is allowed, capped at two")
+        base_q = next(q for q in questions if q["id"] == "q001")
+        src = base_q["gold_sources"][0]
+        gold_c = {"file": src["file"], "page": src["page"], "quote": base_q["gold_quote"]}
+        with pymupdf.open(ROOT / src["file"]) as doc:
+            page_count = doc.page_count
+        others = [p for p in range(1, page_count + 1) if p != src["page"]][:3]
+        extras = [{"file": src["file"], "page": p, "quote": page_text(src["file"], p)[:60]}
+                  for p in others]
+
+        def row(citations: list[dict]) -> dict:
+            return {"id": "q001",
+                    "retrieved": [{"file": src["file"], "page": src["page"], "score": 1.0}],
+                    "answer": base_q["gold_answer"], "citations": citations,
+                    "said_not_found": False}
+
+        paraphrase = {"file": src["file"], "page": others[0],
+                      "quote": "this text is not on the page"}
+        for name, citations, want_ok, want_extra in (
+            ("gold only", [gold_c], True, 0),
+            ("gold + one verified extra", [gold_c, extras[0]], True, 1),
+            ("gold + two verified extras", [gold_c, extras[0], extras[1]], True, 2),
+            ("gold + three verified extras", [gold_c] + extras, False, 3),
+            ("gold + a paraphrase on the extra page", [gold_c, paraphrase], False, 1),
+            ("extra page but no gold page", [extras[0]], False, 1),
+        ):
+            got = score.score_question(base_q, row(citations))
+            check(f"{name}: citation_ok={want_ok}, extras={want_extra}",
+                  got["citation_ok"] is want_ok and got["extra_citations"] == want_extra,
+                  f"citation_ok={got['citation_ok']} extras={got['extra_citations']} "
+                  f"passed={got['passed']}")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

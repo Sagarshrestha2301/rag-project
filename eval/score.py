@@ -29,6 +29,10 @@ DEFAULT_QUESTIONS = "eval/questions.jsonl"
 DEFAULT_CORPUS_ROOT = "data/corpus"
 RECALL_KS = (5, 10, 30)
 SUMMARY_TYPES = {"summary", "comparison"}
+# How many cited pages may lie outside the gold set before the citation is a failure
+# (step 18, D-097). The widest answer that passes today uses two, so two is the cap;
+# the point is to stop an answer being built from unrelated pages, not to count citations.
+MAX_EXTRA_CITATIONS = 2
 
 
 # ---------------------------------------------------------------- normalisation
@@ -159,23 +163,31 @@ def score_question(q: dict, row: dict | None) -> dict:
 
     out["mrr"] = 1.0 / first_rank if first_rank else 0.0
 
-    # citation correctness: every cited page is gold, and every quote exists on that page.
+    # Citation correctness (step 18, D-097): the answer must cite at least one gold page,
+    # every quotation must exist on the page it names, and at most MAX_EXTRA_CITATIONS cited
+    # pages may lie outside the gold set. The gold page is still required, because that is
+    # what stops an answer being sourced from a distractor page; the cap stops the opposite
+    # failure, an answer padded with true pages. `extra_citations` records the count.
     # A not-found question has nothing to cite, so it is not scored on citation.
     if q["answerable"]:
-        cite_ok = bool(citations)
+        gold_cited = any((c["file"], c["page"]) in gold for c in citations)
+        extra = sum(1 for c in citations if (c["file"], c["page"]) not in gold)
+        quotes_ok = True
         for c in citations:
-            if (c["file"], c["page"]) not in gold or not pathlib.Path(c["file"]).exists():
-                cite_ok = False
+            if not pathlib.Path(c["file"]).exists():
+                quotes_ok = False
                 break
             import pymupdf  # local import keeps the module importable without the venv
             with pymupdf.open(c["file"]) as doc:
                 page_text = norm_space(doc[c["page"] - 1].get_text())
             if norm_space(c.get("quote", "")) not in page_text:
-                cite_ok = False
+                quotes_ok = False
                 break
-        out["citation_ok"] = cite_ok
+        out["citation_ok"] = bool(citations) and gold_cited and quotes_ok and extra <= MAX_EXTRA_CITATIONS
+        out["extra_citations"] = extra
     else:
         out["citation_ok"] = None
+        out["extra_citations"] = None
 
     if q["gold_numbers"]:
         out["numeric_ok"] = all(answer_has_number(answer, n["value"], n.get("unit", ""))
@@ -227,6 +239,11 @@ def _metrics(results: list[dict], questions: list[dict], split: str | None = Non
         "retrieval": retrieval,
         "mrr": round(mrr, 3),
         "citation": pct(sum(1 for r in answerable if r["citation_ok"]), len(answerable)),
+        "extra_citations": {
+            "total": sum(r.get("extra_citations") or 0 for r in answerable),
+            "max": max((r.get("extra_citations") or 0 for r in answerable), default=0),
+            "answers": sum(1 for r in answerable if (r.get("extra_citations") or 0) > 0),
+        },
         "numeric": pct(sum(1 for r in with_numbers if r["numeric_ok"]), len(with_numbers)),
         "notfound_a": pct(sum(1 for r in gate_a if r["notfound_correct"]), len(gate_a)),
         "notfound_a_scope": "dev" if split is None else split,
@@ -268,6 +285,10 @@ def to_markdown(summary: dict, results: list[dict], d: dict | None, label: str) 
         v = summary[key]
         scope = " [dev]" if key == "notfound_a" else ""
         lines.append(f"- {key}{scope}: {v['count']}/{v['of']} ({v['pct']}%)")
+    ex = summary.get("extra_citations")
+    if ex:
+        lines.append(f"- extra citations: {ex['total']} page(s) across {ex['answers']} answer(s), "
+                     f"max {ex['max']} (cap {MAX_EXTRA_CITATIONS})")
 
     lines += ["", "## By split", "",
               "| split | n | recall@5 | MRR | citation | numeric | nf(a) | nf(b) | passed |",
