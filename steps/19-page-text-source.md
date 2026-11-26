@@ -41,12 +41,12 @@ the implementation match the spec rather than changing the spec.
 
 ## Definition of done
 
-- [ ] `eval/score.py` verifies quotations through `corpus.page_text`, with no second page reader
-- [ ] The strict comparison is unchanged: a paraphrase, a case change or a missing page still fails
-- [ ] The new cases pass and the earlier six cases still pass
-- [ ] Every restatable run is re-scored and only q003 moves, in the eight runs that carry it
-- [ ] The gate comparisons still exit 0 on dev and `--milestone`
-- [ ] `eval/SCORER.md` names the reader; the step row, log line, D-098 and the `EVAL.md` row exist
+- [x] `eval/score.py` verifies quotations through `corpus.page_text`, with no second page reader
+- [x] The strict comparison is unchanged: a paraphrase, a case change or a missing page still fails
+- [x] The new cases pass and the earlier six cases still pass
+- [x] Every restatable run is re-scored and only q003 moves, in the eight runs that carry it
+- [x] The gate comparisons still exit 0 on dev and `--milestone`
+- [x] `eval/SCORER.md` names the reader; the step row, log line, D-098 and the `EVAL.md` row exist
 
 ## Context to read
 
