@@ -56,7 +56,7 @@ is the widest any current answer uses (q039).
 - [x] `extra_citations` is recorded per question and summarised per set
 - [x] The six new cases pass and the earlier five cases still pass
 - [x] Every restatable stored run is re-scored, and each new count equals the number measured in
-      the C1 probe, less the questions the cap excludes (q049 in six old runs, q026/q044 in `s6-4`)
+      the C1 probe, less the questions the cap excludes (q049 in ten old runs, q026/q044 in `s6-4`)
 - [x] The three gate comparisons still exit 0, with their metric tables recorded
 - [x] `eval/SCORER.md` describes the rule it implements; the `EVAL.md` contradiction is proposed
 - [x] `git status` clean, and the runs not restated (two smoke subsets with no stored scores) are named with the reason
