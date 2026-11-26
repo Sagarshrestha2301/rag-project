@@ -67,6 +67,25 @@ def rules_force_the_format() -> None:
     assert "copied character for character" in text
 
 
+def a_list_question_gets_the_list_shape_after_the_route_rules() -> None:
+    text = prompt.build_system(HITS, mode="table", list_style=True)
+    assert "at most six lines" in text, "the list rule must cap the list at six lines"
+    assert 'starting with "- "' in text
+    assert "cite only the passage the items came from" in text, \
+        "the list must forbid the extra citation that broke q004/q006/q013"
+    assert "four-sentence limit does not apply" not in text, \
+        "the rejected s6-4 rule waived the length contract; it must not come back"
+    # Order matters: q050 ignored the rule when it sat above the table rules.
+    assert text.index(prompt.EXTRA_RULES["table"]) < text.index("at most six lines")
+
+
+def a_non_list_question_renders_exactly_as_before() -> None:
+    for mode in prompt.EXTRA_RULES:
+        assert prompt.build_system(HITS, mode=mode) == \
+            prompt.build_system(HITS, mode=mode, list_style=False), mode
+    assert "at most six lines" not in prompt.build_system(HITS)
+
+
 def empty_retrieval_says_so() -> None:
     text = prompt.build_system([])
     assert "No passage was retrieved" in text
@@ -94,6 +113,10 @@ def main() -> int:
         ("folders are stripped from the citation name", folders_are_stripped_from_the_citation_name),
         ("the passage body is included", passage_body_is_included),
         ("the rules force the citation shape and the refusal", rules_force_the_format),
+        ("a list question gets the list shape after the route rules",
+         a_list_question_gets_the_list_shape_after_the_route_rules),
+        ("a non-list question renders exactly as before",
+         a_non_list_question_renders_exactly_as_before),
         ("empty retrieval is stated, not left blank", empty_retrieval_says_so),
         ("the prompt carries a version", version_is_set),
         ("a retry can say the failed answer is not repeated",

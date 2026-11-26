@@ -352,8 +352,31 @@ def _bm25(index: dict) -> BM25:
     return _CACHE_BM25
 
 
-def best_window(text: str, terms: list[str], width: int = WINDOW_CHARS) -> tuple[int, str]:
-    """The window of `width` chars containing the most distinct query terms."""
+def cover_terms(text: str, terms: list[str], idf: dict[str, float], top: int = 2) -> list[str]:
+    """The rarest query terms this page actually prints, rarest first.
+
+    A question about "which years cite the Sunkosi floods" is carried by one rare word;
+    the common words are already in the page head. Ranking the terms a page contains by
+    the corpus IDF is what lets the window be placed where the answer is (Step 16).
+
+    Example: cover_terms(page_text, ["which", "years", "sunkosi"], idf)
+    -> ['sunkosi', 'years']
+    """
+    low = text.lower()
+    present = [term for term in dict.fromkeys(terms) if term in low]
+    return sorted(present, key=lambda term: -idf.get(term, 0.0))[:top]
+
+
+def best_window(text: str, terms: list[str], width: int = WINDOW_CHARS,
+                cover: tuple[str, ...] | list[str] = ()) -> tuple[int, str]:
+    """The window of `width` chars containing the most distinct query terms.
+
+    `cover` names terms the window must contain, rarest first (see `cover_terms`). It is
+    empty by default, which is the old behaviour bit for bit; when it is given and the
+    best window misses one of them, the window moves to that term instead. The window
+    moves, it never grows: D-073 measured the table route already at the 4,096-token
+    limit, so a wider passage is not available.
+    """
     low = text.lower()
     positions = sorted({at for term in terms if (at := low.find(term)) >= 0})
     if not positions:
@@ -365,17 +388,26 @@ def best_window(text: str, terms: list[str], width: int = WINDOW_CHARS) -> tuple
         count = sum(1 for term in terms if term in window)
         if count > best_count:
             best_start, best_count = start, count
-    return best_start, text[best_start:best_start + width]
+    start = best_start
+    for term in cover:
+        at = low.find(term)
+        if at < 0 or term in low[start:start + width]:
+            continue
+        start = max(0, at - 200)
+        break
+    return start, text[start:start + width]
 
 
-def context_for(text: str, terms: list[str]) -> str:
+def context_for(text: str, terms: list[str],
+                cover: tuple[str, ...] | list[str] = ()) -> str:
     """Page opening plus the passage most likely to answer the question.
 
     Truncating to the page head loses answers that sit mid-page (q001's 540 mm is ~2000
     characters into Marahatta p2), which makes a correct retrieval look like a miss to
-    the model.
+    the model. `cover` is passed through to `best_window` and is empty for every caller
+    that does not ask for it, so the default output is unchanged (Step 16).
     """
-    start, window = best_window(text, terms)
+    start, window = best_window(text, terms, cover=cover)
     if start <= HEAD_CHARS:
         return text[: max(HEAD_CHARS, start + WINDOW_CHARS)]
     return text[:HEAD_CHARS] + "\n…\n" + window
@@ -396,8 +428,14 @@ def snippet(text: str, query: list[str], width: int = 220) -> str:
     return ("…" if start else "") + piece + ("…" if start + width < len(text) else "")
 
 
-def search(index: dict, query: str, k: int = 4) -> list[dict]:
-    """Top-k pages for a question, best first, with prompt context and snippet."""
+def search(index: dict, query: str, k: int = 4, cover: bool = False) -> list[dict]:
+    """Top-k pages for a question, best first, with prompt context and snippet.
+
+    `cover=True` keeps the ranking and the k exactly as they are and only places each
+    page's passage on the page's rarest query term, so an answer printed mid-page is in
+    the passage the model reads. It is off by default and only the list route asks for it
+    (Step 16), because moving every passage is a change that needs its own measurement.
+    """
     terms = tokens(query)
     if not terms:
         return []
@@ -410,13 +448,14 @@ def search(index: dict, query: str, k: int = 4) -> list[dict]:
         if score <= 0:
             continue
         page = index["pages"][i]
+        placed = cover_terms(page["text"], terms, reader.idf) if cover else ()
         hits.append({
             "doc": page["doc"],
             "page": page["page"],
             "label": page["label"],
             "ocr": page.get("source") == "ocr",
             "score": round(score, 3),
-            "context": context_for(page["text"], terms),
+            "context": context_for(page["text"], terms, cover=placed),
             "snippet": snippet(page["text"], terms),
         })
     return hits

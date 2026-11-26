@@ -289,7 +289,11 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     # `wanted` of them, so a page BM25 ranks 5th on words alone can be dropped for one
     # that answers the question. With the flag off this is the accepted call, unchanged.
     depth = max(wanted, rerank.depth()) if rerank.enabled() else wanted
-    passages = search_pages(source, search_question, k=depth)
+    # Step 16: a list question also places each passage on the page's rarest query term,
+    # so an answer printed mid-page is in the text the model reads. Ranking and k do not
+    # change, and every other route calls this exactly as before.
+    passages = search_pages(source, search_question, k=depth,
+                            cover=bool(routed.get("list")))
     marks["rerank"] = 0.0
     if rerank.enabled():
         reranked = time.perf_counter()
@@ -323,7 +327,8 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
 
     mark = time.perf_counter()
     messages = [{"role": "system",
-                 "content": prompt.build_system(passages, mode=routed["prompt_mode"])},
+                 "content": prompt.build_system(passages, mode=routed["prompt_mode"],
+                                                list_style=bool(routed.get("list")))},
                 {"role": "user", "content": search_question}]
     marks["prompt_build"] = stage(mark)
 

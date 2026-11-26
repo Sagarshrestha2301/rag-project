@@ -14,6 +14,11 @@ Five routes, each changing one or two settings:
 | `table` | 6 passages | `table` rules | figures need the rule that says copy the number, the unit and the row |
 | `normal` | 5 passages | normal | everything else |
 
+One more thing is decided here but is **not** a route: `route["list"]` is true when the
+question asks for a set of items ("list", "name the", "which crops can ..."). It changes
+no retrieval setting; `generation.answer` uses it to place the passage on the question's
+rarest term and to ask the model for a list shape (Step 16).
+
 Off-topic questions are deliberately **not** a route: there is no reliable rule for "this
 question is about something else", and the gate in `generation/gate.py` already refuses
 whatever retrieval cannot support (top-1 below the floor, or the model's own refusal).
@@ -46,6 +51,18 @@ SUMMARY = re.compile(
 TABLE = re.compile(
     r"\b(tables?|tabled|rows?|columns?|tabulated|how\s+many|how\s+much|"
     r"percent(age)?|proportion|average|mean|median|total\s+number)\b|%",
+    re.IGNORECASE,
+)
+# A question that asks for a set of items rather than one fact (Step 16). This is a
+# *modifier*, not a route: it changes neither `k` nor `prompt_mode`, and only adds the list
+# answer shape and the passage placement that finds the items. It is scoped on purpose -
+# measured over the 55-question set it fires on q036 and q050 and on none of q002, q004,
+# q006, q013, so those four receive byte-identical prompts and passages and cannot change
+# (see `steps/16-list-retrieval.md`). `listed` and "which ... has" are deliberately absent:
+# each also catches q038, a passing comparison question.
+LIST = re.compile(
+    r"\b(list|enumerate)\b|\bname the\b"
+    r"|\bwhich\s+[a-z]+s\s+(can|could|are|were|do|did|have|include)\b",
     re.IGNORECASE,
 )
 # A bare continuation: the question opens by referring to the previous turn.
@@ -92,13 +109,15 @@ def route(question: str, history: list[dict] | None = None) -> dict:
     question with no subject, and condensing cannot invent one.
     """
     text = (question or "").strip()
+    is_list = bool(LIST.search(text))
 
     if not text:
-        return {"route": "greeting", "reason": "empty question", **SETTINGS["greeting"]}
+        return {"route": "greeting", "reason": "empty question", "list": False,
+                **SETTINGS["greeting"]}
 
     if GREETING.match(text) and word_count(text) <= 4:
         return {"route": "greeting", "reason": "opens with a greeting or thanks",
-                **SETTINGS["greeting"]}
+                "list": False, **SETTINGS["greeting"]}
 
     # Follow-up before summary/table: "what about the table?" is still a follow-up. An
     # opening continuation always wins; otherwise the question must be short and lean on
@@ -109,14 +128,15 @@ def route(question: str, history: list[dict] | None = None) -> dict:
                 and BACKREF.search(text)
                 and not SELF_CONTAINED.search(text))):
         return {"route": "followup", "reason": "refers back to the previous turn",
-                **SETTINGS["followup"]}
+                "list": is_list, **SETTINGS["followup"]}
 
     if SUMMARY.search(text):
         return {"route": "summary", "reason": "asks for an overview",
-                **SETTINGS["summary"]}
+                "list": is_list, **SETTINGS["summary"]}
 
     if TABLE.search(text):
         return {"route": "table", "reason": "asks for a figure from a table",
-                **SETTINGS["table"]}
+                "list": is_list, **SETTINGS["table"]}
 
-    return {"route": "normal", "reason": "no rule matched", **SETTINGS["normal"]}
+    return {"route": "normal", "reason": "no rule matched", "list": is_list,
+            **SETTINGS["normal"]}

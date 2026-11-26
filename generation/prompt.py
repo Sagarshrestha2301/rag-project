@@ -29,7 +29,10 @@ import pathlib
 
 # Bumped whenever SYSTEM_RULES or build_system changes, because the answer cache is
 # keyed on it (D-017): a prompt edit must never serve yesterday's answers.
-PROMPT_VERSION = "s6-3"
+# "s6-4" is deliberately skipped: it is the label of the rejected list rule whose run is
+# stored in eval/runs/2026-11-25-step16-list-format (D-092), so reusing it would make two
+# different prompts look like one.
+PROMPT_VERSION = "s6-5"
 
 # Written out here, quoted by the prompt, and compared against in answer.py, so the
 # refusal the model is told to produce is exactly the one the code looks for.
@@ -96,7 +99,21 @@ def file_name(hit: dict) -> str:
     return hit.get("doc") or pathlib.PurePosixPath(str(hit.get("file", ""))).name
 
 
-def build_system(hits: list[dict], *, mode: str = "normal") -> str:
+# Step 16: the list shape, appended only for a question the router flags as a list. The
+# length contract is kept, not waived - the rejected s6-4 rule allowed eight items and no
+# sentence limit, and every question it broke had gained a sentence with an extra citation
+# to a real but non-gold page (D-092).
+LIST_RULES = (
+    "\n\n- When the answer is a set of parallel items -- years, names, crops, places -- "
+    "answer with one list instead of sentences: at most six lines, each starting with "
+    "\"- \" and ending with the [n] of the passage that item came from. The list is the "
+    "answer; if the items need a unit or a range, at most one sentence may follow the "
+    "list. Do not add a sentence or a citation to explain or contextualise the list, and "
+    "cite only the passage the items came from."
+)
+
+
+def build_system(hits: list[dict], *, mode: str = "normal", list_style: bool = False) -> str:
     """Number the passages, then append the rules.
 
     The number is printed next to the passage three times -- in the heading, at the
@@ -105,6 +122,8 @@ def build_system(hits: list[dict], *, mode: str = "normal") -> str:
     ended up citing [2] for text only passage 1 contained (D-044).
     """
     extra = EXTRA_RULES.get(mode, "")
+    if list_style:
+        extra += LIST_RULES
     if not hits:
         return ("No passage was retrieved for this question.\n\n" + SYSTEM_RULES + extra)
 

@@ -115,6 +115,56 @@ def the_ui_serves_the_same_documents() -> None:
     assert pipeline.pdf_path("not-in-the-corpus.pdf") is None
 
 
+# ---------------------------------------------------------------- passage placement
+# A page where the answering sentence sits after the window the old rule picked: the
+# question's common words are in the head, its one rare word is not (the q036 shape).
+# The head repeats three common query words, so it wins the term count; the rare word sits
+# far below in a line that repeats none of them. That is the q036 shape in miniature.
+LONG_PAGE = (
+    "which years floods " * 40
+    + "Plain filler prose that carries no query term at all. " * 40
+    + "The Sunkosi River records 1964, 1981 and 1984."
+)
+IDF = {"sunkosi": 7.5, "floods": 4.0, "years": 2.5, "which": 1.2}
+
+
+def a_cover_rule_moves_the_window_onto_the_rare_term() -> None:
+    terms = ["which", "years", "floods", "sunkosi"]
+    plain = corpus.context_for(LONG_PAGE, terms)
+    assert "Sunkosi" not in plain, "fixture must reproduce the blind spot"
+    covered = corpus.context_for(LONG_PAGE, terms,
+                                 cover=corpus.cover_terms(LONG_PAGE, terms, IDF))
+    assert "Sunkosi" in covered, "the coverage rule must reach the answering sentence"
+    # The invariant is that the window moves rather than grows (D-073's token budget):
+    # head plus one window plus the ellipsis, never two windows.
+    assert len(covered) <= corpus.HEAD_CHARS + corpus.WINDOW_CHARS + 3, len(covered)
+    assert len(plain) <= corpus.HEAD_CHARS + corpus.WINDOW_CHARS, len(plain)
+
+
+def cover_terms_are_rarest_first_and_only_what_the_page_prints() -> None:
+    terms = ["which", "years", "floods", "sunkosi", "absentword"]
+    got = corpus.cover_terms(LONG_PAGE, terms, IDF)
+    assert got == ["sunkosi", "floods"], got
+    assert "absentword" not in got
+    assert corpus.cover_terms(LONG_PAGE, terms, IDF, top=1) == ["sunkosi"]
+
+
+def the_default_placement_is_unchanged() -> None:
+    """Step 16 must not move a passage for any caller that does not ask for it."""
+    terms = ["which", "years", "floods", "sunkosi"]
+    assert corpus.context_for(LONG_PAGE, terms, cover=()) == \
+        corpus.context_for(LONG_PAGE, terms)
+    start, window = corpus.best_window(LONG_PAGE, terms)
+    assert window == LONG_PAGE[start:start + corpus.WINDOW_CHARS]
+
+
+def training_a_window_on_a_term_already_covered_is_a_no_op() -> None:
+    terms = ["which", "years"]
+    before = corpus.context_for(LONG_PAGE, terms)
+    after = corpus.context_for(LONG_PAGE, terms, cover=("years",))
+    assert before == after, "a covered term must not move the window"
+
+
 def main() -> int:
     cases = [
         ("the root is the project folder", the_root_is_the_project_folder),
@@ -124,6 +174,13 @@ def main() -> int:
         ("the same documents from any folder", the_same_documents_from_anywhere),
         ("a document still resolves from elsewhere", a_document_still_resolves_from_elsewhere),
         ("the UI serves the same documents", the_ui_serves_the_same_documents),
+        ("a cover rule moves the window onto the rare term",
+         a_cover_rule_moves_the_window_onto_the_rare_term),
+        ("cover terms are rarest first and only on the page",
+         cover_terms_are_rarest_first_and_only_what_the_page_prints),
+        ("the default placement is unchanged", the_default_placement_is_unchanged),
+        ("a covered term does not move the window",
+         training_a_window_on_a_term_already_covered_is_a_no_op),
     ]
     for name, fn in cases:
         check(name, fn)

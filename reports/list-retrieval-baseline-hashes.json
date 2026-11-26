@@ -1,0 +1,1361 @@
+{
+ "q001": {
+  "chars": [
+   1893,
+   1839,
+   1200,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "13cc6e23c22ff252d45ef4f687ff336ea054da3deaf5b7a40b5660656d70aba1",
+   "0ff547cecd2f5032bb8f67ad29c91b6cb1108057d1c00debad3cb388973337d7",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "01d7da7d72938af65ccdfc515c38a6814fde794c8e1d497e58f314be82eb72d7",
+   "96b61b55cade679ea6a9a8776d253460c621470f421c160d87222becfb54f527"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#4",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#3"
+  ],
+  "prompt": "1858605fea448019ff8078643dd358f3a9110dec336e69ba68a4c19986848e53"
+ },
+ "q002": {
+  "chars": [
+   1903,
+   1903,
+   1200,
+   952,
+   1903
+  ],
+  "contexts": [
+   "ce14a5169a1555522610daef1275dd5ca30a4bbcd899b35def5f8ad605d32049",
+   "53b028ce8628cbe88eb772be53af582962981a34befdfc223c41e959cdfb45b5",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26",
+   "1cf29cf19c88acdb85a123d7367f8d5676d6fa669c0ac12f1144f6917f35fb44"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5",
+   "1970_Adhikari_Tehri_Dam_An_Engineering_Marvel_W2059939187.pdf#2"
+  ],
+  "prompt": "d4ab6ecf0d54b4d82cbcde7634e169bcdc38179c8282e64b2e59aef8fce6e3b2"
+ },
+ "q003": {
+  "chars": [
+   1903,
+   1643,
+   1200,
+   1200,
+   1443
+  ],
+  "contexts": [
+   "28f6aa378cb2d5349b51fcd92b4d4391648572c62297b0d92e3ec4159ae41a5a",
+   "e0c1e9a58a280d89d0291abbf66d3e9935597cd0f51bedc54d947d0db0df85a2",
+   "3c4fc7f0ae53727fde0420c113c27f274b41d2ae448adcd64f1d50e7683e0c72",
+   "1e1682773ba1a9b22f922fbc3f1cd08c7504cae85261e1755e312cb1d5272432",
+   "8834214742f55282379c9e718eb9d12ffcdfae87add146a11598f1a1bbfa750b"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#14",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#10",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#12",
+   "1975_Cost_cutting_caste_and_community_A_look_at_Thakali_social_reform_in_Po_em5yw_83v51.pdf#15"
+  ],
+  "prompt": "b1255a7417607605af9b38ac26aff4db3c11fefdb562071096033be9bc293dc4"
+ },
+ "q004": {
+  "chars": [
+   1200,
+   1740,
+   1903,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "a5a654ac616ef12be6be464cec021e92ab7eedae0fce6deed9a7ee59e9c29ac3",
+   "8a21d289ff8f1001e7e7ba0a2d18823bf1b9a239e9e3043840ca3225297c0f85",
+   "8ea792f42bc503db035ab54000d2f8ed8e064c61e499f0dfd48f97a3b06619f7",
+   "9a72cfbad69ce0aac95e1554daa5c7c004b3bd56d0a1786db0933b6a24962900"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Thapa_Dams_Environment_and_Local_People_W2077724772.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#4",
+   "2024_Nepal_MICS_2024_25_Statistical_Snapshot_2932a3487d.pdf#2"
+  ],
+  "prompt": "e36b690b437908d5090fd56d750d8d732fc1ff8d2eb0f0f628f3f2de0d17aae7"
+ },
+ "q005": {
+  "chars": [
+   1200,
+   1367,
+   952,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "eb0fe0a59dd3adfddbbf2d5d5795598a83d6e1d4672b112ca82e54250978325c",
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26",
+   "8ea792f42bc503db035ab54000d2f8ed8e064c61e499f0dfd48f97a3b06619f7",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#4",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3"
+  ],
+  "prompt": "5d1bf48ebc19ea20e2dba0e4461ac483ae5810991f12db888c640a1526f3dc61"
+ },
+ "q006": {
+  "chars": [
+   1200,
+   1903,
+   1903,
+   1335,
+   1903
+  ],
+  "contexts": [
+   "8ea792f42bc503db035ab54000d2f8ed8e064c61e499f0dfd48f97a3b06619f7",
+   "3b24e6f2743f1ef593ca645f6ee3d5e6131de7b4aa944c69feedab52af28789e",
+   "2753c6c0c8da1d1d5f7e7056ce10f78e48d526f3a79019aa2241ad913b34266c",
+   "208ea05029e183aa857fd705e7ec32f42bb1d8f004954b76ae8ee1741b7d49ac",
+   "3f228b66d85fcc634ea1469ce3ebdc3cb2336b1b859a747ce6314247445eb24d"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#4",
+   "2024_PROCEEDINGS_OF_NATIONAL_WETLAND_WORKSHOP_2024_ad7676fbb4.pdf#81",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Bajracharya_Discharge_and_sediment_loads_of_two_streams_in_the_mid_hills_W2164734426.pdf#1"
+  ],
+  "prompt": "9b866269b66808835ef34c7b78e12e0428eaa2675c2c1c41ea50bf90c7d1f16e"
+ },
+ "q007": {
+  "chars": [
+   1903,
+   1200,
+   1839,
+   1783,
+   1200
+  ],
+  "contexts": [
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "0ff547cecd2f5032bb8f67ad29c91b6cb1108057d1c00debad3cb388973337d7",
+   "ffe9935947ed6698118aaebc268e3dc89388179ed98be3845d3881b3e91814cd",
+   "01d7da7d72938af65ccdfc515c38a6814fde794c8e1d497e58f314be82eb72d7"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#1",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#4"
+  ],
+  "prompt": "7a4ceb67e06289c0a51c447f71e4f93187c8b808c4ec4c4ef43a0721c6948a0a"
+ },
+ "q008": {
+  "chars": [
+   1200,
+   1537,
+   1367,
+   1903,
+   1200
+  ],
+  "contexts": [
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "816874822185b426a41d9c56fc85ae00b9911d72d718233b0566b20fef9adcd1",
+   "eb0fe0a59dd3adfddbbf2d5d5795598a83d6e1d4672b112ca82e54250978325c",
+   "43827fcc102344a4d05768af682ed48cbdfa22caaf8a2a6abed491dd1e72c37f",
+   "72541f32a362b3898e648f59cfde49a9838834aa92268464e03d828a7900cb74"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "2024_PROCEEDINGS_OF_NATIONAL_WETLAND_WORKSHOP_2024_ad7676fbb4.pdf#18",
+   "1970_Adhikari_Infraspecific_Variation_of_Bambusa_nutans_Subspecies_Nutans_W2092319729.pdf#2"
+  ],
+  "prompt": "b7da0baa1256bf76e1356970aee92f484f22efbec15113b2051bcb035412a9e5"
+ },
+ "q009": {
+  "chars": [
+   1903,
+   1857,
+   1200,
+   1776,
+   1273
+  ],
+  "contexts": [
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "e70381a2fa0d72835f47eabe702c103174e5ab7f52023cf244f0f41dd0184f76",
+   "d09a794d762f528947cf6a34894ed8716fe6c6eb4506fd38a8209f4ab8d4c866",
+   "84fb06a0adf2399d57b14c3021e7a9c43c28935abdace7257abaa90d5c4a75a3",
+   "4b64d5a7cdcc6f275950ff8a24e54602a1d4d05ee105c69f4bfd1a0269384764"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Bashyal_Quantification_of_PM10_Concentration_in_Occupation_Environme_W2124067029.pdf#5",
+   "2003_Higher_Tobacco_Prices_and_Taxes_in_Southeast_Asia_An_Effective_Tool_to_1460fceb_2d7e_5464_b3a8.pdf#60"
+  ],
+  "prompt": "0a48b2195a41a4e6e7ecbb49c4d99f8161f0ed968abf948674d96b5187bf4e6c"
+ },
+ "q010": {
+  "chars": [
+   1903,
+   1200,
+   1630,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "c4cbdcde3edcfb82a15fdc632ade6955f95f62df0f07bb2961a32cdae167cda7",
+   "f7f9537dd6cca2b00e186e358f691db63cd43102602ccfa3d1cee1d09199e786",
+   "a8ac66df6efdc1bbf83e43e51e8cd9b474341434bb44d31b09156a0d4253efeb",
+   "be5fc99020e7ab31c0a83bf550a783e7e2842a8d4003818e1e6baad213530c80",
+   "f324d44d417eb63fbd02c5068888088098263721f025f433a90e84fa8a5f789a"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Sharma_Comparison_of_Ground_Based_Measurements_of_Solar_UV_Index_wi_W2041839843.pdf#5",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#12",
+   "1951_Unknown_Experimental_Agriculture_W2182550192.pdf#6",
+   "1970_Adhikari_Infraspecific_Variation_of_Bambusa_nutans_Subspecies_Nutans_W2092319729.pdf#3"
+  ],
+  "prompt": "40a804c7a94283f14cbfe142eb626fc5ccca4d34d0184a4d6e2d800e92f75697"
+ },
+ "q011": {
+  "chars": [
+   1200,
+   1903,
+   1406,
+   1200,
+   1903
+  ],
+  "contexts": [
+   "8ea792f42bc503db035ab54000d2f8ed8e064c61e499f0dfd48f97a3b06619f7",
+   "c4cbdcde3edcfb82a15fdc632ade6955f95f62df0f07bb2961a32cdae167cda7",
+   "edec232f149d14539865b5d221f67e3e5bd70e3a1f7eb2e22ad15ff66691054e",
+   "28fb4b210dca0788a66a9185e0f3966959329d5f35c7ebfe9aa381ace7212ced",
+   "8f7859cf9a2f22a0e9bd7b725b16c2e8b3074917ae671ea2064891f43c907307"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#4",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "2024_PROCEEDINGS_OF_NATIONAL_WETLAND_WORKSHOP_2024_ad7676fbb4.pdf#81",
+   "1970_Adhikari_Tehri_Dam_An_Engineering_Marvel_W2059939187.pdf#4",
+   "1970_Chetri_Status_and_Distribution_of_Blue_Sheep_Tibetan_Argali_and_the_W2023600665.pdf#1"
+  ],
+  "prompt": "e08a7084b2cfd27b657a584a5cc9a98e1cca585f8ca8a3c3f5763b5e1e38bd30"
+ },
+ "q012": {
+  "chars": [
+   1575,
+   1863,
+   1200,
+   1903,
+   1833
+  ],
+  "contexts": [
+   "82c26649b81573bae91b6341c5a84bfeaec7782bbe88f8dd6493f74bee497a9e",
+   "2dbac3a97e7f0b0b30f0834a34be6f7fd73f140db0564b9a6e16881fc3be4841",
+   "de55ed7475a95fb95b0697f299971cd39c31db894dbe9aa48a5dc50eb838a4b9",
+   "e92ac2d1b8209f5556318ef1203b8b4dcc13297e6316a53d3df51071fecb74bb",
+   "afdc711fb14dc097bb458d4848bf50d8d5f000a5b90e1ccf33781dd9969db94e"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Bashyal_Quantification_of_PM10_Concentration_in_Occupation_Environme_W2124067029.pdf#3",
+   "0_Purushottam_Marketing_of_vegetables_and_vegetable_seeds_in_Nepal_W7146333777.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1"
+  ],
+  "prompt": "732b26bebc33f42a00629de5b07e4c3feb217d234c4fdd74924fb9a12dbfd86d"
+ },
+ "q013": {
+  "chars": [
+   1903,
+   1200,
+   1367,
+   1524,
+   1200
+  ],
+  "contexts": [
+   "b1f8b7877c060d5ff29f06a309b2a4d11d67dc59567b95832aaec58da39c1ec3",
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "eb0fe0a59dd3adfddbbf2d5d5795598a83d6e1d4672b112ca82e54250978325c",
+   "96f4cada0ee469129a12cb7c2e7583e434bb1b0a217d47778aa7197bbcfaf453",
+   "b2999d30df1a95db69500e1335a49e5ce09c369298b72a26256e75637e3918e2"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "2024_PROCEEDINGS_OF_NATIONAL_WETLAND_WORKSHOP_2024_ad7676fbb4.pdf#81",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#11"
+  ],
+  "prompt": "03d7f85c45c65dc8437f8a3d83f5b212ad95efeaf09e1c1cc4a184d3809bda94"
+ },
+ "q014": {
+  "chars": [
+   1277,
+   1501,
+   1200,
+   1200,
+   1903
+  ],
+  "contexts": [
+   "3828efb2e4751e576faa333e030caa4acf9cb14bcae4f3ff049f3d4a1f2cd6ab",
+   "3adaba16ebcdb6ed811cde3edd35f3491c3edb37666ffe347a0ef9001d410aff",
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "af4925a72145f80833c3040c8bdf18d0a30a86df810a68735b3551f0fb4bb87b",
+   "6de299051e8c5328e7525421f18b8c8dd9902ad86436b905315cda0bb3ae3c82"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#4",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "nd_1984_IFPRI_Annual_Report_d10caadc_9d4c_4842_9cc6.pdf#12",
+   "1975_King_Hangshu_Dewa_and_his_minister_Wokde_892fv_3ak41.pdf#6"
+  ],
+  "prompt": "72812bdec7ca0479e6caa27502c4ccc4f279e49546a80b00fe5c3506b5847966"
+ },
+ "q015": {
+  "chars": [
+   1200,
+   1591,
+   1476,
+   1903,
+   1200
+  ],
+  "contexts": [
+   "cc83b1c553ca235f40114133385f9d58610499eedb2b8be7a9a607b9563eb9b1",
+   "98a1ab0ff1bc82630dbdf6c8ac4b06a79a40a5a0e0ad16318e8cd40b3d787aa0",
+   "b9701e5d79a19045292d817a2145e0a410d8965994d2749e1d96197a547e5fab",
+   "b4c72ab0bea6722e18d5c884f5baba6934ac603343ddecb439fee2459d09fe54",
+   "7ae63e416c45dce9941e8825ce335d75d87bdc90b298c876cb9ffc853f8c4381"
+  ],
+  "pages": [
+   "nd_11th_Independent_Science_Panel_Meeting_Dakar_Senegal_28_29_September_2_472fcd68_d86f_45f3_ad35.pdf#5",
+   "2002_The_Collective_Model_of_the_Household_and_an_Unexpected_Implication_fo_0552b430_e62f_572a_8a68.pdf#16",
+   "1951_Unknown_Experimental_Agriculture_W2182550192.pdf#4",
+   "nd_11th_Independent_Science_Panel_Meeting_Dakar_Senegal_28_29_September_2_472fcd68_d86f_45f3_ad35.pdf#11",
+   "1975_Is_Newari_a_classifier_language_m7rby_8d736.pdf#1"
+  ],
+  "prompt": "040e3c96c72106e78108817ed9694ac06e659c952a67e1b39654bb5207c84201"
+ },
+ "q016": {
+  "chars": [
+   1200,
+   1200,
+   952,
+   1903,
+   1303
+  ],
+  "contexts": [
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26",
+   "d8af6c22ce1b4597691c82bc456ea7ed1bc343dcb342a04ec64a0134c0da1e8a",
+   "133282e6a533838a2c09db40257ed8f1e633ef5f119dfadbc6bfc069fc7b61e1"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "nd_Books_Book_Chapters_02715eb113_4.pdf#9"
+  ],
+  "prompt": "e593d37fab78e79f6b9c5c744ef1600404c48bfa2308fffdd7f2d34ca7da4d55"
+ },
+ "q017": {
+  "chars": [
+   1903,
+   1903,
+   1200,
+   1783,
+   1200
+  ],
+  "contexts": [
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "5a7b1b4fdfb4ef02783f4572e50fb0dfb7a01355217cc213a29054be8a92e7b6",
+   "01d7da7d72938af65ccdfc515c38a6814fde794c8e1d497e58f314be82eb72d7",
+   "ffe9935947ed6698118aaebc268e3dc89388179ed98be3845d3881b3e91814cd",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#4",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3"
+  ],
+  "prompt": "2a0af6e7c8914505e690c49eb1f8c8cf2146a921fc1d7126c4ac2316a33d66aa"
+ },
+ "q018": {
+  "chars": [
+   1903,
+   1200,
+   1850,
+   1903,
+   1783
+  ],
+  "contexts": [
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "96b61b55cade679ea6a9a8776d253460c621470f421c160d87222becfb54f527",
+   "13be7c4e2449e3ed2783f4b479339be97a4c67aac5ad540cdc8a243ef5332a01",
+   "6c63c131f90f45c4517d8048edfa17ec8228a105c3fa5034a2431d03385aea92",
+   "ffe9935947ed6698118aaebc268e3dc89388179ed98be3845d3881b3e91814cd"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#1"
+  ],
+  "prompt": "bed34d47535d6331ad82e6646c8c42851151be935af42eb878530ca9df4166c3"
+ },
+ "q019": {
+  "chars": [
+   1200,
+   1200,
+   1903,
+   516,
+   1903
+  ],
+  "contexts": [
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "b9ffd3da97ff7a4e3933e1390a8a82bb45e03a495ed9fc05714ad990a9a92573",
+   "24e988f579e7c715c49cd2bbcc63685eb70e8d03a39288665f70edffa11de347",
+   "5bd6d65e1c47c2a6206f7f8159dccafec0115292e8cf05001cabb0ed69748bc2"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Bajracharya_Changing_Climatic_Parameters_and_its_Possible_Impacts_in_Hyd_W2066116827.pdf#5",
+   "2007_Ghimire_Preparing_for_Flood_Disaster_Mapping_and_Assessing_Hazard_in_W2246997432.pdf#12"
+  ],
+  "prompt": "140a06cbd4061f5fc719af8ccb5c3eb02589f31b69ca09733edd35f783a9a35e"
+ },
+ "q020": {
+  "chars": [
+   1200,
+   1655,
+   1903,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "0fc6c592bee0475ed8d0b4697e9f9da6c0c7196c66d9a51110e79efda83a8931",
+   "a2691f70ba8c9d9c4cc784454d288842904455680d0a852180724121eeda4b81",
+   "5d1b43348b482ff12ca0a36d24110147c5de56d32d7264c322be91120b174656",
+   "4dc082e107ee52531525d2734817ddbb50b5775127537c668d102d4e272c3358"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Mathema_Assessment_of_small_scale_landslide_treatment_in_Nepal_W2031550829.pdf#4",
+   "2023_nepal_labor_migrant_recruitment_cost_survey_2080_bf47149ec8.pdf#62",
+   "1975_A_report_on_Limi_Panchayat_Humla_District_Karnali_Zone_cjfh2_7pm51.pdf#7"
+  ],
+  "prompt": "32404f7969c04aa8e3a7673a3a9651acd0333d99047768fe685734dbf6d2c6e9"
+ },
+ "q021": {
+  "chars": [
+   1200,
+   952,
+   1903,
+   1374,
+   1200
+  ],
+  "contexts": [
+   "d09a794d762f528947cf6a34894ed8716fe6c6eb4506fd38a8209f4ab8d4c866",
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26",
+   "dee80960aaca10534a74fb5179538c557eff777d97083f98536174e72ffca9eb",
+   "b1da7a64982b52cd908dd131090d9f634fc264c8b62b4e787ee57ba788caab79",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5",
+   "2007_Ghimire_Preparing_for_Flood_Disaster_Mapping_and_Assessing_Hazard_in_W2246997432.pdf#11",
+   "2007_Ghimire_Preparing_for_Flood_Disaster_Mapping_and_Assessing_Hazard_in_W2246997432.pdf#8",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3"
+  ],
+  "prompt": "b5fde1568404a82520b69a7c36aec28b1ffbdf9386745d321ff9b47623419fc7"
+ },
+ "q022": {
+  "chars": [
+   952,
+   1200,
+   1200,
+   1335,
+   1200
+  ],
+  "contexts": [
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26",
+   "d09a794d762f528947cf6a34894ed8716fe6c6eb4506fd38a8209f4ab8d4c866",
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "5891daf909f30bde63fb0e7415c91215ccde4632780ce9b13242ee76e25b019b",
+   "8ea792f42bc503db035ab54000d2f8ed8e064c61e499f0dfd48f97a3b06619f7"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "2024_PROCEEDINGS_OF_NATIONAL_WETLAND_WORKSHOP_2024_ad7676fbb4.pdf#27",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#4"
+  ],
+  "prompt": "98f4b2a9529f1eeab9d92e524258bb5a696fbab93eafdd6d0d6dbe1033a04bc2"
+ },
+ "q023": {
+  "chars": [
+   1903,
+   1839,
+   1200,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "0ff547cecd2f5032bb8f67ad29c91b6cb1108057d1c00debad3cb388973337d7",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "96b61b55cade679ea6a9a8776d253460c621470f421c160d87222becfb54f527",
+   "01d7da7d72938af65ccdfc515c38a6814fde794c8e1d497e58f314be82eb72d7"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#3",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#4"
+  ],
+  "prompt": "ccdcb9f7f16b40b466deffef70e167266083a2de6dc2df07a40e561c2a5a4058"
+ },
+ "q024": {
+  "chars": [
+   1200,
+   1200,
+   952,
+   1903,
+   1200
+  ],
+  "contexts": [
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26",
+   "d8af6c22ce1b4597691c82bc456ea7ed1bc343dcb342a04ec64a0134c0da1e8a",
+   "4330e43656fcb8b53de5bbbce27825c5d1220efd2fce469b8cd5eefb056a26ab"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1959_Unknown_IV_Geographical_and_Ecological_W4247890763.pdf#1"
+  ],
+  "prompt": "d186ac3e929d087e8eec324aa575f12a5a43e16e4f5cc0244019b72f28ca5bc2"
+ },
+ "q025": {
+  "chars": [
+   1340,
+   1903,
+   1436,
+   1903,
+   1903,
+   1200
+  ],
+  "contexts": [
+   "432b47916452af54a5e98554e34587428c2e41e690be22892e3ba30b2506283a",
+   "ea96845685a69d04a517c8bf975677d1e3ecfa80eeedcd0dee6e93e11c539863",
+   "0c831abbdee4a9def9f4c1d9a3cac10d7a2c1d44d2ebeea9c6ba4fa129d0757c",
+   "10b5f71f05f2184707e532669e01601be23d8f4ad0d3366a7e693e79ea94df5d",
+   "68be655b813e8e28272cdfaddddc467aedd1471a2b5c6d9fb4609438f2504ff2",
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#1",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9"
+  ],
+  "prompt": "ecbaac2266c4e99ecc1a073168d4b5a573fe8e6693e2faae88d2662dcbab7b1d"
+ },
+ "q026": {
+  "chars": [
+   1903,
+   1200,
+   1200,
+   1903,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "60f6fe91a8271cf9234e19124b45d119c27f595585594525b2a6677e9930e080",
+   "9c369cf9bbff189a8e92a4b736159a0d2a34211672410b2337b0b44b53cd9ec0",
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c",
+   "b2de0d029daf7d33ae51f880662d00952ce23fdec3ffefd903f294dc84e34a0b",
+   "fe559da58eeb99f49c4ca3f7b0387783e3a400fd34997ab62a52c3dc979d621b",
+   "4907665febbdf24d6330be08ae4254200950303b5c8f5cace7c3e38bedb259db"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5"
+  ],
+  "prompt": "19d90c358b0233c2fb8bbb86c8087c13ffeafa67cd2f681d1e5d9d172b2ea22e"
+ },
+ "q027": {
+  "chars": [
+   1903,
+   1903,
+   1200,
+   1903,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "60f6fe91a8271cf9234e19124b45d119c27f595585594525b2a6677e9930e080",
+   "1ed319a38d5d307ac7dc84ffe444f55d7b061563610f944955baeaa5d9b93928",
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c",
+   "b2de0d029daf7d33ae51f880662d00952ce23fdec3ffefd903f294dc84e34a0b",
+   "fe559da58eeb99f49c4ca3f7b0387783e3a400fd34997ab62a52c3dc979d621b",
+   "4907665febbdf24d6330be08ae4254200950303b5c8f5cace7c3e38bedb259db"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5"
+  ],
+  "prompt": "40512bce307d4225826589acd45025392a303c5b53bb7aa7bf3982aaa1013a07"
+ },
+ "q028": {
+  "chars": [
+   1903,
+   1903,
+   1903,
+   1200,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "e22350db72a23df02df537e4771316c5a31e05da8283d5b01bdc0344d5d25818",
+   "1ed319a38d5d307ac7dc84ffe444f55d7b061563610f944955baeaa5d9b93928",
+   "5f820e069db5e06a7cbac15c029b5052aff19451f9fc6f1bbe6956d0b9918885",
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c",
+   "4907665febbdf24d6330be08ae4254200950303b5c8f5cace7c3e38bedb259db",
+   "b2de0d029daf7d33ae51f880662d00952ce23fdec3ffefd903f294dc84e34a0b"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4"
+  ],
+  "prompt": "fc21c7cb92eebfc1c173669845f35de441bf3db90cf24676559b1e7796871876"
+ },
+ "q029": {
+  "chars": [
+   1200,
+   1903,
+   1550,
+   1647,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c",
+   "e7ed9e0b8820e31ac871a8843544ba49f69c409f9dc49b00784029fa78dffbc0",
+   "db05a2a9719f1c23d06f5706677bc31990c5edf600152263240683335f3f2114",
+   "b45868f7914d830633e4030f20b1a07279248cb9c21f67506392f4db39623bab",
+   "51001023b4e99b145666d12590f333f75a6fed1f17ccfe7be3dc3c346b300602",
+   "540db1dfc92b8d0abe7718c735a9f2a6162c650b56dc2bd48fea1466d3e1cb29"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#3"
+  ],
+  "prompt": "814076bb5efb4b00ba2b2667acae93d044f7e65cd25df0fc9757d55f928373d4"
+ },
+ "q030": {
+  "chars": [
+   1200,
+   1200,
+   1903,
+   1903,
+   1903,
+   1200
+  ],
+  "contexts": [
+   "238c8cde821f53bbb7a0d8b0b90f5a81e026d56cc7bf9f9c8cc79bfd0d5ddd0a",
+   "51001023b4e99b145666d12590f333f75a6fed1f17ccfe7be3dc3c346b300602",
+   "ce2295d71831a75e5a9c2108b85dbe0ad0be5d4aa8c2b039c199c7756721171a",
+   "58057ca3fcb7a3a7ef0026e7049e8983946660afb8c23922ffde8cbf3542b197",
+   "7c2c3bc2a2f8353703d9376b9c13e0fe09f13dade2abaa1cedd19d3d81ecd7f8",
+   "e8999087c9dd2ed82b5c997ce9d972d2e45575f59aa7672faa37a284b2004e44"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "2003_A_Study_on_the_Economics_of_Tobacco_in_Nepal_73b44278_13cf_5efc_8ce4.pdf#94"
+  ],
+  "prompt": "2da29208762be20fa223fa2cbdcf0ddaf3d2a170bde0bec37af83723372cc1d8"
+ },
+ "q031": {
+  "chars": [
+   1872,
+   1200,
+   1325,
+   1903,
+   1200,
+   952
+  ],
+  "contexts": [
+   "e2171490e567a5ad81a0f9f5c03d273d53bb9034af0576433aed2b1c471130d6",
+   "f08cd8236d271accc5191309c7d9153b1874fdc0ee8c0284319f3d0e4c205b7b",
+   "a95860d36a0e40a6192d8937c57772a4c788506438f6a247a9905d672e664680",
+   "871115bf0a1892bb5199c54582ff405334186fc7024e452da877f90759a4709d",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Bajracharya_Discharge_and_sediment_loads_of_two_streams_in_the_mid_hills_W2164734426.pdf#3",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#4",
+   "2008_Adhikari_Debris_flow_disaster_in_Larcha_upper_Bhotekoshi_Valley_centr_W1494418167.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5"
+  ],
+  "prompt": "94061f579beb3ea9380ff7750707a3591d53d9d81be20fed11ae02c25c4a2394"
+ },
+ "q032": {
+  "chars": [
+   1903,
+   1857,
+   1200,
+   1273,
+   1200
+  ],
+  "contexts": [
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "e70381a2fa0d72835f47eabe702c103174e5ab7f52023cf244f0f41dd0184f76",
+   "d09a794d762f528947cf6a34894ed8716fe6c6eb4506fd38a8209f4ab8d4c866",
+   "4b64d5a7cdcc6f275950ff8a24e54602a1d4d05ee105c69f4bfd1a0269384764",
+   "8ea792f42bc503db035ab54000d2f8ed8e064c61e499f0dfd48f97a3b06619f7"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "2003_Higher_Tobacco_Prices_and_Taxes_in_Southeast_Asia_An_Effective_Tool_to_1460fceb_2d7e_5464_b3a8.pdf#60",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#4"
+  ],
+  "prompt": "a1b836f82ba25282e4679ed7d785846b0b2ff490790855ae9fd0acd23e83195e"
+ },
+ "q033": {
+  "chars": [
+   1903,
+   1903,
+   1200,
+   1200,
+   1361
+  ],
+  "contexts": [
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "53b028ce8628cbe88eb772be53af582962981a34befdfc223c41e959cdfb45b5",
+   "96b61b55cade679ea6a9a8776d253460c621470f421c160d87222becfb54f527",
+   "f27b1e259ed93de04013bacc83987b848eca8d25982835390d31e0a9db720a08",
+   "7a1120bf30c3bc678e7f382dca6de71565b7c9f05505713d4ccdaed0afdd93e0"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#3",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3"
+  ],
+  "prompt": "adac641782c30719afe54412d0c8fddf6425afc40838a2fb31f7c324cd241ae8"
+ },
+ "q034": {
+  "chars": [
+   1903,
+   1819,
+   1200,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "b1f8b7877c060d5ff29f06a309b2a4d11d67dc59567b95832aaec58da39c1ec3",
+   "696a7a5933ab8b728c873a3fe5c72f670fd741681f7e7bfd30571c6a9530b5ea",
+   "f7f9537dd6cca2b00e186e358f691db63cd43102602ccfa3d1cee1d09199e786",
+   "1e1682773ba1a9b22f922fbc3f1cd08c7504cae85261e1755e312cb1d5272432",
+   "4f14a4e9c39169aca5ba6fa4b3ab7f4d7cf84612dcd40b05d54b2e4b7840c87f"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "2003_A_Study_on_the_Economics_of_Tobacco_in_Nepal_73b44278_13cf_5efc_8ce4.pdf#60",
+   "1970_Sharma_Comparison_of_Ground_Based_Measurements_of_Solar_UV_Index_wi_W2041839843.pdf#5",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#12",
+   "2002_The_Collective_Model_of_the_Household_and_an_Unexpected_Implication_fo_0552b430_e62f_572a_8a68.pdf#17"
+  ],
+  "prompt": "96dab0ac9bd4bd6057a88e4df171d3d3411b6c8fdf75727d3421b4a91b9703a9"
+ },
+ "q035": {
+  "chars": [
+   1639,
+   1200,
+   1819,
+   1200,
+   1903
+  ],
+  "contexts": [
+   "3a6ee376b8b2ec75fd712f52311febc7c138732ecbc5f0ef6b9d0307d79d98f3",
+   "f7f9537dd6cca2b00e186e358f691db63cd43102602ccfa3d1cee1d09199e786",
+   "696a7a5933ab8b728c873a3fe5c72f670fd741681f7e7bfd30571c6a9530b5ea",
+   "be5fc99020e7ab31c0a83bf550a783e7e2842a8d4003818e1e6baad213530c80",
+   "718052d39c80643428f978b9d531a2788aa2635076cfeaad1857ff9cb1c14f43"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Sharma_Comparison_of_Ground_Based_Measurements_of_Solar_UV_Index_wi_W2041839843.pdf#5",
+   "2003_A_Study_on_the_Economics_of_Tobacco_in_Nepal_73b44278_13cf_5efc_8ce4.pdf#60",
+   "1951_Unknown_Experimental_Agriculture_W2182550192.pdf#6",
+   "2020_Adhakari_Causative_Factor_of_Accidents_in_Commercial_Buildings_of_Bha_W3102389539.pdf#10"
+  ],
+  "prompt": "4781cd2d96e45452324ccd9b79f20f3c3387ee704bc4e5f4626a3f7b7a511a3d"
+ },
+ "q036": {
+  "chars": [
+   1367,
+   1200,
+   1200,
+   1903,
+   952
+  ],
+  "contexts": [
+   "eb0fe0a59dd3adfddbbf2d5d5795598a83d6e1d4672b112ca82e54250978325c",
+   "734ab77e3d0c83cdb01cf7ac5806d44f5e8a40c9dc2fab7a7d7018f5670cde4a",
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "79c80d26400f5b0f36b169eb131e91f819ecc7ae9ea255afb01d1dd6d423f360",
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "2003_Shrestha_Regional_Cooperation_for_Flood_Disaster_Mitigation_in_the_Hi_W3204336300.pdf#5",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1975_Nepal_on_the_eve_of_the_Rana_ascendancy_k360k_xam40.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5"
+  ],
+  "prompt": "72fefd80a6b0f5b2ee799fd4218da25710d3acf49a77f62b83c26aefd4c13288"
+ },
+ "q037": {
+  "chars": [
+   1200,
+   1367,
+   952,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "1e13dd64eab503f1bd592bb89ef905deaeeb4a268c2cb625327491c53a32408f",
+   "eb0fe0a59dd3adfddbbf2d5d5795598a83d6e1d4672b112ca82e54250978325c",
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26",
+   "8ea792f42bc503db035ab54000d2f8ed8e064c61e499f0dfd48f97a3b06619f7",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#4",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3"
+  ],
+  "prompt": "5d1bf48ebc19ea20e2dba0e4461ac483ae5810991f12db888c640a1526f3dc61"
+ },
+ "q038": {
+  "chars": [
+   952,
+   1200,
+   1903,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "c5bd6753b6bd7a3e4ea0f533545da99a177f1ee6bc34394c228fdb11a2526b26",
+   "4564efe9166848b50ccdda9f5ba27d5a916ff5f9a8ffba03e60299e6b917c833",
+   "dc39ac201197520967850f3f8d88ceaf108c920fc35017594cfc0d921b0543cd",
+   "28f6aa378cb2d5349b51fcd92b4d4391648572c62297b0d92e3ec4159ae41a5a",
+   "4a32b90f5a85969a1f96e5619cf9a4ec9731dca29f0b620cbf7f236674271e73"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#5",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Gelsor_Solar_UV_Irradiance_Measurements_at_Four_Sites_in_Tibet_W2015605035.pdf#6",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "2024_PROCEEDINGS_OF_NATIONAL_WETLAND_WORKSHOP_2024_ad7676fbb4.pdf#84"
+  ],
+  "prompt": "9e8dd7c6bb8ea898d0188e3013952ff91dfb6605c1d9f70a2194f38c4664ec52"
+ },
+ "q039": {
+  "chars": [
+   1506,
+   1903,
+   1833,
+   1380,
+   1903
+  ],
+  "contexts": [
+   "2a37942dbefa81fd4227d68714ccdcc4e9c7b9e285de57ea7159f0ba76078fd1",
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "afdc711fb14dc097bb458d4848bf50d8d5f000a5b90e1ccf33781dd9969db94e",
+   "75183a8420ee1e4c6a4767b42c9c541ba5580393cdfe1373e036e8c80ab5dcea",
+   "710064c083c54a5f47f7be4f324a2080a648343a102560f6f1eae0c371c73158"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#3",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#4",
+   "1960_Dhar_The_diurnal_variation_of_rainfall_at_Barahkshetra_and_Kathma_W3216410440.pdf#1"
+  ],
+  "prompt": "7b87543d8481e1b85a7447392028e4e99dd8f2d7381573734bb85c10620f41f0"
+ },
+ "q040": {
+  "chars": [
+   1425,
+   1903,
+   1758,
+   1200,
+   1903
+  ],
+  "contexts": [
+   "8d5aa23f05a740fe786794dd4986794ba27ed0733fbcd8e200a91141d93cd4c3",
+   "85aedacabbcb93314b46ac10e4567e8b183c8979a06d477d307c09f2e85b1a70",
+   "00746ab5ed82cd13c0a01620631fe35aac2e62283ef96f80416b21899b236d80",
+   "e1812f7c8b6853a80f5ecd5d4cf2b01723b4cbfd4a05fa1b7368ae269260bec4",
+   "d8af6c22ce1b4597691c82bc456ea7ed1bc343dcb342a04ec64a0134c0da1e8a"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#4",
+   "0_Westaway_Human_Remains_Everest_and_the_Ontological_Afterlives_of_Geor_W7130241212.pdf#3",
+   "2015_Assessment_of_existing_and_potential_landslide_hazards_resulting_from_70155518.pdf#51",
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#1"
+  ],
+  "prompt": "6467b25f8f1f30dd9f772401a8b20af0135c1c582cbd0b8b1ca25e5dc29762da"
+ },
+ "q041": {
+  "chars": [
+   1200,
+   1903,
+   1903,
+   1903,
+   1903,
+   1200
+  ],
+  "contexts": [
+   "238c8cde821f53bbb7a0d8b0b90f5a81e026d56cc7bf9f9c8cc79bfd0d5ddd0a",
+   "d2b582c1a72a274c1fa3aed48361c176ed91f363e6e638e0fec792f0d785dfe3",
+   "0278245908c063f58c2a4c00e5ca96f92cbf82a607010f6429da88e8ec1f2427",
+   "58057ca3fcb7a3a7ef0026e7049e8983946660afb8c23922ffde8cbf3542b197",
+   "15a84c8333d20d14ab27f51fc0f4eeb194f53f22877863197f308e461fa258ee",
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9"
+  ],
+  "prompt": "e88c0d602df76eb379929ac0dae7d577f7fe4349c73ffa270536b56794ac37ff"
+ },
+ "q042": {
+  "chars": [
+   1200,
+   1903,
+   1200,
+   1903,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "d507af2b8488ab42d95194d3f45df1211f4a54d23be21bacdb7d2a974e8b49d6",
+   "7c2c3bc2a2f8353703d9376b9c13e0fe09f13dade2abaa1cedd19d3d81ecd7f8",
+   "4fdb1fb4d0dc6187e76a22d19339e7278a642f4f63f431d762531a478f883d35",
+   "58057ca3fcb7a3a7ef0026e7049e8983946660afb8c23922ffde8cbf3542b197",
+   "003e9463f748b49fd917223b1fc42a14bbcf40714abbe98e446df4009dee9110",
+   "c8ed8ed0884c16d592044b3aa281bcb02d266977f7320072cfc1a8809e6523c5"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#1",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Adhikari_Infraspecific_Variation_of_Bambusa_nutans_Subspecies_Nutans_W2092319729.pdf#1",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "2019_Sah_Industrial_Accidents_in_Jute_Mills_of_Nepal_W3003408105.pdf#6"
+  ],
+  "prompt": "59672d5f9e5900b5f0e88e111c3e49597ce7d4cba27ec35e4cf60ff249d0e446"
+ },
+ "q043": {
+  "chars": [
+   1903,
+   1200,
+   1738,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "4261aad5a33e925cdd3b2943e74f0d6bbb05c135aa1efd511fb90cf4c6dc3362",
+   "fc6c0928ae7e973eb089c67c1d32fcec7e76e66d058ada97c39789e76c710526",
+   "5e4db5655e6d605aa0b4418158074ebc59fdc9b0fd262de3e00c65ac61b56c6c",
+   "51001023b4e99b145666d12590f333f75a6fed1f17ccfe7be3dc3c346b300602",
+   "66214a3b37cff0f042f261f18980105b70b283391c8c91bd2ddef88be57e24a5"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#1",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#9",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4"
+  ],
+  "prompt": "df4d38dad309cf039c53c4ea12d6a38c0df65aa266ac5bfbc070d2d7fd09d3ea"
+ },
+ "q044": {
+  "chars": [
+   1903,
+   1200,
+   1504,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "857cdd506443fb6f19c1bc570ef422cfbabb4c072d70411f781b478384a3aff4",
+   "66214a3b37cff0f042f261f18980105b70b283391c8c91bd2ddef88be57e24a5",
+   "fd3105582970353d579008b5026f884206d3181eda9b0a54a6fb975562237291",
+   "ae63d2cc6c28ef04aa23c208a035f0488913daca46adb7f4fbc91f266a87f28d",
+   "e337459be983fa3e62fcaf7240e092242251314ad5194f4cbc62ed871ff18bbb"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#1",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#3",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7"
+  ],
+  "prompt": "0cef29e79770e28772f8c49d8c270158d0da5bca00ca07e14a667d3a3674725f"
+ },
+ "q045": {
+  "chars": [
+   1200,
+   1200,
+   1200,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "238c8cde821f53bbb7a0d8b0b90f5a81e026d56cc7bf9f9c8cc79bfd0d5ddd0a",
+   "9c369cf9bbff189a8e92a4b736159a0d2a34211672410b2337b0b44b53cd9ec0",
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c",
+   "a4c036509f62a86d261dc9f4c8d2e6ab6bf862c29dfa6094fcd7305a5dbe7726",
+   "b2de0d029daf7d33ae51f880662d00952ce23fdec3ffefd903f294dc84e34a0b"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4"
+  ],
+  "prompt": "3fb31d3f62882761d00f619a2688958ec8ff3230620578dc61a85f1482b5014a"
+ },
+ "q046": {
+  "chars": [
+   1903,
+   1903,
+   1903,
+   1200,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "a320df6022a8805bfad7e12758f8b0051bfac8827395d30c18af302551faea71",
+   "e7ed9e0b8820e31ac871a8843544ba49f69c409f9dc49b00784029fa78dffbc0",
+   "8f8d5decfbc9069afc10a3e7c0dd8f345e9ff5e95246aebde2f273f81419b06d",
+   "540db1dfc92b8d0abe7718c735a9f2a6162c650b56dc2bd48fea1466d3e1cb29",
+   "4fc6f7f4b6d86fc9956f53e0663c5925f73c1f3d1b2d6f625789fb7765c9ab97",
+   "3adb8d354d2745c350b57287eb86e3ad58ffd66c10852d85fe2a7333207d0907"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#3",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2"
+  ],
+  "prompt": "f0be7e9ab97cc770bb41f44ae7305c86bf5972c776a2767dad92cd8ad2225239"
+ },
+ "q047": {
+  "chars": [
+   1903,
+   1200,
+   1200,
+   1903,
+   1903,
+   1903
+  ],
+  "contexts": [
+   "65acddc9e2a8f3f9ef6cfcb19cbc4e042cd34363cb3e37c8fb5c33f7200985ef",
+   "9c369cf9bbff189a8e92a4b736159a0d2a34211672410b2337b0b44b53cd9ec0",
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c",
+   "ea96845685a69d04a517c8bf975677d1e3ecfa80eeedcd0dee6e93e11c539863",
+   "ad46604c834283974eb805f4b55d67cdf49d494265bb4362994240cbd38884d9",
+   "10b5f71f05f2184707e532669e01601be23d8f4ad0d3366a7e693e79ea94df5d"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#2",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#1",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4"
+  ],
+  "prompt": "06f48977eb6b8e4195d565622f40a2583eab4425e17a2773c5ed937d13b37d1c"
+ },
+ "q048": {
+  "chars": [
+   1200,
+   1903,
+   1200,
+   1200,
+   1505
+  ],
+  "contexts": [
+   "66214a3b37cff0f042f261f18980105b70b283391c8c91bd2ddef88be57e24a5",
+   "e99e9fff9d22fef3410abbb57049581aaeaa43d81a633e40bb55b24e4335b695",
+   "51001023b4e99b145666d12590f333f75a6fed1f17ccfe7be3dc3c346b300602",
+   "238c8cde821f53bbb7a0d8b0b90f5a81e026d56cc7bf9f9c8cc79bfd0d5ddd0a",
+   "5143344b34dcf0bffd22e9b6b5556c820b34aadf8fb5a77edcbe5f2e029b03e0"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#3",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7"
+  ],
+  "prompt": "95b7da63e30756b659579d1ec19226e749e6aecac71c55d7cb75c10b9871ee5a"
+ },
+ "q049": {
+  "chars": [
+   1200,
+   1200,
+   1191,
+   1903,
+   1200
+  ],
+  "contexts": [
+   "66214a3b37cff0f042f261f18980105b70b283391c8c91bd2ddef88be57e24a5",
+   "51001023b4e99b145666d12590f333f75a6fed1f17ccfe7be3dc3c346b300602",
+   "338ce599e6dfc5798b7937f603fe102ede05ebcea7b181dfcb1220b58ea1a1c1",
+   "aa60355c848ce3f108740bd5ed5380ff101d8682b9b2ef12c68176e40b392730",
+   "97ebfc87eab8d96e4a301fd23a59b70e7d888502aba148b97d65aaab81a9a676"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "2023_nepal_labor_migrant_recruitment_cost_survey_2080_bf47149ec8.pdf#61",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "2023_nepal_labor_migrant_recruitment_cost_survey_2080_bf47149ec8.pdf#65"
+  ],
+  "prompt": "7888222fa96876baa7922cd8ac57bae7bcac6636bd16c940846c4fbdfcb30417"
+ },
+ "q050": {
+  "chars": [
+   1200,
+   1903,
+   1200,
+   1629,
+   1864,
+   1903
+  ],
+  "contexts": [
+   "540db1dfc92b8d0abe7718c735a9f2a6162c650b56dc2bd48fea1466d3e1cb29",
+   "08fa3285f2fc46b152e07a58993adf1647954616e128e7cca61450841fbb1881",
+   "769ec38e38a25fd7d5221a5275aa2759b08800282d228e683e3813cfcec07b3c",
+   "1172a21b43ff296b8887f4df3bcd0fcaec7745a2f57547a097dffeec23a8086c",
+   "d8b8c10876f78ae943aae95dddd74a052e77bd13497285e06705bfb1ab1bf6b8",
+   "e49878336b198255e75684a3c7f60736725daa08f5408a536e5cb70036d09f8f"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#3",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#1",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#9",
+   "nd_1983_IFPRI_Annual_Report_51deabfd_e307_477e_aecf.pdf#38",
+   "1970_Adhikari_Infraspecific_Variation_of_Bambusa_nutans_Subspecies_Nutans_W2092319729.pdf#1",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4"
+  ],
+  "prompt": "dcabb1512b33740c3a22b2e61e9abdb0cbd6353a2cc4926911a4c873927be290"
+ },
+ "q051": {
+  "chars": [
+   1402,
+   1903,
+   1903,
+   1200,
+   1903
+  ],
+  "contexts": [
+   "f0ccf4a4a89e87bc9258fe1d9b41a9fbba84213ea1e1895fefc1cc9091c0c9cd",
+   "93b9f8b1fbfbb08ce2c015a37297593813765631838c3d5d2c13b6f7fb83b148",
+   "bce806ea146091a2b56afc27568fe2f116fa5f2c09244bb635c4e84a0162a1ac",
+   "66214a3b37cff0f042f261f18980105b70b283391c8c91bd2ddef88be57e24a5",
+   "33457837315049c2681677c1e67295ae441ad79ad514879e0bde8038339280db"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#3",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#4",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#7"
+  ],
+  "prompt": "61193ef09ddd33676b707b53200cf4072c6d8dbd2610aef53e589a1b94a273b5"
+ },
+ "q052": {
+  "chars": [
+   1903,
+   1200,
+   1346,
+   1813,
+   1200
+  ],
+  "contexts": [
+   "20a8410c7d4b50b2c6cf3cd0d06be0f253dcfbbafbfd43e8511c56bd5f5265b0",
+   "61a86ae094fcad1d406f3100d1eacfdc395f463ff475b9fa1ba1b8e21f767590",
+   "0427cd3cfabc2f87ba8d9eb57b6e5056b90ebc8b689c04021e0ee8fd1a391b0b",
+   "f2f5fc09cbfffb15e308a4492f10fc04cee8beb8e4c447550c6d9097aa6416c3",
+   "734ab77e3d0c83cdb01cf7ac5806d44f5e8a40c9dc2fab7a7d7018f5670cde4a"
+  ],
+  "pages": [
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "1970_Giri_English_Language_Teachers_Resource_Centre_A_Model_for_Develo_W2055352677.pdf#11",
+   "0_Bhandari_untitled_W7146673597.pdf#1",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6",
+   "2003_Shrestha_Regional_Cooperation_for_Flood_Disaster_Mitigation_in_the_Hi_W3204336300.pdf#5"
+  ],
+  "prompt": "6abd78b76dbd162bc4704eb981e723e18456d4b31e4b577870d4b0ffc9669dda"
+ },
+ "q053": {
+  "chars": [
+   678,
+   1342,
+   1903,
+   1903,
+   1200,
+   1200
+  ],
+  "contexts": [
+   "a6afa57a6aa6bc580b7840d15822b0d13441e380a75998b02b374b091786ed76",
+   "5a89e6cdb8cfe24f2e8606912075803dccb3dccd9952c6f034237e9340489be1",
+   "4e6a092e296e9ffbb45bc9be1105b7676b78c1375963303039e8965cfc00a62b",
+   "ac4da84385908c2b48496b0b822ff8b653747c8c8ac19d0428a4a259faa87945",
+   "c46ee52bd170a12ff98464b41178760e3d52c359f97dbe409d1d07561773312d",
+   "540db1dfc92b8d0abe7718c735a9f2a6162c650b56dc2bd48fea1466d3e1cb29"
+  ],
+  "pages": [
+   "nd_1984_IFPRI_Annual_Report_d10caadc_9d4c_4842_9cc6.pdf#18",
+   "2013_National_Seed_Vision_2013_2025_28d40bfb99.pdf#78",
+   "nd_1984_IFPRI_Annual_Report_d10caadc_9d4c_4842_9cc6.pdf#17",
+   "2012_non_hasl_movement_survey_survey_rusc_2069_c0408ed363.pdf#28",
+   "2003_A_Study_on_the_Economics_of_Tobacco_in_Nepal_73b44278_13cf_5efc_8ce4.pdf#38",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#3"
+  ],
+  "prompt": "26ea4e0f4dc96be511256d9a09761c8bd6123047747e1c279b102213bf100e0f"
+ },
+ "q054": {
+  "chars": [
+   1200,
+   1903,
+   1200,
+   1200,
+   1903
+  ],
+  "contexts": [
+   "1d64fea684516c65c05d668cdcc3f18f6bf25d8c7878ae7c0d7db7a9ef6c477e",
+   "0278245908c063f58c2a4c00e5ca96f92cbf82a607010f6429da88e8ec1f2427",
+   "64c22233693f65d0295a02184078ceec93e6041d8f7865aa5d4061d1f9cd41c3",
+   "1bb9ac0be28b7e975f7b1f7e708f282a60f9b183f8c00f6ca6824872bbbaf993",
+   "f7c9985e5678059c4dac7eb4ae5099f281402cc11d08af417c7faa64a13b54ac"
+  ],
+  "pages": [
+   "2003_A_Study_on_the_Economics_of_Tobacco_in_Nepal_73b44278_13cf_5efc_8ce4.pdf#82",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#5",
+   "2023_nepal_labor_migrant_recruitment_cost_survey_2080_bf47149ec8.pdf#59",
+   "2023_nepal_labor_migrant_recruitment_cost_survey_2080_bf47149ec8.pdf#53",
+   "1970_Das_Beliefs_superstitions_and_taboos_associated_with_bamboos_in_W1999918290.pdf#6"
+  ],
+  "prompt": "710003a0cfd305826fe2de5c08260b1ed46303e29fb82709a2f0371625aaef90"
+ },
+ "q055": {
+  "chars": [
+   1903,
+   1903,
+   1200,
+   1562,
+   1200
+  ],
+  "contexts": [
+   "1c2ed32fc260a74060f53cb1d56ba238a2b9376caab94d3b092d935db5d30759",
+   "34ceed28fabd6ed876133078ee6336605dafe9854cd77b009ab3b3348123c3c0",
+   "1079727eba10fdfc63c89383679e84344627a9c57b447fd4831611b3a8b44dde",
+   "280763f2af8a7d4fc4500162afe569556bb25fd242adc30867d081e959edb86a",
+   "c5007f8c282646a175233d45b3006f872959d436ad31f4108a3d1311156028f6"
+  ],
+  "pages": [
+   "1970_Marahatta_Relating_Hydrological_Extremes_with_Area_A_Case_on_Extreme_F_W2121362616.pdf#2",
+   "1970_Chaulagain_Climate_Change_Impacts_on_Water_Resources_of_Nepal_with_Refe_W2128832735.pdf#3",
+   "2003_Shrestha_Regional_Cooperation_for_Flood_Disaster_Mitigation_in_the_Hi_W3204336300.pdf#8",
+   "1970_Acharya_Medicinal_Orchids_of_Nepal_Are_They_Well_Protected_W2087899087.pdf#2",
+   "1970_Ahasan_Variability_and_Trends_of_Summer_Monsoon_Rainfall_over_Bangl_W2100745337.pdf#6"
+  ],
+  "prompt": "856054d7d216d60b9a67d003f8480c4faaab8ffa39039cd37116b2697e011697"
+ }
+}

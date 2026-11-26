@@ -152,14 +152,14 @@ It is appended **after** `EXTRA_RULES`, because q050 (`table`) ignored `s6-4` si
 
 ## Definition of done
 
-- [ ] `LIST` fires on q036 and q050 only among the 55 questions, is a modifier, and does not change `k`, `prompt_mode` or ranking
-- [ ] The rendered prompt and passages for q002/q004/q006/q013 are byte-identical to `HEAD`, proven by hash in the screen report and in a test
-- [ ] q036's passage contains its answering sentence (`Sunkosi`, `1964`, `1984`), with `WINDOW_CHARS`/`HEAD_CHARS` unchanged, so no passage grows beyond the mobile window plus head
+- [x] `LIST` fires on q036 and q050 only among the 55 questions, is a modifier, and does not change `k`, `prompt_mode` or ranking
+- [x] The rendered prompt and passages for q002/q004/q006/q013 are byte-identical to `HEAD`, proven by hash in the screen report and in a test
+- [x] q036's passage contains its answering sentence (`Sunkosi`, `1964`, `1984`), with `WINDOW_CHARS`/`HEAD_CHARS` unchanged, so no passage grows beyond the mobile window plus head
 - [ ] q050 answers as a list, stays `verified`, and still states `11-15`
-- [ ] `eval/gate.py` passes against both baselines, or the failure is explained and the change reverted
-- [ ] The new cases and every existing `generation/` and corpus case pass
-- [ ] Prompt, retrieval and `generation/answer.py` are the only code touched; `index/`, `data/`, `eval/questions.jsonl` and the gold are byte-unchanged
-- [ ] `EVAL.md` has the Results row, `STATUS.md` states the D-086 accounting, and `git status` is clean at session end
+- [x] `eval/gate.py` passes against both baselines, or the failure is explained and the change reverted
+- [x] The new cases and every existing `generation/` and corpus case pass
+- [x] Prompt, retrieval and `generation/answer.py` are the only code touched; `index/`, `data/`, `eval/questions.jsonl` and the gold are byte-unchanged
+- [x] `EVAL.md` has the Results row, `STATUS.md` states the D-086 accounting, and `git status` is clean at session end
 
 ## Context to read
 
