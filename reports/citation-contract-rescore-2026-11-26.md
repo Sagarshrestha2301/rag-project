@@ -134,8 +134,10 @@ next pipeline step.
 ## Implemented 2026-11-26 (step 18): the cap moves the numbers by one, in places
 
 The table above is **uncapped** C1, as it was measured for the decision. The shipped rule also caps
-out-of-gold pages at **two**, and that cap is not cosmetic: it drops one question in each of six
-older runs and two in the rejected `s6-4` run.
+out-of-gold pages at **two**, and that cap is not cosmetic: it drops one question in each of **ten**
+older runs and two in the rejected `s6-4` run. (This file first said six; the 2026-11-26 audit in
+`reports/q049-cap-audit-2026-11-26.md` corrected it, and found those ten answers correct and fully
+cited — PROPOSED D-099 recommends counting extra documents instead of pages.)
 
 | run | uncapped C1 | **shipped (cap 2)** | questions the cap excludes |
 |---|---|---|---|
