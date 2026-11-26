@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-26 | start | step 18 | owner
 2026-11-25 | start | step 17 | owner
 2026-11-25 | start | step 16 | owner
 2026-11-25 | start | step 15 | owner
@@ -137,3 +138,11 @@ the owner's, to be created only after the definition of done is met.)
 to file names" - and committed in an `OWNER:` commit, as for steps 06-11 and step 13 above.
 `steps/14-bibliography-on-demand.md` was drafted by the agent from the Step 11 timing
 (8.2 s/document) and the UI fallback already in `ui/static/app.js`.)
+
+(2026-11-26, step 18: typed by the coding agent on the owner's explicit chat instruction -
+"Implement the capped C1 rule in the scorer with an extra_citations counter and restate every
+stored run" - after the owner accepted option C of `reports/citation-layer-2026-11-26.md` with
+its three conditions, and committed in an `OWNER:` commit as on 2026-11-13, 2026-11-17,
+2026-11-20, 2026-11-21, 2026-11-22 and 2026-11-25. `steps/18-citation-contract.md` was drafted
+by the agent from `reports/citation-contract-rescore-2026-11-26.md` (the rule re-scored on all
+22 stored runs) and PROPOSED D-097; the owner has not yet edited it.)
