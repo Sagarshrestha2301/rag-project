@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from generation import answer, prompt                   # noqa: E402
+from generation import answer, prompt, verify        # noqa: E402
 
 FAILURES: list[str] = []
 TOTAL = 0
@@ -72,6 +72,31 @@ def missing_counts_keep_the_answer() -> None:
     assert messages[-2]["role"] == "assistant"
 
 
+VERIFIED = ('- 540 mm [1]\n- 139 households [1]\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: '
+            '"The 24-hour rainfall depth of 540 mm at Tistung was recorded in July 1970"')
+PROSE = ('540 mm fell in 24 hours at Tistung [1].\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: '
+         '"The 24-hour rainfall depth of 540 mm at Tistung was recorded in July 1970"')
+PASSAGES = [{"doc": "1970_Test_Paper_W1.pdf", "page": 2, "label": "Test 1970"}]
+
+
+def a_list_route_verifies_the_shape() -> None:
+    """Step 17: the route's `list` flag reaches the verifier, and only there."""
+    page = ("The 24-hour rainfall depth of 540 mm at Tistung was recorded in July 1970, "
+            "and 139 households were surveyed.")
+    original = verify.page_text
+    verify.page_text = lambda doc, number: page
+    try:
+        assert answer._verdict(VERIFIED, PASSAGES, {"list": True})["ok"]
+        prose = answer._verdict(PROSE, PASSAGES, {"list": True})
+        assert not prose["ok"], "prose must fail on a list question, so the retry fires"
+        assert any('"- " lines' in p for p in prose["problems"]), prose["problems"]
+        assert answer._verdict(PROSE, PASSAGES, {})["ok"], \
+            "a non-list route must verify exactly as before"
+        assert answer._verdict(PROSE, PASSAGES, {"list": False})["ok"]
+    finally:
+        verify.page_text = original
+
+
 def the_retry_text_still_carries_the_refusal() -> None:
     messages, _ = answer._retry_messages(MESSAGES, FAILED, PROBLEMS,
                                          {"prompt_tokens": 4030, "answer_tokens": 33})
@@ -84,6 +109,7 @@ def main() -> int:
         ("a short context keeps it", under_budget_keeps_the_answer),
         ("the threshold is RETRY_HEADROOM x num_ctx", the_threshold_is_the_measured_limit),
         ("missing counts keep the answer", missing_counts_keep_the_answer),
+        ("a list route verifies the shape (Step 17)", a_list_route_verifies_the_shape),
         ("the retry still offers the refusal", the_retry_text_still_carries_the_refusal),
     ]
     for name, fn in cases:

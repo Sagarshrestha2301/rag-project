@@ -205,6 +205,20 @@ def _remember(record: dict, question: str, search_question: str, path: pathlib.P
               search_question=search_question, path=path, index=index, **versions)
 
 
+def _verdict(text: str, passages: list[dict], routed: dict) -> dict:
+    """Verify one answer under the route's conventions.
+
+    Step 17: a list question is checked against the list shape as well, so a prose answer
+    is a failure and the retry carry the complaint. Every other route verifies exactly as
+    before. Named at module level so the wiring is testable without a model call.
+
+    Usage:
+        >>> _verdict('- 1964 [1]\n- 1981 [1]\n\n[1] x.pdf, p. 1: "Floods ..."', passages, {"list": True})["ok"]
+        True
+    """
+    return verify.verify_answer(text, passages, list_style=bool(routed.get("list")))
+
+
 def _record(question: str, **fields) -> dict:
     """One answer record, with the fields every path must fill in."""
     base = {"question": question, "answer": "", "status": "unverified", "gate": {},
@@ -336,7 +350,7 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
     text, timing = _ask(messages, model, temperature, on_token)
     marks["model_wait"] = stage(mark)
     mark = time.perf_counter()
-    verdict = verify.verify_answer(text, passages)
+    verdict = _verdict(text, passages, routed)
     marks["verify"] = stage(mark)
     attempts = 1
     retry_dropped = False
@@ -350,7 +364,7 @@ def answer(question: str, *, k: int | None = None, model: str = MODEL,
         text, timing = _ask(messages, model, temperature, on_token)
         marks["model_wait"] = round(marks["model_wait"] + stage(mark), 1)
         mark = time.perf_counter()
-        verdict = verify.verify_answer(text, passages)
+        verdict = _verdict(text, passages, routed)
         marks["verify"] = round(marks["verify"] + stage(mark), 1)
         attempts = 2
 

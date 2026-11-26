@@ -72,6 +72,56 @@ def expect_fail(name: str, answer: str, needle: str = "",
         raise AssertionError(f"no problem mentions {needle!r}: {result['problems']}")
 
 
+# ---------------------------------------------------------------- list shape (Step 17)
+LIST_OK = (f"- 540 mm [1]\n- 139 households [1]\n\n[1] 1970_Test_Paper_W1.pdf, p. 2: "
+           f'"{QUOTE}"')
+
+
+def run_list(answer: str) -> dict:
+    return verify.verify_answer(answer, PASSAGES, check_page=fake_page, list_style=True)
+
+
+def prose_is_not_a_list_answer() -> None:
+    """Measured twice (D-092, D-093): the model writes prose whatever the prompt asks."""
+    result = run_list(answer_with())
+    assert not result["ok"], result
+    assert any('must be written as "- " lines' in p for p in result["problems"]), \
+        result["problems"]
+
+
+def a_dash_list_passes_its_shape_check() -> None:
+    result = run_list(LIST_OK)
+    assert result["ok"], result["problems"]
+    assert "540 mm" in LIST_OK and "[1]" in LIST_OK
+
+
+def one_closing_sentence_is_allowed() -> None:
+    """`LIST_RULES` permits one sentence after the list, for a unit or a range."""
+    allowed = run_list(LIST_OK.replace("\n\n", "\nThe survey covered the lower catchment.\n\n", 1))
+    assert allowed["ok"], allowed["problems"]
+    two = run_list(LIST_OK.replace("\n\n", "\nOne sentence.\nAnd a second one.\n\n", 1))
+    assert not two["ok"], "two closing sentences are outside the rule"
+    assert any("at most one sentence may follow" in p for p in two["problems"]), two["problems"]
+
+
+def a_sentence_before_the_list_fails() -> None:
+    result = run_list("The page reports the following.\n" + LIST_OK)
+    assert not result["ok"], result
+    assert any("before the list" in p for p in result["problems"]), result["problems"]
+
+
+def a_refusal_is_never_a_shape_failure() -> None:
+    result = run_list(prompt.NOT_FOUND_TEXT)
+    assert result["ok"], result["problems"]
+    assert result["said_not_found"] is True
+
+
+def a_non_list_question_is_not_shape_checked() -> None:
+    """The default must be byte-for-byte today's behaviour: prose passes when not a list."""
+    assert verify.verify_answer(answer_with(), PASSAGES, check_page=fake_page)["ok"]
+    assert not run_list(answer_with())["ok"]
+
+
 def check(name: str, fn) -> None:
     global TOTAL
     TOTAL += 1
@@ -308,6 +358,14 @@ def main() -> int:
              a_quoted_refusal_line_is_not_a_refusal),
             ("an answer then the exact line is not a refusal",
              an_answer_then_the_exact_line_is_not_a_refusal),
+        ]),
+        ("list shape (Step 17)", [
+            ("prose is not a list answer", prose_is_not_a_list_answer),
+            ("a dash list passes its shape check", a_dash_list_passes_its_shape_check),
+            ("one closing sentence is allowed", one_closing_sentence_is_allowed),
+            ("a sentence before the list fails", a_sentence_before_the_list_fails),
+            ("a refusal is never a shape failure", a_refusal_is_never_a_shape_failure),
+            ("a non-list question is not shape checked", a_non_list_question_is_not_shape_checked),
         ]),
         ("real corpus page", [
             ("a quotation copied from a real PDF verifies", real_quote_verifies),

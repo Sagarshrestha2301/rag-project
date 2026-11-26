@@ -210,7 +210,60 @@ def refused_with_line(answer: str) -> dict:
             "reason": "the model wrote the refusal line and cited no page"}
 
 
-def verify_answer(answer: str, passages: list[dict], *, check_page=None) -> dict:
+# Step 17: a list question's answer must be a list. The prompt asked twice and the model
+# wrote prose both times (D-092, D-093), so the shape is checked here and the retry carries
+# the complaint back. The citation block is evidence, not answer prose, so it is excluded
+# by the first line that opens with a citation marker.
+_CITE_LINE = re.compile(r"^\[\d+\]")
+
+
+def _answer_body(answer: str) -> list[str]:
+    """The answer without its citation block, one stripped non-empty line per entry."""
+    lines = [line.strip() for line in (answer or "").splitlines() if line.strip()]
+    for index, line in enumerate(lines):
+        if _CITE_LINE.match(line):
+            return lines[:index]
+    return lines
+
+
+def list_shape_problems(answer: str) -> list[str]:
+    """What is wrong with the shape of an answer to a list question.
+
+    The contract is the prompt's own (`prompt.LIST_RULES`): one `- ` line per item, at
+    least two of them, nothing before the list, and at most one closing sentence for a
+    unit or a range. Only the shape is read; the facts are the citation and numeric
+    rules' job.
+
+    Usage:
+        >>> list_shape_problems('- 1964 [1]\n- 1981 [1]\n\n[1] x.pdf, p. 1: "Floods of 1964 ..."')
+        []
+        >>> list_shape_problems("The paper lists 1964 and 1981 [1].")
+        ['the answer is a list question, so it must be written as "- " lines (at least two), not as prose']
+    """
+    body = _answer_body(answer)
+    if not body:
+        return []
+    items = [line for line in body if line.startswith("- ")]
+    before, after = [], []
+    first = next((i for i, line in enumerate(body) if line.startswith("- ")), None)
+    if first is not None:
+        before, after = body[:first], body[first + 1:]
+    after = [line for line in after if not line.startswith("- ")]
+
+    problems: list[str] = []
+    if len(items) < 2:
+        problems.append('the answer is a list question, so it must be written as "- " lines '
+                        "(at least two), not as prose")
+    if items and before:
+        problems.append('put no sentence before the list: every item line starts with "- "')
+    if len(after) > 1:
+        problems.append("at most one sentence may follow the list (a unit or a range); "
+                        f"{len(after)} do")
+    return problems
+
+
+def verify_answer(answer: str, passages: list[dict], *, check_page=None,
+                  list_style: bool = False) -> dict:
     """Decide whether every quotation in `answer` is on the page it names.
 
     `passages` is what the model was shown: each needs `doc` (or `file`) and `page`.
@@ -237,6 +290,10 @@ def verify_answer(answer: str, passages: list[dict], *, check_page=None) -> dict
     if not (answer or "").strip():
         result["problems"].append("the answer is empty")
         return result
+
+    # Step 17: only a list question, and only when it is answering rather than refusing.
+    if list_style:
+        result["problems"].extend(list_shape_problems(answer))
 
     citations = parse_citations(answer)
     result["citations"] = citations

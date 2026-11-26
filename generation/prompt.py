@@ -29,10 +29,13 @@ import pathlib
 
 # Bumped whenever SYSTEM_RULES or build_system changes, because the answer cache is
 # keyed on it (D-017): a prompt edit must never serve yesterday's answers.
+# The prompt text has not changed since s6-5; s6-6 records that an answer is now verified
+# against the list shape as well (Step 17), and the cache key carries this version (D-017),
+# so a cached s6-5 answer cannot be replayed as if it had been shaped.
 # "s6-4" is deliberately skipped: it is the label of the rejected list rule whose run is
 # stored in eval/runs/2026-11-25-step16-list-format (D-092), so reusing it would make two
 # different prompts look like one.
-PROMPT_VERSION = "s6-5"
+PROMPT_VERSION = "s6-6"
 
 # Written out here, quoted by the prompt, and compared against in answer.py, so the
 # refusal the model is told to produce is exactly the one the code looks for.

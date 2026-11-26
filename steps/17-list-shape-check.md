@@ -84,15 +84,14 @@ see; the step file records it rather than hiding it, and the remedy is a separat
 
 ## Definition of done
 
-- [ ] `list_shape_problems` rejects a prose answer and accepts a dash list, a closing sentence and a refusal, with the citation block ignored
-- [ ] Only list questions are checked: every non-list answer is verified exactly as before
-- [ ] `PROMPT_VERSION` is `s6-6` so no `s6-5` answer can be replayed
-- [ ] q036 and q050 are `verified` **and** dash lists in the full run, on the appeal that is retry 2
-- [ ] No non-list question changes status, and no question gains an attempt except the two list questions
-- [ ] `eval/gate.py` passes against `2026-11-25-step16-list-retrieval` (the predecessor) and against `2026-11-24-repro-a`, or the change is reverted
-- [ ] The new cases and every existing `generation/` case pass
-- [ ] `EVAL.md` row, `STATUS.md` log line and the D-086 statement are present, `git status` clean
-
+- [x] `list_shape_problems` rejects a prose answer and accepts a dash list, a closing sentence and a refusal, with the citation block ignored
+- [x] Only list questions are checked: every non-list answer is verified exactly as before
+- [x] `PROMPT_VERSION` is `s6-6` so no `s6-5` answer can be replayed
+- [x] q036 and q050 are `verified` **and** dash lists in the full run, on the appeal that is retry 2
+- [x] No non-list question changes status, and no question gains an attempt except the two list questions
+- [x] `eval/gate.py` passes against `2026-11-25-step16-list-retrieval` (the predecessor) and against `2026-11-24-repro-a`, or the change is reverted
+- [x] The new cases and every existing `generation/` case pass
+- [x] `EVAL.md` row, `STATUS.md` log line and the D-086 statement are present, `git status` clean
 ## Context to read
 
 `AGENTS.md`, `STATUS.md` (step 16 row, D-093), `steps/16-list-retrieval.md`, `DECISIONS.md`
