@@ -148,7 +148,7 @@ cited — PROPOSED D-099 recommends counting extra documents instead of pages.)
 | 2026-11-22 runs, corrected-gold, pre-wave, repro a/b, step 15/16/17 | unchanged | **unchanged** | none |
 
 So the rule as shipped recovers **four** questions on the current runs (q017, q039, q040, q049) and
-costs q049 in the six pre-step-15 runs, where that answer cited three real pages. No answer that
+costs q049 in the ten pre-step-15 runs, where that answer cited three real pages. No answer that
 passes today cites more than two. The held-out run is the one exception to "restate everything":
 it is scored against its own 10-question file, so it goes **5/10 -> 7/10** and its `scores.json`
 now reflects 10 questions, not 55. The two smoke subsets (4 and 13 rows) have no stored scores and
