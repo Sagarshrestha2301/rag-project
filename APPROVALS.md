@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-25 | start | step 16 | owner
 2026-11-25 | start | step 15 | owner
 2026-11-22 | start | step 13 | owner
 2026-11-22 | start | step 14 | owner
@@ -108,6 +109,13 @@ once, keeping today's behaviour as the default and test_pipeline green" - and co
 `OWNER:` commit, as on 2026-11-13, 2026-11-17, 2026-11-20 and 2026-11-21. The step file
 `steps/13-parallel-parse.md` was drafted by the agent from the 2026-11-22 parse measurements
 (`reports/20k-download-and-rag-guide.md` section 6.1); the owner has not yet edited it.)
+
+(2026-11-25, step 16: typed by the coding agent on the owner's explicit chat instruction -
+"Add the step-16 start line to APPROVALS.md in an OWNER: commit and implement step 16, then run
+Stage 1, the full 55-question run and the gate" - and committed in an `OWNER:` commit, as for
+steps 06-11 and 13-15 above. The step file `steps/16-list-retrieval.md` was drafted by the agent
+on 2026-11-25 from the measurements in `reports/list-format-experiment.md`; the owner has not yet
+edited it.)
 
 (2026-11-25, step 15: typed by the coding agent on the owner's explicit chat instruction -
 "Implement step 15's refusal-line rule and run the 55-question gate once the owner approves
