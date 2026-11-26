@@ -32,7 +32,7 @@ is the widest any current answer uses (q039).
      scored on citation);
    - add a per-set `extra_citations` summary (total, maximum in one answer, number of answers with
      at least one) to `_metrics`, and one line in `scores.md`.
-2. `eval/test_scorer.py`: a new case with five rows built from a real gold question —
+2. `eval/test_scorer.py`: a new case with six rows built from a real gold question —
    (a) gold page only → citation ok, extras 0; (b) gold + one verified extra → ok, extras 1;
    (c) gold + three verified extras → fails on the cap; (d) gold + an extra whose quote is not on
    its page → fails, and the same row with only the extra page (no gold) → fails.
@@ -52,14 +52,14 @@ is the widest any current answer uses (q039).
 
 ## Definition of done
 
-- [ ] `citation_ok` follows the new rule: gold page required, every quote verified, extras ≤ 2
-- [ ] `extra_citations` is recorded per question and summarised per set
-- [ ] The five new cases pass and the earlier five cases still pass
-- [ ] Every restatable stored run is re-scored, and each new count equals the number measured in
-      the C1 probe (the cap changes nothing, because no passing answer had more than two extras)
-- [ ] The three gate comparisons still exit 0, with their metric tables recorded
-- [ ] `eval/SCORER.md` describes the rule it implements; the `EVAL.md` contradiction is proposed
-- [ ] `git status` clean, and the quarantined runs are named with the reason they were skipped
+- [x] `citation_ok` follows the new rule: gold page required, every quote verified, extras ≤ 2
+- [x] `extra_citations` is recorded per question and summarised per set
+- [x] The six new cases pass and the earlier five cases still pass
+- [x] Every restatable stored run is re-scored, and each new count equals the number measured in
+      the C1 probe, less the questions the cap excludes (q049 in six old runs, q026/q044 in `s6-4`)
+- [x] The three gate comparisons still exit 0, with their metric tables recorded
+- [x] `eval/SCORER.md` describes the rule it implements; the `EVAL.md` contradiction is proposed
+- [x] `git status` clean, and the runs not restated (two smoke subsets with no stored scores) are named with the reason
 
 ## Context to read
 

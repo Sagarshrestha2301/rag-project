@@ -130,3 +130,24 @@ next pipeline step.
 - The four older-run flip sets (q004, q008, q012, q024) were not read one by one; only the recent
   four (q017, q039, q040, q049) were verified quote by quote in
   `reports/citation-layer-2026-11-26.md`.
+
+## Implemented 2026-11-26 (step 18): the cap moves the numbers by one, in places
+
+The table above is **uncapped** C1, as it was measured for the decision. The shipped rule also caps
+out-of-gold pages at **two**, and that cap is not cosmetic: it drops one question in each of six
+older runs and two in the rejected `s6-4` run.
+
+| run | uncapped C1 | **shipped (cap 2)** | questions the cap excludes |
+|---|---|---|---|
+| 2026-11-16-step6-full, -offline, -after-ui, -prose-number, step8 ×2 | 40 / 40 / 39 / 39 / 39 / 39 | **39 / 39 / 38 / 38 / 38 / 38** | q049 (3 extras) |
+| 2026-11-20-step9-cite-evidence, -d060, -retry-guard | 42 / 42 / 42 | **41 / 41 / 41** | q049 (3 extras) |
+| 2026-11-20-step9-table-retrieval | 39 | **38** | q049 (3 extras) |
+| 2026-11-25-step16-list-format (`s6-4`, rejected) | 43 | **42** | q044 (6 extras), and q026 (3) which failed another metric anyway |
+| 2026-11-22 runs, corrected-gold, pre-wave, repro a/b, step 15/16/17 | unchanged | **unchanged** | none |
+
+So the rule as shipped recovers **four** questions on the current runs (q017, q039, q040, q049) and
+costs q049 in the six pre-step-15 runs, where that answer cited three real pages. No answer that
+passes today cites more than two. The held-out run is the one exception to "restate everything":
+it is scored against its own 10-question file, so it goes **5/10 -> 7/10** and its `scores.json`
+now reflects 10 questions, not 55. The two smoke subsets (4 and 13 rows) have no stored scores and
+were left alone.
