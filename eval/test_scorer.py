@@ -323,6 +323,31 @@ def main() -> int:
                   got["citation_ok"] is want_ok and got["extra_citations"] == want_extra,
                   f"citation_ok={got['citation_ok']} extras={got['extra_citations']} "
                   f"passed={got['passed']}")
+
+        # ---------------------------------------- one page-text reader (step 19, D-098)
+        print("case 7: the scorer reads a page the way the verifier does")
+        check("the scorer uses corpus.page_text",
+              score.shared_page_text.__module__ == "corpus",
+              f"{score.shared_page_text.__module__}.{score.shared_page_text.__name__}")
+        # A scanned page: no text layer, so the indexed OCR text is the only text there is.
+        scan = ("0_NARAYAN_Investigation_of_Soil_Liquefaction_in_Kathmandu_Valley_and_R"
+                "_W7208248247.pdf")
+        scan_file = f"data/corpus/{scan}"
+        if (ROOT / scan_file).exists():
+            ocr_quote = norm(score.shared_page_text(scan, 1))[:80]
+            raw_text = page_text(scan_file, 1)
+            scan_q = {"id": "scan", "type": "fact", "answerable": True, "gold_numbers": [],
+                      "gold_sources": [{"file": scan_file, "page": 1, "sha256": ""}]}
+            scan_row = {"id": "scan", "said_not_found": False, "answer": "a fact",
+                        "retrieved": [{"file": scan_file, "page": 1, "score": 1.0}],
+                        "citations": [{"file": scan_file, "page": 1, "quote": ocr_quote}]}
+            check("that page has no text layer to quote", not raw_text,
+                  f"raw characters on the page: {len(raw_text)}")
+            got = score.score_question(scan_q, scan_row)
+            check("a quote from the OCR text verifies", got["citation_ok"] is True,
+                  f"citation_ok={got['citation_ok']}")
+        else:
+            check("the scanned test document is present", False, "data/corpus file missing")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

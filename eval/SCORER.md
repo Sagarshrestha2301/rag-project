@@ -41,6 +41,8 @@ All are reported as a **count and a percentage** (`17/20`, `85%`), never a perce
 
   `extra_citations` records how many cited pages were outside the gold set — per question, and per set as a total, a maximum and a count of answers with any. It is a diagnostic, not a penalty: it keeps citation padding visible now that a padded answer can still pass.
 
+  **The page text is read by `corpus.page_text` (step 19, 2026-11-26)** — the same reader `generation/verify.py` uses: the PDF's own text, and the indexed OCR text for a page that has no text layer (under 40 non-space characters). The scorer used to open the raw PDF itself, so a quotation from an OCR page could be verified by the pipeline and failed by the eval (q003, one citation in 59). The comparison is still the strict one below.
+
   **The gold-page clause was relaxed on 2026-11-26** because five questions failed with every quotation verbatim on the page it named, only because a second cited page was not in the gold set (`reports/citation-contract-rescore-2026-11-26.md`). The quote check is still strict and still applies to every cited page; the cap of two and the counter are the safeguards the owner accepted (D-097).
 
   **Matching is strict, by the owner's decision (2026-11-13, D-041).** Surrounding quotation marks are *not* stripped and a hyphen the PDF split across a line (`East- Rapti`) is *not* joined, so both count as failures. Do not "fix" this in a later step: on the `qwen2.5` oracle run the strict rule scores citations 14/26 against 19/26 for the lenient one, and the stricter number is the one the project agreed to track. The fix belongs in the Step 6 prompt, which must return unquoted verbatim sentences.

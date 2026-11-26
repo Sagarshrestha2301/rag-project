@@ -4,6 +4,9 @@ Usage:
     .venv\\Scripts\\python.exe eval\\score.py --run eval/runs/<label>/run.jsonl --out eval/runs/<label>
     .venv\\Scripts\\python.exe eval\\score.py --run <run.jsonl> --baseline <baseline.jsonl> --out <dir>
 
+Quotations are checked with `corpus.page_text`, the same reader the verifier uses: the PDF's
+text, and the indexed OCR text for a page that has no text layer.
+
 Exits non-zero, without writing any scores, if a referenced corpus file is
 missing, outside the corpus root, or its SHA-256 differs from the gold record.
 That is the guard against a re-converted document silently shifting pages.
@@ -24,6 +27,12 @@ import json
 import pathlib
 import re
 import sys
+
+# The project root, so the scorer can use the corpus module's page reader (step 19, D-098):
+# a quotation is checked against the same text `generation/verify.py` checks it against.
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from corpus import page_text as shared_page_text  # noqa: E402
 
 DEFAULT_QUESTIONS = "eval/questions.jsonl"
 DEFAULT_CORPUS_ROOT = "data/corpus"
@@ -177,10 +186,11 @@ def score_question(q: dict, row: dict | None) -> dict:
             if not pathlib.Path(c["file"]).exists():
                 quotes_ok = False
                 break
-            import pymupdf  # local import keeps the module importable without the venv
-            with pymupdf.open(c["file"]) as doc:
-                page_text = norm_space(doc[c["page"] - 1].get_text())
-            if norm_space(c.get("quote", "")) not in page_text:
+            # One page reader for both halves of the system: the PDF's text, with the indexed
+            # OCR text for a page that has no text layer. A second reader here failed a quote
+            # the pipeline had already verified (q003, step 19).
+            page = norm_space(shared_page_text(pathlib.PurePosixPath(c["file"]).name, c["page"]))
+            if norm_space(c.get("quote", "")) not in page:
                 quotes_ok = False
                 break
         out["citation_ok"] = bool(citations) and gold_cited and quotes_ok and extra <= MAX_EXTRA_CITATIONS
