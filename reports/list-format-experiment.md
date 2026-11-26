@@ -1,9 +1,8 @@
-# A list-format experiment that can move q036 and q050 — design, and why the built one could not
+# A list-format experiment that moves q036 and q050 and cannot cost q002/q004/q006/q013
 
-Status: **design only.** No code, prompt, retrieval, corpus or index change was made for this
-report. The `s6-4` list rule that was measured on 2026-11-25 is rejected (PROPOSED D-092);
-its diff is kept at `eval/runs/2026-11-25-step16-list-format/prompt-s6-4.diff`, and the
-working tree was reverted to `s6-3`.
+Status: **design only, not built.** No prompt, retrieval, corpus or index change was made for
+this report. The `s6-4` list rule measured on 2026-11-25 is rejected (PROPOSED D-092); its diff
+is kept at `eval/runs/2026-11-25-step16-list-format/prompt-s6-4.diff` and the tree is on `s6-3`.
 
 ## 1. What the rejected experiment measured
 
@@ -15,174 +14,178 @@ prompt `s6-4`, temperature 0, seed 0, cache off, Ollama 0.40.18, 186 documents /
 | passed | 35/55 | 37/55 | **35/55** |
 | dev passed | 28/45 | 30/45 | 29/45 |
 | held-out passed | 7/10 | 7/10 | **6/10** |
-| citation | 32/48 | 32/48 | **30/48** (dev 25/39, held-out 5/9) |
+| citation | 32/48 | 32/48 | **30/48** |
 | numeric | 37/43 | 37/43 | 39/43 |
 | not-found (a) / (b) | 3/6 / 46/48 | 5/6 / 45/48 | 5/6 / 46/48 |
 | MRR | 0.839 | 0.839 | 0.839 |
-| p50 / p95 | 12.9 / — | 12.2 / 46.7 | 11.9 / 48.9 |
 
 `eval/gate.py --current eval/runs/2026-11-25-step16-list-format
 --baseline eval/runs/2026-11-24-repro-a --start eval/runs/2026-11-24-repro-a`
-→ **GATE FAILS, 8 problems**, all rule 1: **q002, q004, q006 and q013 pass → fail** on
-`citation, verdict`, with no explanation, against both baselines. Rules 2, 3 and 4 pass.
+→ **GATE FAILS, 8 problems, all rule 1**: q002, q004, q006 and q013 pass → fail on
+`citation, verdict`, no explanation, against both baselines.
 
-### The mechanism, per question
+Cause, per question — citation shape, not facts: q004 adds a verified quotation from p. 4 of
+the same paper (not gold), q006 adds two sentences including `[3]` for "The correlation is
+satisfactory." (real, wrong page), q013 widens its `[1]` quotation and adds `[3]` to p. 1, and
+q002's quotation loses the page's space in `East- Rapti`, so it no longer exists on the page.
+The rule invited that by waiving the four-sentence cap and demanding a `[n]` on every line.
 
-All four losses are citation-shape losses; the facts in the answers stay correct.
+Why it never touched the list questions:
 
-- **q004** keeps its verified `[1]` and adds a sentence citing `[4]` (a real quotation from
-  page 4 of the same paper) — page 4 is not gold, and D-041 requires every cited page to be gold.
-- **q006** adds two sentences, one citing `[3]` for "The correlation is satisfactory." — real
-  text, wrong page.
-- **q013** replaces its garbled formula quotation with a wider `[1]` quotation and adds `[3]`
-  to page 1 of the same file — again a real, non-gold page.
-- **q002** keeps only `[3]` and copies the quotation as `East-Rapti`; the page prints
-  `East- Rapti`, so the quotation no longer exists on the page and verification fails.
+- q050's answer is **byte-identical** to `s6-3`: the rule sat above the `table` route's rules
+  and was ignored.
+- **q036 cannot be moved by any prompt.** Measured on the live index: page text 3,077 chars,
+  "Floods of 1964, 1981 and 1984 in the Sunkosi River…" at char **2,330**, delivered passage
+  **1,367 chars**, containing neither "Sunkosi" nor "1964". The model refused in both runs
+  because the answer was never in front of it.
 
-So the rule's wording invited exactly this: it waived the four-sentence cap ("The
-four-sentence limit does not apply to a list"), allowed "at most eight items", and required a
-`[n]` on every line. More sentences and more markers is more chances to cite a real but
-non-gold page, and a longer rule block shifts the model's copying enough to alter a quotation.
+Wider, measured: **11 of the 48 answerable questions never see their `gold_quote` in the
+retrieved passages**, and 10 of those already have the gold page in the top-k.
 
-### Why it did not touch the two list questions
+## 2. The guarantee: scope the change to questions it fires on
 
-- **q050** answers in prose, **byte-identical to the `s6-3` baseline answer**. The rule never
-  fired: it sat above the `table` route's own rules, and the model followed the table rules.
-  The passage does contain the answer (`ginger` and `11-15` both present in the rank-1
-  context), so this one *is* reachable by a prompt — but changing its shape changes nothing
-  that is scored: `eval/score.py` has no list rule and the question already passes.
-- **q036** is not a formatting failure at all. Measured on the live index:
+The only way a prompt change "cannot cost" four specific questions is for those four to receive
+**byte-identical input**. That is available here, because the change can be scoped by a rule
+that provably does not match them, and because identical inputs reproduce identical answers on
+one daemon (measured 2026-11-24: two runs identical on 55/55, D-088).
 
-  | | value |
-  |---|---|
-  | page text (`Marahatta`, p. 1) | 3,077 chars |
-  | position of "Floods of 1964, 1981 and 1984 in the Sunkosi River…" | char **2,330** |
-  | passage the model received (`corpus.search` rank 1) | **1,367 chars** |
-  | "1964" in that passage | **False** |
-  | "Sunkosi" in that passage | **False** |
+### The trigger, measured over all 55 questions
 
-  `corpus.context_for` keeps `HEAD_CHARS` 700 plus `best_window`'s 1,200-char window, and
-  `best_window` picks the window containing the most **distinct query terms** with no
-  weighting — so common words ("years", "floods", "paper", "list") beat the rare word
-  "Sunkosi", and the page's only Sunkosi sentence is cut off. The model refused in both
-  `s6-3` and `s6-4` because the answer was never in front of it.
-
-## 2. How big that is, measured over the whole set
-
-Offline screen over all 55 questions using the shipped router and `corpus.search`, asking
-"does the question's `gold_quote` appear in the passages the model is given?" (whitespace
-normalised, case-folded; no model calls):
-
-- 48 answerable questions with a `gold_quote`;
-- **37 have the quote in the passages the model sees**;
-- **11 do not**: q012, q013, q015, q026, q027, q028, q030, **q036**, q039, q045, **q050**;
-- **10 of those 11 have the gold page in the top-k anyway** (`page-in-topk`); only q015 and
-  q045 are genuine retrieval misses.
-
-That is the honest frame for this work: a list-format prompt change cannot move q036, and a
-passage-window change is not a list experiment. They are two different changes and must be
-measured separately.
-
-## 3. The design
-
-### Part A — make the passage contain the question's rare term (retrieval; required for q036)
-
-Not a prompt change. Change how the window is placed, not how long it is:
-
-1. `corpus.best_window` should pick the window by **IDF-weighted** term overlap (weights from
-   the same `corpus.BM25`), so "Sunkosi" outranks "years".
-2. Add a **coverage rule** instead of a bigger window: if a query term occurs on the page but
-   not in the chosen window, **move the window to centre on that term** — do not append a
-   second window and do not raise `WINDOW_CHARS`.
-
-Rule 2 matters because the context budget is already measured as a constraint: D-073 showed
-the table route's prompt reaching 16,012 characters against a 4,096-token `num_ctx`, after
-which Ollama truncates and the model refuses. Growing passages would repeat that failure.
-
-Candidate A2 (coverage only) is the one to try first because it is provable rather than
-statistical: after the change, "every query term that appears on the page is present in the
-delivered passage" is a check that can be asserted over all 55 questions, not tuned.
-
-**Predicted, not measured:** q036's passage contains its sentence, so the model can answer.
-It may still refuse, and that must be run. The other nine `page-in-topk` questions may move
-in either direction — these are table and exact questions whose gold sentence is currently
-cut off (q026/q027/q028 are the D-060/D-069 table failures), so this could help more than
-q036. It is also the kind of change that can silently hurt, because every passage body is
-the model's input.
-
-### Part B — a list shape that cannot lengthen the answer (prompt, `s6-4`)
-
-Two changes to the rejected wording, both aimed at the measured failure mode:
-
-```
-- When the answer is a set of parallel items -- years, names, crops, places -- answer with \
-one list instead of sentences: at most six lines, each starting with "- " and ending with the \
-[n] of the passage that item came from. The list is the answer; if the items need a unit or a \
-range, at most one sentence may follow the list. Do not add a sentence or a citation to \
-explain or contextualise the list, and cite only the passage the items came from.
+```python
+LIST = re.compile(
+    r"\b(list|enumerate)\b|\bname the\b"
+    r"|\bwhich\s+[a-z]+s\s+(can|could|are|were|do|did|have|include)\b",
+    re.IGNORECASE,
+)
 ```
 
-Differences from the rejected rule, each tied to a measurement:
+Fires on **exactly q036 and q050** in the 55-question set (measured).
 
-| rejected (`s6-4`) | proposed | why |
+Two near misses that the wording is chosen to avoid:
+
+- `\blisted\b` would add **q038** ("those listed by DHM/DPTC"), a passing comparison question;
+  the trigger keeps `\blist\b`, not `listed`.
+- A `which … has` alternative would also add q038; the trigger requires a **plural** subject
+  (`[a-z]+s`), which is the shape of a list question.
+
+The four canaries — q002, q004, q006, q013 — match neither branch (measured).
+
+### Consequence
+
+`list_style` is a **modifier**, not a route: it does not change `k`, does not change
+`prompt_mode`, and does not change retrieval ranking. For a question where the trigger does not
+fire, `build_system` and `context_for` take exactly their current code path. So:
+
+- prompt for q002/q004/q006/q013: byte-identical;
+- passages for q002/q004/q006/q013: byte-identical;
+- answer: cannot change without the model drifting, and drift is measured as zero on one daemon.
+
+This is asserted by a test, not hoped for: hash `prompt.build_system(hits, mode=...)` and the
+`context_for` output for those four with the new code and compare against the current build.
+
+## 3. The change, in two parts that ship together for the list questions only
+
+### Part A — cover the rarest query term (this is what moves q036)
+
+`corpus.best_window` maximises the count of **distinct** query terms in a 1,200-char window,
+unweighted, so "years/floods/paper" beat "Sunkosi". Proposed signature change:
+
+```python
+def best_window(text, terms, width=WINDOW_CHARS, cover=()): ...
+```
+
+with `cover` = the query tokens present on the page, ordered by the corpus BM25 IDF, top two
+kept. If a cover term is absent from the chosen window, the window is placed at that term
+(`start = position - 200`) instead of at the highest-count position. **Sizes do not change**:
+`WINDOW_CHARS` stays 1,200 and `HEAD_CHARS` 700, because D-073 measured the table route's
+prompt already reaching 4,096 tokens; the window *moves*, it does not grow.
+
+`corpus.search(..., cover=False)` passes `cover` only when the caller asks, and
+`generation/answer.py` asks only for list questions.
+
+**Prototype, measured out of tree** (no code changed), q036 rank 1:
+
+| | before | after |
 |---|---|---|
-| "The four-sentence limit does not apply" | "The list is the answer; … at most one sentence may follow" | the four losses all added sentences and citations; an open-ended waiver invites that |
-| "at most eight items" | "at most six lines" | eight items is eight more chances at a non-gold citation, and no gold answer in the set has more than five items |
-| "every line starting with `- `" | unchanged | the shape itself was never the problem |
-| rule placed before the route's `EXTRA_RULES` | **triggered deterministically**, see below | q050's answer was byte-identical: the model ignored the rule |
+| cover terms | — | `sunkosi` (idf 7.48), `floods` (4.03) |
+| window start | 167 | **2,157** |
+| passage chars | 1,367 | **1,623** (+256 chars ≈ 64 tokens) |
+| contains "Sunkosi" | False | **True** |
+| contains "1964" / "1984" | False / False | **True / True** |
 
-**Trigger deterministically.** `s6-4` relied on the model noticing the question "asks for a
-list". It did not, on q050. The router is already a rule-based classifier with one
-`prompt_mode` per route; a list **fragment** appended when a small regex matches the question
-(`\blist\b`, `\bname the\b`, `\bwhich\b .* \b(crops|years|places|organisations?|documents?)\b`,
-`\benumerate\b`) makes the rule reach the question whether or not the model notices. The
-fragment must compose with `table` and `summary` rather than replace them, or q050 (route
-`table`) loses the rule that keeps its numbers verbatim.
+For q050 the coverage move leaves the useful page (p. 3) substantively intact — the passage
+already contains "results indicate" in both the old and the new window — so its change is the
+answer's **shape**, not its evidence.
 
-Explicitly rejected alternatives:
-- routing lists to their own `k` — changes retrieval, which is a separate change and would
-  confound the gate;
-- a "list" prompt mode that replaces `table` — q050 is a table question and needs both rules.
+### Part B — a list rule that cannot lengthen the answer
 
-## 4. Acceptance criteria (measure each part alone; never as one run)
+```
+- When the answer is a set of parallel items -- years, names, crops, places -- answer with one \
+list instead of sentences: at most six lines, each starting with "- " and ending with the [n] of \
+the passage that item came from. The list is the answer; if the items need a unit or a range, at \
+most one sentence may follow the list. Do not add a sentence or a citation to explain or \
+contextualise the list, and cite only the passage the items came from.
+```
 
-Part A is a retrieval change, Part B a prompt change. Running them together makes the gate
-unreadable, which is exactly what `s6-4` did by mixing in an unrelated prompt rewrite.
+Against the rejected rule, each difference answers a measurement:
 
-For each part, in this order:
+| `s6-4` | proposed | why |
+|---|---|---|
+| "four-sentence limit does not apply" | "the list is the answer; at most one sentence may follow" | all four losses were added sentences carrying extra citations |
+| "at most eight items" | "at most six lines" | no gold answer in the set has more than five items; eight is eight more chances at a non-gold citation |
+| rule placed above the route rules | appended after `EXTRA_RULES` | q050 ignored the rule sitting above `table` |
+| model decides it is a list | router regex decides | q050's answer was byte-identical, so discretion failed |
 
-1. **Offline screen, no model calls** (`scripts/`-style, as `scripts/measure-rerank.py` does).
-   - Part A: the "gold quote present in the passages" count must go **37/48 → at least 39/48**
-     and must not fall for any question; every query term on a page must be in its passage.
-   - Part B: no screen applies; the regex trigger is checked by unit cases on q036 and q050
-     ("both match the list pattern") and on q002/q004/q006/q013 ("none match").
-2. **Full 55-question run**, then `eval/gate.py` against **both** the last accepted baseline
-   and the start-of-step baseline: no unexplained pass → fail, no metric down by more than one
-   question, **not-found (a) no drop at all**, MRR within 1/N.
-3. **The four canaries are checked per question, not via the total**: q002, q004, q006 and
-   q013 must keep the same status *and* the same citation set. A total that stays at 35/55
-   while these four trade with four others is not acceptable, because that is what `s6-4`
-   did against the 35/55 baseline (4 pass → fail, 5 fail → pass).
+`PROMPT_VERSION` `s6-3` → `s6-5` (the cache is keyed on it, D-017); the fragment applies only
+when `list_style` is true, so non-list answers keep their prompt byte for byte even though the
+version string moves.
 
-## 5. Expected effect, stated as prediction
+## 4. Measurement plan, in this order
 
-- Part B alone: **q050 becomes a dash list; no score changes**, because the scorer has no list
-  rule and q050 already passes. It cannot move q036. If the aim is the canary total, Part B
-  alone is worth **zero questions** and should only be adopted if list-shaped answers are
-  wanted for readers.
-- Part A alone: unknown, and the screen says it can affect up to 10 questions. It is the only
-  part that can move q036, and the only part with real upside.
-- **Neither part meets D-086.** None of q003, q040, q052, q055 is a passage-window or list
-  case, so the 2-of-3 recovery trigger is untouched and the wave-01 rollback question stays
-  open regardless of what these measure.
+**Stage 1 — offline, no model calls** (the existing pattern of `scripts/measure-rerank.py`):
 
-## 6. What is not measured here
+1. Trigger table: `LIST` fires on q036 and q050 only, and on **none** of q002/q004/q006/q013.
+2. q036: the delivered passage contains `gold_quote`'s sentence ("Sunkosi"); record chars before
+   and after.
+3. q050: the delivered passage still contains its evidence; record chars.
+4. **The guarantee check:** for the other 52 questions, sha256 of every `build_system` output and
+   every `context_for` output is identical to `HEAD`. Any difference fails the step.
 
-- Whether the model answers q036 once its sentence is in the passage. Both existing runs
-  refused, and both lacked the sentence, so this is untested either way.
-- Whether Part A helps or hurts the 10 affected questions. Only the offline screen above was
-  run, and it measures presence of the gold quote, not answerability.
-- Token cost of Part A. Because the window *moves* instead of growing, the intended cost is
-  zero characters, but that is a property of the implementation, not something measured yet.
-- Any effect on the UI's `debug` payload or the answer cache; Part A changes passage text,
-  so cached answers would be stale and Part B would need the usual `PROMPT_VERSION` bump.
+**Stage 2 — full 55-question run**, cache off, same daemon, then `eval/gate.py` against both the
+last accepted baseline and the start-of-step baseline.
+
+Acceptance:
+
+- q036 **no longer refuses** (status `verified` or `unverified`, not `not_found`). If it still
+  refuses with its sentence in the passage, this design is falsified and the next lever is the
+  list answer's evidence budget, not another prompt rewrite.
+- q050 remains `verified` with the numeric rule still passing (`11-15` must stay in the answer);
+  its shape is a dash list.
+- q002/q004/q006/q013: **identical answer text and identical citation set**, checked per
+  question. A 35/55 total that hides four trades is a failure, which is exactly what `s6-4` did.
+- gate: no unexplained pass → fail, no metric down by more than one question, not-found (a) no
+  drop, MRR within 1/N.
+
+## 5. Honest expectations
+
+- **The list shape alone changes nothing that is scored**: `eval/score.py` has no list rule and
+  q050 already passes. Part B is reader-facing only.
+- **Part A is the only part with upside**, and its upside is not just q036: the same sentence is
+  missing from 11 answerable questions' passages. It is scoped to list questions here precisely
+  to keep the guarantee, which means the other nine are untouched. Widening it later is a
+  separate change with its own gate.
+- **Neither part meets D-086.** q003, q040, q052 and q055 are not list or window cases, so the
+  2-of-3 recovery trigger is untouched and the wave-01 rollback question stays open.
+- **Cost:** +256 chars on one question's prompt (q036) for Part A; ~90 tokens of rules on two
+  questions for Part B; one cache invalidation from the version bump.
+
+## 6. Not measured
+
+- Whether the model answers q036 once the sentence is in its passage. Both existing runs lacked
+  the sentence, so this is untested either way — that is what Stage 2 is for.
+- Whether the coverage move changes a passage badly on some other list question (the set has
+  only two, so this cannot be generalised from 55 questions).
+- Token cost of Part A across a real wave; the snapshot here is one question.
+- Behaviour on a corpus change: coverage terms come from BM25 IDF over the live index, so the
+  same question can place its window differently after a rebuild. That is acceptable for a
+  retrieval-time decision but must be stated, and it is another reason to keep the change scoped.
