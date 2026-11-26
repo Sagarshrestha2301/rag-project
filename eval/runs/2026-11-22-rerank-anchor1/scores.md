@@ -6,23 +6,24 @@
 - recall@10: 45/48 (93.8%) [answerable only]
 - recall@30: 45/48 (93.8%) [answerable only]
 - MRR: 0.836
-- citation: 34/48 (70.8%)
-- numeric: 36/43 (83.7%)
+- citation: 38/48 (79.2%)
+- numeric: 37/43 (86.0%)
 - notfound_a [dev]: 4/6 (66.7%)
 - notfound_b: 44/48 (91.7%)
-- passed: 37/55 (67.3%)
+- passed: 42/55 (76.4%)
+- extra citations: 7 page(s) across 5 answer(s), max 2 (cap 2)
 
 ## By split
 
 | split | n | recall@5 | MRR | citation | numeric | nf(a) | nf(b) | passed |
 |---|---|---|---|---|---|---|---|---|
-| dev | 45 | 36/39 | 0.843 | 27/39 | 29/35 | 4/6 | 36/39 | 30/45 |
+| dev | 45 | 36/39 | 0.843 | 31/39 | 30/35 | 4/6 | 36/39 | 35/45 |
 | heldout | 10 | 8/9 | 0.806 | 7/9 | 7/8 | 1/1 | 8/9 | 7/10 |
 
 | id | type | rank | cite | numeric | not-found | verdict |
 |---|---|---|---|---|---|---|
 | q001 | fact | 1 | ok | ok | ok | PASS |
-| q002 | fact | 2 | FAIL | ok | ok | FAIL |
+| q002 | fact | 2 | ok | ok | ok | PASS |
 | q003 | fact | 1 | ok | ok | ok | PASS |
 | q004 | fact | 1 | ok | ok | ok | PASS |
 | q005 | fact | 4 | ok | ok | ok | PASS |
@@ -59,17 +60,17 @@
 | q036 | list | 1 | FAIL | FAIL | FAIL | FAIL |
 | q037 | number | 5 | ok | ok | ok | PASS |
 | q038 | comparison | 2 | ok | ok | ok | PASS |
-| q039 | exact | 1 | FAIL | ok | ok | FAIL |
+| q039 | exact | 1 | ok | ok | ok | PASS |
 | q040 | number | 1 | ok | ok | ok | PASS |
 | q041 | exact | 2 | ok | ok | ok | PASS |
-| q042 | fact | 1 | ok | FAIL | ok | FAIL |
+| q042 | fact | 1 | ok | ok | ok | PASS |
 | q043 | fact | 1 | ok | n/a | ok | PASS |
 | q044 | fact | 1 | ok | n/a | ok | PASS |
 | q045 | number | 2 | FAIL | ok | ok | FAIL |
 | q046 | table | 6 | FAIL | ok | ok | FAIL |
 | q047 | table | - | FAIL | FAIL | ok | FAIL |
-| q048 | fact | 1 | FAIL | n/a | ok | FAIL |
-| q049 | fact | 2 | FAIL | ok | ok | FAIL |
+| q048 | fact | 1 | ok | n/a | ok | PASS |
+| q049 | fact | 2 | ok | ok | ok | PASS |
 | q050 | list | 1 | ok | ok | ok | PASS |
 | q051 | fact | 1 | ok | ok | ok | PASS |
 | q052 | summary | 1 | ok | ok | ok | PASS |

@@ -6,33 +6,34 @@
 - recall@10: 46/48 (95.8%) [answerable only]
 - recall@30: 46/48 (95.8%) [answerable only]
 - MRR: 0.826
-- citation: 31/48 (64.6%)
-- numeric: 34/43 (79.1%)
+- citation: 36/48 (75.0%)
+- numeric: 35/43 (81.4%)
 - notfound_a [dev]: 6/6 (100.0%)
 - notfound_b: 43/48 (89.6%)
-- passed: 36/55 (65.5%)
+- passed: 41/55 (74.5%)
+- extra citations: 17 page(s) across 10 answer(s), max 3 (cap 2)
 
 ## By split
 
 | split | n | recall@5 | MRR | citation | numeric | nf(a) | nf(b) | passed |
 |---|---|---|---|---|---|---|---|---|
-| dev | 45 | 37/39 | 0.831 | 26/39 | 27/35 | 6/6 | 35/39 | 31/45 |
-| heldout | 10 | 8/9 | 0.806 | 5/9 | 7/8 | 1/1 | 8/9 | 5/10 |
+| dev | 45 | 37/39 | 0.831 | 29/39 | 28/35 | 6/6 | 35/39 | 34/45 |
+| heldout | 10 | 8/9 | 0.806 | 7/9 | 7/8 | 1/1 | 8/9 | 7/10 |
 
 | id | type | rank | cite | numeric | not-found | verdict |
 |---|---|---|---|---|---|---|
 | q001 | fact | 1 | ok | ok | ok | PASS |
 | q002 | fact | 4 | ok | ok | ok | PASS |
 | q003 | fact | 1 | ok | ok | ok | PASS |
-| q004 | fact | 1 | FAIL | ok | ok | FAIL |
+| q004 | fact | 1 | ok | ok | ok | PASS |
 | q005 | fact | 4 | ok | ok | ok | PASS |
 | q006 | fact | 1 | ok | ok | ok | PASS |
 | q007 | fact | 1 | ok | ok | ok | PASS |
-| q008 | exact | 1 | FAIL | ok | ok | FAIL |
+| q008 | exact | 1 | ok | ok | ok | PASS |
 | q009 | exact | 1 | ok | ok | ok | PASS |
 | q010 | exact | 1 | ok | ok | ok | PASS |
 | q011 | exact | 1 | ok | ok | ok | PASS |
-| q012 | exact | 1 | FAIL | ok | ok | FAIL |
+| q012 | exact | 1 | ok | ok | ok | PASS |
 | q013 | summary | 1 | ok | n/a | ok | PASS |
 | q014 | summary | 1 | ok | ok | ok | PASS |
 | q015 | summary | - | FAIL | n/a | FAIL | FAIL |
@@ -44,7 +45,7 @@
 | q021 | notfound | 1 | n/a | n/a | ok | PASS |
 | q022 | notfound | 2 | n/a | n/a | ok | PASS |
 | q023 | followup | 1 | ok | ok | ok | PASS |
-| q024 | followup | 1 | FAIL | ok | ok | FAIL |
+| q024 | followup | 1 | ok | ok | ok | PASS |
 | q025 | table | 2 | ok | ok | ok | PASS |
 | q026 | table | 1 | FAIL | FAIL | FAIL | FAIL |
 | q027 | table | 1 | FAIL | FAIL | FAIL | FAIL |
@@ -59,10 +60,10 @@
 | q036 | list | 1 | FAIL | FAIL | FAIL | FAIL |
 | q037 | number | 4 | ok | ok | ok | PASS |
 | q038 | comparison | 2 | FAIL | ok | ok | FAIL |
-| q039 | exact | 1 | FAIL | FAIL | ok | FAIL |
+| q039 | exact | 1 | ok | FAIL | ok | FAIL |
 | q040 | number | 1 | ok | ok | ok | PASS |
 | q041 | exact | 2 | ok | ok | ok | PASS |
-| q042 | fact | 1 | ok | FAIL | ok | FAIL |
+| q042 | fact | 1 | ok | ok | ok | PASS |
 | q043 | fact | 1 | ok | n/a | ok | PASS |
 | q044 | fact | 1 | FAIL | n/a | ok | FAIL |
 | q045 | number | - | FAIL | FAIL | ok | FAIL |

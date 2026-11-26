@@ -6,17 +6,18 @@
 - recall@10: 46/48 (95.8%) [answerable only]
 - recall@30: 46/48 (95.8%) [answerable only]
 - MRR: 0.826
-- citation: 34/48 (70.8%)
+- citation: 37/48 (77.1%)
 - numeric: 37/43 (86.0%)
 - notfound_a [dev]: 4/6 (66.7%)
 - notfound_b: 46/48 (95.8%)
-- passed: 38/55 (69.1%)
+- passed: 41/55 (74.5%)
+- extra citations: 13 page(s) across 7 answer(s), max 3 (cap 2)
 
 ## By split
 
 | split | n | recall@5 | MRR | citation | numeric | nf(a) | nf(b) | passed |
 |---|---|---|---|---|---|---|---|---|
-| dev | 45 | 37/39 | 0.831 | 27/39 | 30/35 | 4/6 | 38/39 | 31/45 |
+| dev | 45 | 37/39 | 0.831 | 30/39 | 30/35 | 4/6 | 38/39 | 34/45 |
 | heldout | 10 | 8/9 | 0.806 | 7/9 | 7/8 | 1/1 | 8/9 | 7/10 |
 
 | id | type | rank | cite | numeric | not-found | verdict |
@@ -24,7 +25,7 @@
 | q001 | fact | 1 | ok | ok | ok | PASS |
 | q002 | fact | 4 | ok | ok | ok | PASS |
 | q003 | fact | 1 | ok | ok | ok | PASS |
-| q004 | fact | 1 | FAIL | ok | ok | FAIL |
+| q004 | fact | 1 | ok | ok | ok | PASS |
 | q005 | fact | 4 | ok | ok | ok | PASS |
 | q006 | fact | 1 | ok | ok | ok | PASS |
 | q007 | fact | 1 | ok | ok | ok | PASS |
@@ -37,7 +38,7 @@
 | q014 | summary | 1 | ok | ok | ok | PASS |
 | q015 | summary | - | FAIL | n/a | FAIL | FAIL |
 | q016 | comparison | 1 | ok | ok | ok | PASS |
-| q017 | comparison | 1 | FAIL | ok | ok | FAIL |
+| q017 | comparison | 1 | ok | ok | ok | PASS |
 | q018 | comparison | 1 | ok | ok | ok | PASS |
 | q019 | notfound | 3 | n/a | n/a | ok | PASS |
 | q020 | notfound | 1 | n/a | n/a | FAIL | FAIL |
@@ -59,7 +60,7 @@
 | q036 | list | 1 | FAIL | FAIL | FAIL | FAIL |
 | q037 | number | 4 | ok | ok | ok | PASS |
 | q038 | comparison | 2 | ok | ok | ok | PASS |
-| q039 | exact | 1 | FAIL | ok | ok | FAIL |
+| q039 | exact | 1 | ok | ok | ok | PASS |
 | q040 | number | 1 | ok | ok | ok | PASS |
 | q041 | exact | 2 | ok | ok | ok | PASS |
 | q042 | fact | 1 | ok | ok | ok | PASS |

@@ -27,14 +27,19 @@
     },
     "mrr": 0.826,
     "citation": {
-      "count": 35,
+      "count": 39,
       "of": 48,
-      "pct": 72.9
+      "pct": 81.2
+    },
+    "extra_citations": {
+      "total": 13,
+      "max": 3,
+      "answers": 7
     },
     "numeric": {
-      "count": 36,
+      "count": 37,
       "of": 43,
-      "pct": 83.7
+      "pct": 86.0
     },
     "notfound_a": {
       "count": 3,
@@ -48,9 +53,9 @@
       "pct": 95.8
     },
     "passed": {
-      "count": 36,
+      "count": 41,
       "of": 55,
-      "pct": 65.5
+      "pct": 74.5
     },
     "points_per_question": null,
     "by_split": {
@@ -81,14 +86,19 @@
         },
         "mrr": 0.831,
         "citation": {
-          "count": 28,
+          "count": 32,
           "of": 39,
-          "pct": 71.8
+          "pct": 82.1
+        },
+        "extra_citations": {
+          "total": 12,
+          "max": 3,
+          "answers": 6
         },
         "numeric": {
-          "count": 29,
+          "count": 30,
           "of": 35,
-          "pct": 82.9
+          "pct": 85.7
         },
         "notfound_a": {
           "count": 3,
@@ -102,9 +112,9 @@
           "pct": 97.4
         },
         "passed": {
-          "count": 29,
+          "count": 34,
           "of": 45,
-          "pct": 64.4
+          "pct": 75.6
         },
         "points_per_question": 2.22
       },
@@ -138,6 +148,11 @@
           "count": 7,
           "of": 9,
           "pct": 77.8
+        },
+        "extra_citations": {
+          "total": 1,
+          "max": 1,
+          "answers": 1
         },
         "numeric": {
           "count": 7,
@@ -191,6 +206,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -218,6 +234,7 @@
       },
       "mrr": 0.25,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -245,6 +262,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -272,6 +290,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -299,6 +318,7 @@
       },
       "mrr": 0.25,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -326,6 +346,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -353,6 +374,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -380,6 +402,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -407,6 +430,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -434,6 +458,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -461,6 +486,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -488,6 +514,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -515,6 +542,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -542,6 +570,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -569,6 +598,7 @@
       },
       "mrr": 0.0,
       "citation_ok": false,
+      "extra_citations": 0,
       "numeric_ok": null,
       "notfound_correct": false,
       "notfound_case": "b",
@@ -596,6 +626,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -622,11 +653,12 @@
         ]
       },
       "mrr": 1.0,
-      "citation_ok": false,
+      "citation_ok": true,
+      "extra_citations": 1,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q018",
@@ -650,6 +682,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -677,6 +710,7 @@
       },
       "mrr": 0.3333333333333333,
       "citation_ok": null,
+      "extra_citations": null,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "a",
@@ -704,6 +738,7 @@
       },
       "mrr": 1.0,
       "citation_ok": null,
+      "extra_citations": null,
       "numeric_ok": null,
       "notfound_correct": false,
       "notfound_case": "a",
@@ -731,6 +766,7 @@
       },
       "mrr": 1.0,
       "citation_ok": null,
+      "extra_citations": null,
       "numeric_ok": null,
       "notfound_correct": false,
       "notfound_case": "a",
@@ -758,6 +794,7 @@
       },
       "mrr": 0.5,
       "citation_ok": null,
+      "extra_citations": null,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "a",
@@ -785,6 +822,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -812,6 +850,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -839,6 +878,7 @@
       },
       "mrr": 0.5,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -866,6 +906,7 @@
       },
       "mrr": 1.0,
       "citation_ok": false,
+      "extra_citations": 0,
       "numeric_ok": false,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -893,6 +934,7 @@
       },
       "mrr": 1.0,
       "citation_ok": false,
+      "extra_citations": 0,
       "numeric_ok": false,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -920,6 +962,7 @@
       },
       "mrr": 1.0,
       "citation_ok": false,
+      "extra_citations": 0,
       "numeric_ok": false,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -947,6 +990,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": false,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -974,6 +1018,7 @@
       },
       "mrr": 1.0,
       "citation_ok": false,
+      "extra_citations": 1,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1001,6 +1046,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1028,6 +1074,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1055,6 +1102,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1082,6 +1130,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1109,6 +1158,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1136,6 +1186,7 @@
       },
       "mrr": 1.0,
       "citation_ok": false,
+      "extra_citations": 0,
       "numeric_ok": false,
       "notfound_correct": false,
       "notfound_case": "b",
@@ -1163,6 +1214,7 @@
       },
       "mrr": 0.25,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1190,6 +1242,7 @@
       },
       "mrr": 0.5,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1216,11 +1269,12 @@
         ]
       },
       "mrr": 1.0,
-      "citation_ok": false,
+      "citation_ok": true,
+      "extra_citations": 1,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q040",
@@ -1244,6 +1298,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1271,6 +1326,7 @@
       },
       "mrr": 0.5,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1298,10 +1354,11 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
-      "numeric_ok": false,
+      "extra_citations": 0,
+      "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q043",
@@ -1325,6 +1382,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1352,6 +1410,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1379,6 +1438,7 @@
       },
       "mrr": 0.0,
       "citation_ok": false,
+      "extra_citations": 3,
       "numeric_ok": false,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1406,6 +1466,7 @@
       },
       "mrr": 0.16666666666666666,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1433,6 +1494,7 @@
       },
       "mrr": 0.25,
       "citation_ok": false,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1459,11 +1521,12 @@
         ]
       },
       "mrr": 1.0,
-      "citation_ok": false,
+      "citation_ok": true,
+      "extra_citations": 2,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q049",
@@ -1487,6 +1550,7 @@
       },
       "mrr": 0.5,
       "citation_ok": false,
+      "extra_citations": 3,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1514,6 +1578,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1540,11 +1605,12 @@
         ]
       },
       "mrr": 1.0,
-      "citation_ok": false,
+      "citation_ok": true,
+      "extra_citations": 2,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q052",
@@ -1568,6 +1634,7 @@
       },
       "mrr": 0.5,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -1595,6 +1662,7 @@
       },
       "mrr": 0.0,
       "citation_ok": null,
+      "extra_citations": null,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "a",
@@ -1622,6 +1690,7 @@
       },
       "mrr": 0.0,
       "citation_ok": null,
+      "extra_citations": null,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "a",
@@ -1649,6 +1718,7 @@
       },
       "mrr": 0.0,
       "citation_ok": null,
+      "extra_citations": null,
       "numeric_ok": null,
       "notfound_correct": false,
       "notfound_case": "a",

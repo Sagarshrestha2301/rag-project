@@ -27,9 +27,14 @@
     },
     "mrr": 0.806,
     "citation": {
-      "count": 5,
+      "count": 7,
       "of": 9,
-      "pct": 55.6
+      "pct": 77.8
+    },
+    "extra_citations": {
+      "total": 4,
+      "max": 2,
+      "answers": 3
     },
     "numeric": {
       "count": 7,
@@ -48,9 +53,9 @@
       "pct": 88.9
     },
     "passed": {
-      "count": 5,
+      "count": 7,
       "of": 10,
-      "pct": 50.0
+      "pct": 70.0
     },
     "points_per_question": null,
     "by_split": {
@@ -84,6 +89,11 @@
           "count": 0,
           "of": 0,
           "pct": 0.0
+        },
+        "extra_citations": {
+          "total": 0,
+          "max": 0,
+          "answers": 0
         },
         "numeric": {
           "count": 0,
@@ -135,9 +145,14 @@
         },
         "mrr": 0.806,
         "citation": {
-          "count": 5,
+          "count": 7,
           "of": 9,
-          "pct": 55.6
+          "pct": 77.8
+        },
+        "extra_citations": {
+          "total": 4,
+          "max": 2,
+          "answers": 3
         },
         "numeric": {
           "count": 7,
@@ -156,9 +171,9 @@
           "pct": 88.9
         },
         "passed": {
-          "count": 5,
+          "count": 7,
           "of": 10,
-          "pct": 50.0
+          "pct": 70.0
         },
         "points_per_question": 10.0
       }
@@ -191,6 +206,7 @@
       },
       "mrr": 0.25,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -218,6 +234,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -245,6 +262,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -271,11 +289,12 @@
         ]
       },
       "mrr": 1.0,
-      "citation_ok": false,
+      "citation_ok": true,
+      "extra_citations": 2,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q015",
@@ -299,6 +318,7 @@
       },
       "mrr": 0.0,
       "citation_ok": false,
+      "extra_citations": 0,
       "numeric_ok": null,
       "notfound_correct": false,
       "notfound_case": "b",
@@ -326,6 +346,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -353,6 +374,7 @@
       },
       "mrr": 0.5,
       "citation_ok": null,
+      "extra_citations": null,
       "numeric_ok": null,
       "notfound_correct": true,
       "notfound_case": "a",
@@ -379,11 +401,12 @@
         ]
       },
       "mrr": 1.0,
-      "citation_ok": false,
+      "citation_ok": true,
+      "extra_citations": 1,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q029",
@@ -407,6 +430,7 @@
       },
       "mrr": 1.0,
       "citation_ok": true,
+      "extra_citations": 0,
       "numeric_ok": false,
       "notfound_correct": true,
       "notfound_case": "b",
@@ -434,6 +458,7 @@
       },
       "mrr": 1.0,
       "citation_ok": false,
+      "extra_citations": 1,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
