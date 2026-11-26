@@ -1,0 +1,53 @@
+diff --git a/generation/prompt.py b/generation/prompt.py
+index 6b20ad0..969a63b 100644
+--- a/generation/prompt.py
++++ b/generation/prompt.py
+@@ -29,7 +29,7 @@ import pathlib
+ 
+ # Bumped whenever SYSTEM_RULES or build_system changes, because the answer cache is
+ # keyed on it (D-017): a prompt edit must never serve yesterday's answers.
+-PROMPT_VERSION = "s6-3"
++PROMPT_VERSION = "s6-4"
+ 
+ # Written out here, quoted by the prompt, and compared against in answer.py, so the
+ # refusal the model is told to produce is exactly the one the code looks for.
+@@ -65,6 +65,11 @@ Rules:
+ - Use only the passages above. Never use outside knowledge, never estimate, never \
+ calculate a number that is not printed.
+ - Answer in at most four sentences. Short beats complete.
++- When the question asks for a list -- it says "list", "name the ...", or asks which \
++several things share a property -- answer as a list instead of sentences: one item per \
++line, every line starting with "- " and ending with the [n] of the passage that item came \
++from, at most eight items. The four-sentence limit does not apply to a list, and the \
++citation lines still come after it.
+ - If the passages do not contain the answer, reply with exactly this line and nothing \
+ else: {NOT_FOUND_TEXT}"""
+ 
+diff --git a/generation/test_prompt.py b/generation/test_prompt.py
+index bc56061..66e2f8a 100644
+--- a/generation/test_prompt.py
++++ b/generation/test_prompt.py
+@@ -67,6 +67,14 @@ def rules_force_the_format() -> None:
+     assert "copied character for character" in text
+ 
+ 
++def a_list_question_is_told_to_answer_as_a_list() -> None:
++    text = prompt.build_system(HITS)
++    assert '"- "' in text, "a list answer must be told to use a dash per item"
++    assert "one item per line" in text
++    assert "four-sentence limit does not apply" in text, \
++        "the list rule must override the sentence limit, not compete with it"
++
++
+ def empty_retrieval_says_so() -> None:
+     text = prompt.build_system([])
+     assert "No passage was retrieved" in text
+@@ -94,6 +102,8 @@ def main() -> int:
+         ("folders are stripped from the citation name", folders_are_stripped_from_the_citation_name),
+         ("the passage body is included", passage_body_is_included),
+         ("the rules force the citation shape and the refusal", rules_force_the_format),
++        ("a list question is told to answer as a list",
++         a_list_question_is_told_to_answer_as_a_list),
+         ("empty retrieval is stated, not left blank", empty_retrieval_says_so),
+         ("the prompt carries a version", version_is_set),
+         ("a retry can say the failed answer is not repeated",
