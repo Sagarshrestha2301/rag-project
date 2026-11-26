@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-26 | start | step 19 | owner
 2026-11-26 | start | step 18 | owner
 2026-11-25 | start | step 17 | owner
 2026-11-25 | start | step 16 | owner
@@ -146,3 +147,11 @@ its three conditions, and committed in an `OWNER:` commit as on 2026-11-13, 2026
 2026-11-20, 2026-11-21, 2026-11-22 and 2026-11-25. `steps/18-citation-contract.md` was drafted
 by the agent from `reports/citation-contract-rescore-2026-11-26.md` (the rule re-scored on all
 22 stored runs) and PROPOSED D-097; the owner has not yet edited it.)
+
+(2026-11-26, step 19: typed by the coding agent on the owner's explicit chat instruction -
+"Implement option B so the scorer and the verifier read a page's text from the same source, then
+re-score and measure q003" - and committed in an `OWNER:` commit as on 2026-11-13, 2026-11-17,
+2026-11-20, 2026-11-21, 2026-11-22 and earlier today for steps 15-18.
+`steps/19-page-text-source.md` was drafted by the agent from the measurement that exactly one of
+59 citations (q003, p. 15 of the 1975 Thakali paper) differs between the two readers; the owner
+has not yet edited it.)
