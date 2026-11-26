@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-25 | start | step 17 | owner
 2026-11-25 | start | step 16 | owner
 2026-11-25 | start | step 15 | owner
 2026-11-22 | start | step 13 | owner
@@ -109,6 +110,13 @@ once, keeping today's behaviour as the default and test_pipeline green" - and co
 `OWNER:` commit, as on 2026-11-13, 2026-11-17, 2026-11-20 and 2026-11-21. The step file
 `steps/13-parallel-parse.md` was drafted by the agent from the 2026-11-22 parse measurements
 (`reports/20k-download-and-rag-guide.md` section 6.1); the owner has not yet edited it.)
+
+(2026-11-25, step 17: typed by the coding agent on the owner's explicit chat instruction ("Add a
+list-shape check to the verifier so a list question's answer must be dash lines, and measure it",
+and the "Add the line for me, then build and measure" choice that followed) and committed with an
+`OWNER:` message. **Written after the code, not before it:** the step was built on that chat
+instruction and this line was only added at the end of the session, so the session log records the
+order. The step file `steps/17-list-shape-check.md` was drafted earlier the same day.)
 
 (2026-11-25, step 16: typed by the coding agent on the owner's explicit chat instruction -
 "Add the step-16 start line to APPROVALS.md in an OWNER: commit and implement step 16, then run
