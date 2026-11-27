@@ -53,10 +53,13 @@ step 18  citation cap     BUILT      7/7  boxes - at most two extra verified pag
                                      re-stated (D-097 approved)
 step 19  one page reader  BUILT      6/6  boxes - scorer and verifier read page text the
                                      same way; q003 recovered, **D-086 met**
+step 20  quote case        BUILT      7/7  boxes - a quotation may differ only in its first
+                                     letter's case; **q052 verified, all 55 answers
+                                     byte-identical**, D-086 fully recovered (D-100)
 ```
 
 `git tag` lists **step-00-approved … step-05-approved** and nothing later. Completion lines
-in `APPROVALS.md` exist for steps 00–07 and 09; steps 08 and 10–19 have none yet. Only you
+in `APPROVALS.md` exist for steps 00–07 and 09; steps 08 and 10–20 have none yet. Only you
 create tags.
 
 ## 2. What actually works today
@@ -105,13 +108,13 @@ Measured, not claimed:
 | Corpus | **187 PDFs** in `data/corpus` (216 before the 29 mostly-non-Latin files were quarantined, D-080) |
 | Index | **186 documents, 2,669 pages, 11,334 chunks, 120 MB**; manifest **187 rows: 186 embedded, 1 failed** (the known PyMuPDF crash); **222 OCR pages** |
 | Retrieval (55 questions) | recall@5 **45/48**, recall@10 46/48, MRR **0.839** |
-| **Accepted baseline** (`2026-11-24-repro-a`, current scorer) | **40/55**; citation 37/48, numeric 37/43, not-found (a) 3/6, (b) 46/48 |
-| **Latest graded run** (`2026-11-25-step17-list-shape`, current scorer) | **43/55** (dev 36/45, held-out 7/10); citation 38/48, numeric 38/43, nf(a) 5/6, (b) 46/48; p50 **14.4 s**, p95 **48.7 s**. Not accepted: D-093/D-094 are open |
-| Held-out milestone | last measured **7/10** on the step-17 run, gate `--milestone` exit 0 |
+| **Accepted baseline** (`2026-11-24-repro-a`, current scorer) | **41/55** (dev 34/45, held-out 7/10); citation 38/48, numeric 37/43, not-found (a) 3/6, (b) 46/48 |
+| **Latest graded run** (`2026-11-27-step20-first-letter`, current scorer) | **44/55** (dev 37/45, held-out 7/10); citation 39/48, numeric 38/43, nf(a) 5/6, (b) 46/48; p50 **12.7 s**, p95 **44.3 s**. Not yet accepted: D-093/D-094/D-100 are open |
+| Held-out milestone | last measured **7/10** on the step-20 run, gate `--milestone` exit 0 both ways |
 | Model and runtime | `qwen3.5:4b`, digest `d8b0f5e9760c`, prompt **`s6-6`**, temperature 0, seed 0, cache off; **Ollama 0.40.18** (pin proposed as D-088) |
-| Wave-01 cost | **1 question**: pre-wave corpus 41 vs `repro-a` 40 on today's contract (was 3 when D-089 measured it) |
-| D-086 trigger | **MET** — q040 (step 18) + q003 (step 19) = 2 of 3; q052 remains |
-| Unit suites | `eval/test_scorer.py` **36/36**, `generation/` **123/123** (verify 29, gate 11, answer 5, prompt 8, router 16, condense 11, cache 21, think 10), `ingest/test_pipeline.py` **28/28**, `ui/test_server.py` **8/8**, `ui/test_pipeline.py` **7/7**, corpus **11/11** |
+| Wave-01 cost | **0 questions**: pre-wave corpus 41 vs `repro-a` 41 on today's contract (was 3 when D-089 measured it, 1 after step 19) |
+| D-086 trigger | **Fully recovered** — q003, q040, q052 and q055 all pass; the rollback is no longer needed |
+| Unit suites | `eval/test_scorer.py` **39 checks**, `generation/test_verify.py` **38/38** (3 new for the case flip), `ingest/test_pipeline.py` **28/28**, `ui/test_server.py` **8/8**, `ui/test_pipeline.py` **7/7**, corpus **11/11** |
 | Offline proof | step 06 **PASS** 2026-11-17 with recorded output (6 firewall rules + refused probes, run identical to online). Steps 07 and 08 **PASS on your own runs** (reported 2026-11-20/21); no artifact was supplied, so the repository cannot show those two |
 
 ## 3. Open decisions only you can sign
@@ -132,6 +135,7 @@ verdict line in `APPROVALS.md` or `DECISIONS.md`:
 | **D-095** | A list question whose answer is missing ends `unverified` (list item + refusal line); option (b) counts it as a refusal | Approve (b) as its own small step, with the L5 question re-asked before and after |
 | **D-098** | Scorer and verifier share one page-text reader (shipped as step 19) | Accept — record that an OCR error can now certify a quote, as it already could in the pipeline |
 | **D-099** | The extra-page cap counts **pages**; the ten excluded q049 answers are correct and fully cited, so it should count **documents** | Accept: allow two extra **documents**, record `extra_documents`; it keeps every current result |
+| **D-100** | A quotation may differ from the page only in the case of its first ASCII letter (shipped as step 20; recovers q052) | Accept — one character, both halves share the helper, and a case change anywhere else still fails |
 | **D-091** | The chat UI measures its port because Windows reserves 8000 here (Hyper-V/WinNAT) | Accept as built, or run the elevated command that gives 8000 back |
 | **D-064 / D-065 / D-066 / D-067** | Parsed shards; duplicates flagged never deleted; bibliography extraction; sentence entailment as a secondary signal | All carried forward with no verdict line yet — D-064/D-065 are already built and tested |
 | — | `EVAL.md`'s Metrics sentence still says "every cited page is gold" | Your edit (protected file). Replacement text is in `STATUS.md` → Proposals |
@@ -171,20 +175,21 @@ verdict line in `APPROVALS.md` or `DECISIONS.md`:
    D-098, D-099, D-086 confirmation, then D-063, D-091, D-095.
 4. **Step 10's two reviews** (one refusal, one landed batch) and **step 3's** 20-page and
    5-table reviews.
-5. **The next pipeline step is q052** — a copying/quote-exactness rule, not retrieval: q052
-   retrieves its gold page at rank 1. It needs a step file (I can draft it) and your start
-   line. D-095 option (b) is the other small, measured candidate.
+5. **q052 is fixed** (step 20: one first-letter case flip, 44/55, only q052 moved). The next
+   small, measured candidates are **D-095(b)** (a list answer ending in the exact refusal
+   line counts as a refusal — the L5 case) and the **`11-15` loss** in q050's list body;
+   each needs its own step file and your start line.
 6. **Scaling:** `reports/20k-download-and-rag-guide.md` is the procedure for the remaining
    ~19,800 PDFs; it needs a download start line in `APPROVALS.md` before any network run.
    Ten cursor waves fill one `data/raw/bulk` tree without downloading a file twice.
 
 ## 6. Honest risks, in the order they will bite
 
-1. **The citation layer is still the largest failure group.** On the step-17 run, 5 of 17
-   failures were correct answers failed only for citing a second verified non-gold page
-   (the cap in step 18 fixed that class), 3 paraphrased past the verifier, 5 cited nothing,
-   and q052/q029/q020 are single-cause. Improvements now come from quote discipline and
-   passage content, not from retrieval.
+1. **The citation layer is still the largest failure group.** On the step-20 run the
+   remaining failures are paraphrases the verifier rejects twice (q044, q045, q048), answers
+   that cite nothing (q015, q026–q028, q046), q029's number and q020's false answer. q052 is
+   now recovered. Improvements now come from quote discipline and passage content, not from
+   retrieval.
 2. **Latency is 14.4 s median, 48.7 s at p95** on the latest graded run. p95 is the number
    a reader feels; only two questions can take the extra shape retry, so the rest is the
    4B model and long table prompts.

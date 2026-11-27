@@ -296,7 +296,9 @@ thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-40 min).
   page must be a gold page, every quotation must be verbatim on the page it names, and at
   most **two** cited pages may be outside the gold set (`extra_citations` reports how
   many). Quotations are read through `corpus.page_text`, the same reader the pipeline uses
-  (step 19, D-098). That is a measurement choice, not an invented source.
+  (step 19, D-098). One character is tolerated: a quotation may differ in the case of its
+  first letter and nowhere else (step 20, D-100). That is a measurement choice, not an
+  invented source.
 - **The parse and chunk figures above (1,414 s, 3,226 chunks) were measured at 97
   documents / 851 pages.** The live corpus is 187 files / 2,669 pages / 11,334 chunks.
   Nothing here is projected to 100k pages; that is a separate corpus-and-hardware
@@ -311,15 +313,15 @@ thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-40 min).
 
 The number to quote is the **last accepted baseline**, `2026-11-24-repro-a`, re-scored under
 the current contract (prompt `s6-6`, steps 18-19). The latest graded run is quoted beside it
-because it is measured but **not yet accepted** (D-093/D-094 are open):
+because it is measured but **not yet accepted** (D-093/D-094/D-100 are open):
 
 | Metric | Value |
 |---|---|
-| Passed | **40/55 accepted** (`2026-11-24-repro-a`, dev 33/45, held-out 7/10); latest graded run **43/55** (`2026-11-25-step17-list-shape`, dev 36/45, held-out 7/10) |
+| Passed | **41/55 accepted** (`2026-11-24-repro-a`, dev 34/45, held-out 7/10); latest graded run **44/55** (`2026-11-27-step20-first-letter`, dev 37/45, held-out 7/10) |
 | Retrieval | recall@5 **45/48**, recall@10 46/48, MRR **0.839** |
-| Citation / numeric | 37/48 / 37/43 accepted; 38/48 / 38/43 latest |
+| Citation / numeric | 38/48 / 37/43 accepted; 39/48 / 38/43 latest |
 | Not-found (a) / (b) | 3/6 / 46/48 accepted; 5/6 / 46/48 latest |
-| Latency (latest graded run) | p50 **14.4 s**, p95 **48.7 s** |
+| Latency (latest graded run) | p50 **12.7 s**, p95 **44.3 s** |
 | Corpus and index | 187 files, 2,669 pages, 11,334 chunks, 121 MB index |
 | Offline proof | Step 6 **PASS** 2026-11-17 with output; Steps 7 and 8 **PASS on the owner's own runs** (reported 2026-11-20/21, no artifact supplied) |
 

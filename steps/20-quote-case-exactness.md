@@ -56,13 +56,13 @@ property D-041 exists to protect.
 
 ## Definition of done
 
-- [ ] One helper in `corpus.py`; the verifier and the scorer both use it and neither keeps a copy
-- [ ] The tolerance is exactly one character: the case of the quotation's first ASCII letter, and nothing else
-- [ ] The new verifier and scorer cases pass, and every earlier case still passes
-- [ ] Every restatable stored run is re-scored and only q052 moves
-- [ ] The full run has q052 `verified` (attempts may be 1 or 2) with no other status change
-- [ ] The gate exits 0 on dev against the predecessor and the accepted baseline, and on `--milestone`
-- [ ] `eval/SCORER.md`, the step row, the log line, D-100 and the `EVAL.md` row exist; `TRACKER.md` is updated
+- [x] One helper in `corpus.py`; the verifier and the scorer both use it and neither keeps a copy
+- [x] The tolerance is exactly one character: the case of the quotation's first ASCII letter, and nothing else
+- [x] The new verifier and scorer cases pass, and every earlier case still passes (38/38 and 39 checks)
+- [x] Every restatable stored run is re-scored and only q052 moves (eight runs carry that document)
+- [x] The full run has q052 `verified` (attempts=2) with no other status change; all 55 answers byte-identical
+- [x] The gate exits 0 on dev against the predecessor, on dev against the accepted baseline with the D-090 q027 explanation, and on `--milestone` both ways
+- [x] `eval/SCORER.md`, the step row, the log line, D-100 and the `EVAL.md` row exist; `TRACKER.md` is updated
 
 ## Context to read
 
