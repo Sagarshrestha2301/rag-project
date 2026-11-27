@@ -18,8 +18,10 @@ ollama list               # must list qwen3.5:4b
 .venv\Scripts\python.exe -m ingest.pipeline status
 ```
 
-You should see a clean tree, the pinned model, and **97 documents / 851 pages** with
-`embedded 97`, `failed 0`. If `status` says anything else, run §4 first.
+You should see a clean tree, the pinned model, and **187 files / 2,669 pages** with
+`embedded 186`, `failed 1`, `pending 0`. The one failure is the known PyMuPDF crash
+(§9), not a fault of this machine. If `status` shows a second failure, or anything
+pending, run §4 first.
 
 Approvals and step state live in `APPROVALS.md` and `TRACKER.md`; the measured numbers
 behind this page are in `STATUS.md`.
@@ -42,16 +44,17 @@ them is still offline.
 ### 1b. The chat UI
 
 ```powershell
-.\scripts\open-chat.ps1 -Start           # foreground on http://127.0.0.1:8000, Ctrl+C stops it
+.\scripts\open-chat.ps1 -Start           # foreground; it prints the URL it chose, Ctrl+C stops it
 ```
 
 Open the URL, or check it without a browser:
 
 ```powershell
-curl.exe -s http://127.0.0.1:8000/api/health
+curl.exe -s http://127.0.0.1:8300/api/health   # use the port the launcher printed
 ```
 
-Expect `documents` 97, `pages` 851, `ocr_pages` 86 and a non-null `unreadable_documents`.
+Expect `documents` 186, `pages` 2,669, `ocr_pages` 222 and `unreadable` listing 22
+documents / 62 pages.
 The server binds **127.0.0.1 only**; another machine cannot reach it.
 
 The port is 8000 unless `$env:UI_PORT` says otherwise; `-Port` wins over both.
@@ -186,7 +189,8 @@ Five stages run by default: `scan`, `parse`, `assemble`, `chunk`, `embed` — ad
 to parse eight documents at once (1.41x measured 2026-11-22). A row's status
 is written only after that document's work is on disk, so killing the run costs at most
 the document in flight and the next run continues. **A build with nothing changed takes
-a few seconds** (6.9 s measured 2026-11-20, mostly the corpus signature walk) — if it is
+a few seconds** — 6.9 s measured 2026-11-20 on the then 97-document corpus and not
+re-measured since it grew to 187 files, mostly the corpus signature walk; if it is
 parsing, something did change (the SHA-256 comparison is the detector).
 
 `bibliography` is the sixth stage and is **opt-in**: one model call per document (8.2 s
@@ -196,7 +200,8 @@ it to a build with `--stages scan,parse,assemble,bibliography,chunk,embed`. A do
 no record keeps its file-name label in the UI. It is the only stage that calls the model:
 if Ollama is down it degrades instead of failing.
 
-Expect `embedded 97`, `failed 0`, `duplicate 0`, 3,226 chunks and 3,226 dense rows.
+Expect `embedded 186`, `failed 1` (the known crash), `duplicate 0`, 11,334 chunks and
+11,334 dense rows.
 
 ---
 
@@ -206,7 +211,8 @@ Expect `embedded 97`, `failed 0`, `duplicate 0`, 3,226 chunks and 3,226 dense ro
 .venv\Scripts\python.exe -m ingest.pipeline backup --out backups\2026-11-20
 ```
 
-Writes about **40 MB**: the manifest (through SQLite's backup API), `pages.json`,
+Writes about **120 MB** (the index alone is 121,165,771 bytes): the manifest (through
+SQLite's backup API), `pages.json`,
 `chunks.jsonl`, `parsed/` shards and `lancedb/`. A backup that omits LanceDB would need a
 re-embed on restore, which is why it is included.
 
@@ -267,7 +273,7 @@ thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-40 min).
 | A document is `duplicate` | The same bytes under another name, or ≥80% of its pages repeat an indexed document. It is left out on purpose; `duplicate_of` names the original. Nothing was deleted. |
 | A document is `failed` | `status` prints the error. Fix the PDF, then run `build` again; finished documents are not re-parsed. |
 | Restored answers differ from before the backup | Restore with `restore --from`, with the UI stopped. Copying folders by hand can mix a new `pages.json` with an old `lancedb/`. |
-| The not-found line is shown for a question you know is answered | Read the warning: 19 of 851 pages have no readable text after OCR, and the answer may be on one of them. Check `reports/not-found-recheck.md` before blaming the gate. |
+| The not-found line is shown for a question you know is answered | Read the warning: 62 of 2,669 pages have no readable text after OCR, and the answer may be on one of them. Check `reports/not-found-recheck.md` before blaming the gate. |
 | `Access is denied` from an offline-proof script | The shell is not elevated. Firewall rules need an administrator prompt. |
 | `WinError 10013` binding `127.0.0.1:8000`, nothing in `netstat` | Windows reserved the port for Hyper-V/WinNAT. `netsh interface ipv4 show excludedportrange protocol=tcp` lists the ranges. `open-chat.ps1` works around it by starting on a free port in 8300-8599 and printing it; `$env:UI_PORT` pins one. To give 8000 back for good, in an **elevated** shell: `net stop winnat`, `netsh int ipv4 set dynamicport tcp start=49152 num=16384`, `net start winnat` (this stops Hyper-V from reserving ports below 49152; it affects every program on the machine). |
 
@@ -277,38 +283,45 @@ thresholds. A fresh full eval is §7b in `EVAL.md`'s protocol (about 25-40 min).
 
 ## 9. Known limits
 
-- **19 of 851 pages (2.2%) have no readable text after OCR**, in 8 of 97 documents; 86
+- **62 of 2,669 pages (2.3%) have no readable text after OCR**, in 22 documents; 222
   pages were read by OCR. Above the 1-2% band D-020 uses to decide, and reported to the
   owner rather than hidden. An OCR'd page can lose a hyphen inside a number
   (`5-10 %` → `510 %`), so a number from a scan deserves a look at the PDF.
 - **Two corpus PDFs contribute no text**: `2005_Choudhary_Trans_boundary_Floods…` (truncated)
   and `2006_Komori_Scars…` (0 pages). `data/raw/` is owner-only; replacing them is the
   owner's call.
-- **Latency is p50 ~16 s, p95 ~46 s** end to end on this machine (4B model, 4 GB VRAM).
-  A larger model does not fit profitably.
-- **Citation is the strict rule** (D-041): every cited page must be a gold page, so an
-  answer that quotes a real but additional page counts as a failure. That is a
-  measurement choice, not an invented source.
-- **Measured at 97 documents / 851 pages.** Nothing here is projected to 100k pages; that
-  is a separate corpus-and-hardware decision (D-063).
-- **The not-found decision is the model's**, with a floor at top-1 BM25 < 15 (D-058); a
-  prose refusal counts when it negates the question (D-060).
+- **Latency is p50 14.4 s, p95 48.7 s** end to end on the latest graded run (4B model,
+  4 GB VRAM). A larger model does not fit profitably.
+- **Citation is a capped rule since step 18** (D-097, revising D-041): at least one cited
+  page must be a gold page, every quotation must be verbatim on the page it names, and at
+  most **two** cited pages may be outside the gold set (`extra_citations` reports how
+  many). Quotations are read through `corpus.page_text`, the same reader the pipeline uses
+  (step 19, D-098). That is a measurement choice, not an invented source.
+- **The parse and chunk figures above (1,414 s, 3,226 chunks) were measured at 97
+  documents / 851 pages.** The live corpus is 187 files / 2,669 pages / 11,334 chunks.
+  Nothing here is projected to 100k pages; that is a separate corpus-and-hardware
+  decision (D-063).
+- **The not-found decision is the model's**, with a floor at top-1 BM25 < 15 (D-058). The
+  prompt's exact refusal line counts when the answer cites nothing (D-090); D-060's prose
+  rule was measured and rejected (D-068).
 
 ---
 
-## 10. Results, as of 2026-11-20
+## 10. Results, as of 2026-11-27
 
-The number to quote is the **last accepted answer run**, 2026-11-20 (prompt `s6-3`, retry guard on):
+The number to quote is the **last accepted baseline**, `2026-11-24-repro-a`, re-scored under
+the current contract (prompt `s6-6`, steps 18-19). The latest graded run is quoted beside it
+because it is measured but **not yet accepted** (D-093/D-094 are open):
 
 | Metric | Value |
 |---|---|
-| Passed | **37/55** (dev 30/45, held-out 7/10) |
-| Retrieval | recall@5 **45/48**, recall@10 46/48, MRR **0.826** |
-| Citation / numeric | 36/48 / 37/43 |
-| Not-found (a) / (b) | 3/6 / 46/48 |
-| Latency | p50 **11.4 s**, p95 **28.9 s** |
-| Corpus and index | 97 documents, 851 pages, 3,226 chunks, 40 MB index, 67 MiB peak RSS |
-| Offline proof | Step 6 **PASS** 2026-11-17; Steps 7 and 8 **not run** (an elevated prompt is needed) |
+| Passed | **40/55 accepted** (`2026-11-24-repro-a`, dev 33/45, held-out 7/10); latest graded run **43/55** (`2026-11-25-step17-list-shape`, dev 36/45, held-out 7/10) |
+| Retrieval | recall@5 **45/48**, recall@10 46/48, MRR **0.839** |
+| Citation / numeric | 37/48 / 37/43 accepted; 38/48 / 38/43 latest |
+| Not-found (a) / (b) | 3/6 / 46/48 accepted; 5/6 / 46/48 latest |
+| Latency (latest graded run) | p50 **14.4 s**, p95 **48.7 s** |
+| Corpus and index | 187 files, 2,669 pages, 11,334 chunks, 121 MB index |
+| Offline proof | Step 6 **PASS** 2026-11-17 with output; Steps 7 and 8 **PASS on the owner's own runs** (reported 2026-11-20/21, no artifact supplied) |
 
 Three experiments measured on 2026-11-20 were **rejected**: accepting a refusal in the
 model's own words (it turned two answerable questions into a false "not found", D-068), the
@@ -318,7 +331,4 @@ D-073). Both table passes are still in the code, off, behind `CHAT_TABLE_RETRIEV
 `CHAT_TABLE_CONTENT`. A cross-encoder rerank of the top 10 (2026-11-22, D-081) is also in
 the code and **off**: `CHAT_RERANK=1` turns it on, `CHAT_RERANK_DEPTH` sets how many pages
 it reads (default 10) and `CHAT_RERANK_ANCHOR` keeps BM25's own first pages in front. It
-needs `models/ms-marco-MiniLM-L-6-v2` and adds about 0.4 s per question on CPU. The two changes that **are** in the table above are the per-sentence
-quotation rule in prompt `s6-3` (D-071) and the retry guard (D-072). The full row-by-row
-history is `EVAL.md`; the current run is `eval/runs/2026-11-20-step9-retry-guard/`, and the
-ranked next steps are in `reports/next-experiments.md`.
+needs `models/ms-marco-MiniLM-L-6-v2` and adds about 0.4 s per question on CPU. The rules **in** the table are the per-sentence quotation rule (D-071) and the list rules (D-093) carried by prompt `s6-6`, the `s6-6` list-shape check (D-094), the retry guard (D-072), and the step-18/19 scoring contract (the two-extra-page cap, D-097; one page-text reader, D-098). The full row-by-row history is `EVAL.md`; the latest graded run is `eval/runs/2026-11-25-step17-list-shape/`, and the ranked next steps are in `reports/next-experiments.md`.

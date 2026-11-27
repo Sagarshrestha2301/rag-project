@@ -207,15 +207,19 @@ Every field is checked against the page it was read from — a title or author t
 model returns but the page does not print is dropped and the reason is recorded — so a
 blank field means "not printed", not "not tried".
 
-**Measured on 2026-11-19** on the current corpus (97 documents / 851 pages):
+**Measured on 2026-11-19 on the then-current 97-document corpus** (the live index is now
+187 files / 2,669 pages, so these are history rather than current totals):
 
-- parse: **1,414 s summed over the 97 documents** (86 pages OCR'd at about 4 s each). The
+- parse: **1,414 s summed over the 97 documents** (86 pages OCR'd at about 4 s each; the
+  live index now has 222 OCR pages). The
   run's total wall time is not recorded - the background shell was killed after the work
   finished and before the summary line flushed - so the parse figure is measured and the
   embed figure is **not measured separately**.
-- chunk: **3,226 chunks**; embed: **3,226 vectors, 384-dim, all unit length, no zeros**,
+- chunk: **3,226 chunks**; embed: **3,226 vectors, 384-dim, all unit length, no zeros**
+  (the live index now holds 11,334 chunks and 11,334 vectors),
   counted straight out of LanceDB after the run.
-- `index/` totals **41,969,013 bytes (40 MB)**; the per-artifact table is in
+- `index/` totalled **41,969,013 bytes (40 MB)** on that corpus; the live index is
+  **121,165,771 bytes (121 MB)**. The per-artifact table is in
   `reports/full-ingestion.md`.
 - **Nothing else changed:** `index/pages.json`, `index/chunks.jsonl` and
   `index/parsed/pages.jsonl` have the same SHA-256 before and after the Step 8 refactor -
@@ -226,8 +230,8 @@ blank field means "not printed", not "not tried".
 - **Resume is per document.** A manifest row's status is written only after that
   document's work is on disk, so a kill costs at most the document in flight; the next run
   starts from the unfinished ones. Killing and resuming is a case in
-  `ingest/test_pipeline.py` ("a killed run resumes where it stopped"), along with eleven
-  others.
+  `ingest/test_pipeline.py` ("a killed run resumes where it stopped"), along with
+  twenty-seven others (the suite has 28 cases).
 - **Adding a document, in one command:**
 
   ```powershell
@@ -260,15 +264,18 @@ blank field means "not printed", not "not tried".
      `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\offline-generation-proof.ps1`
      from an elevated prompt (`scripts\offline-check.py` is the self-test it uses).
 - **Backups are complete.** `backup` copies the manifest (through SQLite's backup API), the
-  artifacts, the shards and `index/lancedb/` — **40 MB** for this corpus. `restore --from`
-  into a folder was verified on the real index: restored `pages.json` and `chunks.jsonl`
-  are byte-identical to the live ones (`395c5a2b…`, `1208cb59…`), all 3,226 dense rows came
-  back, and the restored index answered a BM25 query with the same top page.
+  artifacts, the shards and `index/lancedb/` — about **120 MB** for the live index
+  (121,165,771 bytes). `restore --from` into a folder was verified on the 97-document index:
+  restored `pages.json` and `chunks.jsonl` were byte-identical to the then-live ones
+  (`395c5a2b…`, `1208cb59…`), all 3,226 dense rows came back, and the restored index
+  answered a BM25 query with the same top page. Those hashes and that row count describe
+  that corpus; re-run `restore` if you need the proof at 187 files / 11,334 rows.
 - **Scans are fine:** a page with under 40 characters of text is OCR'd during `parse` and
-  marked `source: "ocr"` in the index (86 pages here). Pages that stay empty are listed by
-  `status` and `/api/health`: **8 documents have at least one** (19 pages).
-- **Scale:** this is measured on 97 documents / 851 pages. The 100k-page target is an
-  owner scope decision (D-063); nothing above is projected to it.
+  marked `source: "ocr"` in the index (222 pages in the live index). Pages that stay empty
+  are listed by `status` and `/api/health`: **22 documents have at least one** (62 pages).
+- **Scale:** the figures above were measured on 97 documents / 851 pages; the live index is
+  **187 files / 2,669 pages**. The 100k-page target is an owner scope decision (D-063);
+  nothing above is projected to it.
 - **No working-directory dependency:** `corpus.CORPUS` and `corpus.INDEX_CACHE` are
   absolute and derived from the project folder, so this works from any directory.
 
@@ -337,7 +344,8 @@ An `unverified` answer is never cached, and `--no-cache` bypasses the cache enti
 .\scripts\open-chat.ps1 -Start        # Ctrl+C stops it
 ```
 
-Then open **http://127.0.0.1:8000**. Streaming answers, conversations kept in the browser,
+Then open the URL the launcher printed - **8000** by default, or a substitute such as
+**8300** when Windows reserves 8000 (D-091). Streaming answers, conversations kept in the browser,
 stop mid-answer, copy, regenerate, light/dark theme, and live tokens/second under each
 reply. **Save chat** downloads the conversation as Markdown with its sources.
 
@@ -412,10 +420,11 @@ git status
 - **VRAM is 4 GB.** The 4B model peaks at 3.7 GB including context, leaving
   roughly 400 MiB — enough for the model, not for a GPU reranker (D-004 keeps it
   on CPU). Closing other GPU applications buys headroom.
-- **Ingestion is measured on 97 documents / 851 pages**, not on the 100k-page target: a
-  full parse summed to 1,414 s (OCR ~4 s/page) and produced 3,226 chunks / 3,226 vectors on
-  CPU, with `index/` at 40 MB. Nothing here is projected to 100k pages (D-063); the
-  manifest and per-document resume were built so that scale is possible, not proven.
+- **Ingestion's rates were measured on 97 documents / 851 pages**, not on the 100k-page
+  target: a full parse summed to 1,414 s (OCR ~4 s/page) and produced 3,226 chunks / 3,226
+  vectors on CPU, with `index/` then at 40 MB. The live index is 187 files / 2,669 pages /
+  11,334 chunks / 121 MB. Nothing here is projected to 100k pages (D-063); the manifest
+  and per-document resume were built so that scale is possible, not proven.
 - **Embedding is CPU-only** (D-054 / rule 10). A GPU embed would be faster, but it competes
   with the LLM for 4 GB and no benchmark has been run; the pipeline keeps the embedder on
   CPU deliberately.
