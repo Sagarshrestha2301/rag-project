@@ -53,14 +53,15 @@ step 18  citation cap     BUILT      7/7  boxes - at most two extra verified pag
                                      re-stated (D-097 approved)
 step 19  one page reader  BUILT      6/6  boxes - scorer and verifier read page text the
                                      same way; q003 recovered, **D-086 met**
-step 20  quote case        BUILT      7/7  boxes - **done agent-side**; a quotation may differ
-                                     only in its first letter's case, **q052 verified,
-                                     all 55 answers byte-identical**, D-086 fully
-                                     recovered (D-100). Completion line and tag are yours
+step 20  quote case        DONE       7/7  boxes, completion line 2026-11-27 (typed on your
+                                     chat instruction); a quotation may differ only in
+                                     its first letter's case, **q052 verified, all 55
+                                     answers byte-identical**, D-086 fully recovered
+                                     (D-100). The `step-20-approved` tag is yours
 ```
 
 `git tag` lists **step-00-approved … step-05-approved** and nothing later. Completion lines
-in `APPROVALS.md` exist for steps 00–07 and 09; steps 08 and 10–20 have none yet. Only you
+in `APPROVALS.md` exist for steps 00–07, 09 and 20; steps 08 and 10–19 have none yet. Only you
 create tags.
 
 ## 2. What actually works today
@@ -168,8 +169,9 @@ verdict line in `APPROVALS.md` or `DECISIONS.md`:
 
 ## 5. What to do, in this order
 
-1. **Tags and completion lines.** Tags: `step-06-approved` … `step-19-approved` (only 00–05
-   exist). Completion lines: step 08 after D-063, and steps 10–19 after your reviews.
+1. **Tags and completion lines.** Tags: `step-06-approved` … `step-20-approved` (only 00–05
+   exist). Completion lines: step 08 after D-063, and steps 10–19 after your reviews; step 20's
+   line was recorded 2026-11-27.
 2. **Edit `EVAL.md`'s citation sentence** so the metric and `eval/SCORER.md` agree; the
    replacement is written out in `STATUS.md` → Proposals.
 3. **Verdicts, cheapest first:** D-087/D-088 (pin the daemon), D-083, D-090, D-093, D-094,
@@ -191,7 +193,8 @@ verdict line in `APPROVALS.md` or `DECISIONS.md`:
    that cite nothing (q015, q026–q028, q046), q029's number and q020's false answer. q052 is
    now recovered. Improvements now come from quote discipline and passage content, not from
    retrieval.
-2. **Latency is 14.4 s median, 48.7 s at p95** on the latest graded run. p95 is the number
+2. **Latency is 12.7 s median, 44.3 s at p95** on the step-20 run (the step-17 run measured
+   14.4 s / 44.1 s). p95 is the number
    a reader feels; only two questions can take the extra shape retry, so the rest is the
    4B model and long table prompts.
 3. **Not-found accuracy is a trade, measured, not a free win.** The exact-line rule took
