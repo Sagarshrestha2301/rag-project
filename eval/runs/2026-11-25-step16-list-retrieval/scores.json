@@ -1,5 +1,5 @@
 {
-  "label": "2026-11-25-step16-list-retrieval",
+  "label": "run",
   "summary": {
     "n": 55,
     "retrieval": {
@@ -27,9 +27,9 @@
     },
     "mrr": 0.839,
     "citation": {
-      "count": 38,
+      "count": 39,
       "of": 48,
-      "pct": 79.2
+      "pct": 81.2
     },
     "extra_citations": {
       "total": 15,
@@ -53,9 +53,9 @@
       "pct": 95.8
     },
     "passed": {
-      "count": 43,
+      "count": 44,
       "of": 55,
-      "pct": 78.2
+      "pct": 80.0
     },
     "points_per_question": null,
     "by_split": {
@@ -86,9 +86,9 @@
         },
         "mrr": 0.846,
         "citation": {
-          "count": 31,
+          "count": 32,
           "of": 39,
-          "pct": 79.5
+          "pct": 82.1
         },
         "extra_citations": {
           "total": 14,
@@ -112,9 +112,9 @@
           "pct": 97.4
         },
         "passed": {
-          "count": 36,
+          "count": 37,
           "of": 45,
-          "pct": 80.0
+          "pct": 82.2
         },
         "points_per_question": 2.22
       },
@@ -1633,12 +1633,12 @@
         ]
       },
       "mrr": 1.0,
-      "citation_ok": false,
+      "citation_ok": true,
       "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q053",

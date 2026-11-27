@@ -6,18 +6,18 @@
 - recall@10: 46/48 (95.8%) [answerable only]
 - recall@30: 46/48 (95.8%) [answerable only]
 - MRR: 0.837
-- citation: 37/48 (77.1%)
+- citation: 38/48 (79.2%)
 - numeric: 36/43 (83.7%)
 - notfound_a [dev]: 2/6 (33.3%)
 - notfound_b: 47/48 (97.9%)
-- passed: 38/55 (69.1%)
+- passed: 39/55 (70.9%)
 - extra citations: 12 page(s) across 7 answer(s), max 3 (cap 2)
 
 ## By split
 
 | split | n | recall@5 | MRR | citation | numeric | nf(a) | nf(b) | passed |
 |---|---|---|---|---|---|---|---|---|
-| dev | 45 | 37/39 | 0.844 | 30/39 | 29/35 | 2/6 | 38/39 | 31/45 |
+| dev | 45 | 37/39 | 0.844 | 31/39 | 29/35 | 2/6 | 38/39 | 32/45 |
 | heldout | 10 | 8/9 | 0.806 | 7/9 | 7/8 | 1/1 | 9/9 | 7/10 |
 
 | id | type | rank | cite | numeric | not-found | verdict |
@@ -73,7 +73,7 @@
 | q049 | fact | 2 | ok | ok | ok | PASS |
 | q050 | list | 1 | ok | ok | ok | PASS |
 | q051 | fact | 1 | ok | ok | ok | PASS |
-| q052 | summary | 1 | FAIL | ok | ok | FAIL |
+| q052 | summary | 1 | ok | ok | ok | PASS |
 | q053 | notfound | - | n/a | n/a | ok | PASS |
 | q054 | notfound | - | n/a | n/a | ok | PASS |
 | q055 | notfound | - | n/a | n/a | FAIL | FAIL |

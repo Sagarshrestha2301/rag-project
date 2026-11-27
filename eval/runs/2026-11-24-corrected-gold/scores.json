@@ -27,9 +27,9 @@
     },
     "mrr": 0.839,
     "citation": {
-      "count": 37,
+      "count": 38,
       "of": 48,
-      "pct": 77.1
+      "pct": 79.2
     },
     "extra_citations": {
       "total": 15,
@@ -53,9 +53,9 @@
       "pct": 95.8
     },
     "passed": {
-      "count": 40,
+      "count": 41,
       "of": 55,
-      "pct": 72.7
+      "pct": 74.5
     },
     "points_per_question": null,
     "by_split": {
@@ -86,9 +86,9 @@
         },
         "mrr": 0.846,
         "citation": {
-          "count": 30,
+          "count": 31,
           "of": 39,
-          "pct": 76.9
+          "pct": 79.5
         },
         "extra_citations": {
           "total": 14,
@@ -112,9 +112,9 @@
           "pct": 97.4
         },
         "passed": {
-          "count": 33,
+          "count": 34,
           "of": 45,
-          "pct": 73.3
+          "pct": 75.6
         },
         "points_per_question": 2.22
       },
@@ -1633,12 +1633,12 @@
         ]
       },
       "mrr": 1.0,
-      "citation_ok": false,
+      "citation_ok": true,
       "extra_citations": 0,
       "numeric_ok": true,
       "notfound_correct": true,
       "notfound_case": "b",
-      "passed": false
+      "passed": true
     },
     {
       "id": "q053",

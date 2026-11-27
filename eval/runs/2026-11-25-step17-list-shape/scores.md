@@ -1,4 +1,4 @@
-# Scores: 2026-11-25-step17-list-shape
+# Scores: run
 
 55 questions; one question is worth: dev 2.22 points, heldout 10.0 points
 
@@ -6,18 +6,18 @@
 - recall@10: 46/48 (95.8%) [answerable only]
 - recall@30: 46/48 (95.8%) [answerable only]
 - MRR: 0.839
-- citation: 38/48 (79.2%)
+- citation: 39/48 (81.2%)
 - numeric: 38/43 (88.4%)
 - notfound_a [dev]: 5/6 (83.3%)
 - notfound_b: 46/48 (95.8%)
-- passed: 43/55 (78.2%)
+- passed: 44/55 (80.0%)
 - extra citations: 15 page(s) across 9 answer(s), max 3 (cap 2)
 
 ## By split
 
 | split | n | recall@5 | MRR | citation | numeric | nf(a) | nf(b) | passed |
 |---|---|---|---|---|---|---|---|---|
-| dev | 45 | 37/39 | 0.846 | 31/39 | 31/35 | 5/6 | 38/39 | 36/45 |
+| dev | 45 | 37/39 | 0.846 | 32/39 | 31/35 | 5/6 | 38/39 | 37/45 |
 | heldout | 10 | 8/9 | 0.806 | 7/9 | 7/8 | 1/1 | 8/9 | 7/10 |
 
 | id | type | rank | cite | numeric | not-found | verdict |
@@ -73,7 +73,7 @@
 | q049 | fact | 2 | ok | ok | ok | PASS |
 | q050 | list | 1 | ok | ok | ok | PASS |
 | q051 | fact | 1 | ok | ok | ok | PASS |
-| q052 | summary | 1 | FAIL | ok | ok | FAIL |
+| q052 | summary | 1 | ok | ok | ok | PASS |
 | q053 | notfound | - | n/a | n/a | ok | PASS |
 | q054 | notfound | - | n/a | n/a | ok | PASS |
 | q055 | notfound | - | n/a | n/a | ok | PASS |
