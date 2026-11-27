@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-27 | start | step 20 | owner
 2026-11-26 | start | step 19 | owner
 2026-11-26 | start | step 18 | owner
 2026-11-25 | start | step 17 | owner
@@ -155,3 +156,11 @@ re-score and measure q003" - and committed in an `OWNER:` commit as on 2026-11-1
 `steps/19-page-text-source.md` was drafted by the agent from the measurement that exactly one of
 59 citations (q003, p. 15 of the 1975 Thakali paper) differs between the two readers; the owner
 has not yet edited it.)
+
+(2026-11-27, step 20: typed by the coding agent on the owner's explicit chat instruction -
+"lets do what is incomplete and mark it done in the tracker", followed by the owner choosing
+"q052 quote exactness" from the three scopes offered - and committed in an `OWNER:` commit as on
+2026-11-13, 2026-11-17, 2026-11-20, 2026-11-21, 2026-11-22 and 2026-11-25/26.
+`steps/20-quote-case-exactness.md` was drafted by the agent from the measured q052 defect (the
+page prints "Bamboo clumps invites wild elephants" and the answer quoted "bamboo clumps invites
+wild elephants", one lowercased first letter); the owner has not yet edited it.)
