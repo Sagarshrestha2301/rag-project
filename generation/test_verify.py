@@ -166,6 +166,23 @@ def case_change_fails() -> None:
     expect_fail("bad", answer_with(QUOTE.lower()), "not on")
 
 
+def first_letter_case_flip_passes() -> None:
+    """q052: the page prints "Bamboo clumps …" and the model quoted "bamboo clumps …"."""
+    flipped = QUOTE[0].swapcase() + QUOTE[1:]
+    assert flipped != QUOTE
+    expect_ok("q052 first letter", answer_with(flipped))
+
+
+def a_second_case_change_still_fails() -> None:
+    """One character is the whole tolerance: flipping a second one is a paraphrase."""
+    twice = QUOTE[0].swapcase() + QUOTE[1:].replace("Tistung", "tistung")
+    expect_fail("bad", answer_with(twice), "not on")
+
+
+def a_case_change_inside_the_quote_fails() -> None:
+    expect_fail("bad", answer_with(QUOTE.replace("Tistung", "tistung")), "not on")
+
+
 def joined_quote_fails() -> None:
     expect_fail("bad", answer_with("The 24-hour rainfall depth of 540 mm ... 139 households"),
                 "...")
@@ -326,6 +343,10 @@ def main() -> int:
         ]),
         ("citation bookkeeping is checked", [
             ("changed capitalisation is refused", case_change_fails),
+            ("one first-letter case flip verifies (q052)", first_letter_case_flip_passes),
+            ("a second case change is still refused", a_second_case_change_still_fails),
+            ("a case change inside the quote is still refused",
+             a_case_change_inside_the_quote_fails),
             ("quote joined with ... is refused", joined_quote_fails),
             ("file that does not match the passage number", wrong_file_fails),
             ("wrong page number", wrong_page_number_fails),

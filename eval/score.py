@@ -5,7 +5,9 @@ Usage:
     .venv\\Scripts\\python.exe eval\\score.py --run <run.jsonl> --baseline <baseline.jsonl> --out <dir>
 
 Quotations are checked with `corpus.page_text`, the same reader the verifier uses: the PDF's
-text, and the indexed OCR text for a page that has no text layer.
+text, and the indexed OCR text for a page that has no text layer. A quotation may differ from
+the page only in the case of its first letter, through the same `corpus.quote_case_variant`
+the verifier uses (step 20, D-100).
 
 Exits non-zero, without writing any scores, if a referenced corpus file is
 missing, outside the corpus root, or its SHA-256 differs from the gold record.
@@ -32,7 +34,7 @@ import sys
 # a quotation is checked against the same text `generation/verify.py` checks it against.
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from corpus import page_text as shared_page_text  # noqa: E402
+from corpus import page_text as shared_page_text, quote_case_variant  # noqa: E402
 
 DEFAULT_QUESTIONS = "eval/questions.jsonl"
 DEFAULT_CORPUS_ROOT = "data/corpus"
@@ -190,7 +192,9 @@ def score_question(q: dict, row: dict | None) -> dict:
             # OCR text for a page that has no text layer. A second reader here failed a quote
             # the pipeline had already verified (q003, step 19).
             page = norm_space(shared_page_text(pathlib.PurePosixPath(c["file"]).name, c["page"]))
-            if norm_space(c.get("quote", "")) not in page:
+            quote_n = norm_space(c.get("quote", ""))
+            flipped = quote_case_variant(quote_n)
+            if quote_n not in page and (flipped is None or flipped not in page):
                 quotes_ok = False
                 break
         out["citation_ok"] = bool(citations) and gold_cited and quotes_ok and extra <= MAX_EXTRA_CITATIONS

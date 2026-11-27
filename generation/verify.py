@@ -3,8 +3,9 @@
 This is the half of D-010 that survives (D-058): a citation is not accepted because
 it looks plausible, only because the quoted words are on that page. The comparison
 is deliberately the plain one the eval scorer uses (`eval/score.py`) — collapsing
-whitespace and folding typographic quotation marks — and nothing looser: no stemming,
-no case folding, no accepting a quote split by "...". If the model will not copy the
+whitespace and folding typographic quotation marks — and nothing looser: no stemming, no
+case folding beyond a single first-letter flip (step 20, q052), no accepting a quote split
+by "...". If the model will not copy the
 page, the answer is retried and then reported as unverified.
 
 A second check covers the numbers in the prose. Every number a sentence states must
@@ -52,7 +53,7 @@ from __future__ import annotations
 import pathlib
 import re
 
-from corpus import page_text
+from corpus import page_text, quote_case_variant
 from generation.prompt import NOT_FOUND_TEXT
 
 # One citation line: [2] name.pdf, p. 12: "quote"  (the quote may be unquoted)
@@ -78,9 +79,9 @@ _FOLD = {"“": '"', "”": '"', "‘": "'", "’": "'", "\u00a0": " "}
 def norm(text: str) -> str:
     """Whitespace-collapsed, typographic quotes folded to ASCII.
 
-    Case is left alone on purpose: the eval scorer is case-sensitive, so accepting a
-    re-capitalised quotation here would make the runtime gate kinder than the eval
-    that judges it.
+    Case is left alone here on purpose: the one case difference both halves accept is the
+    first character's, and both apply it through `corpus.quote_case_variant` (step 20),
+    so the runtime gate and the eval cannot drift apart the way the page readers did.
     """
     folded = "".join(_FOLD.get(ch, ch) for ch in (text or ""))
     return re.sub(r"\s+", " ", folded).strip()
@@ -337,7 +338,12 @@ def verify_answer(answer: str, passages: list[dict], *, check_page=None,
                 f'[{n}] joins text with "..."; quote one continuous run of words instead')
             continue
         page = read_page(want_file, cite_page)
-        if norm(quote) in norm(page):
+        # Step 20: the quotation as typed, or the same text with only its first letter's
+        # case flipped (q052 quotes "bamboo clumps …" where the page prints "Bamboo
+        # clumps …"). A case change anywhere else still fails.
+        page_n, quote_n = norm(page), norm(quote)
+        flipped = quote_case_variant(quote_n)
+        if quote_n in page_n or (flipped is not None and flipped in page_n):
             result["verified_quotes"] += 1
             seen.add(n)
             continue

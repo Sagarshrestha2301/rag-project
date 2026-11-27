@@ -348,6 +348,27 @@ def main() -> int:
                   f"citation_ok={got['citation_ok']}")
         else:
             check("the scanned test document is present", False, "data/corpus file missing")
+
+        # ------------------------ one first-letter case flip (step 20, D-100)
+        print("case 8: a quotation may differ only in its first letter's case")
+        first = base_q["gold_quote"][:1]
+        flipped_quote = first.swapcase() + base_q["gold_quote"][1:]
+        check("the gold quote starts with an ASCII letter",
+              bool(first) and first.isascii() and first.isalpha() and flipped_quote != base_q["gold_quote"],
+              repr(first))
+        got = score.score_question(base_q, row([{**gold_c, "quote": flipped_quote}]))
+        check("the q052 shape verifies", got["citation_ok"] is True,
+              f"citation_ok={got['citation_ok']} quote={flipped_quote[:40]!r}")
+        letters = [i for i, ch in enumerate(base_q["gold_quote"]) if ch.isascii() and ch.isalpha()]
+        if len(letters) > 3:
+            i = letters[3]
+            interior = (base_q["gold_quote"][:i] + base_q["gold_quote"][i].swapcase()
+                        + base_q["gold_quote"][i + 1:])
+            got = score.score_question(base_q, row([{**gold_c, "quote": interior}]))
+            check("a case change inside the quote still fails", got["citation_ok"] is False,
+                  f"citation_ok={got['citation_ok']} quote={interior[:40]!r}")
+        else:
+            check("the gold quote is long enough to test", False, str(len(letters)))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

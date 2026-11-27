@@ -273,6 +273,29 @@ def page_text(doc: str, page: int, root: pathlib.Path = CORPUS,
     return text
 
 
+def quote_case_variant(text: str) -> str | None:
+    """The text with its first character's case flipped, or None when it has no ASCII letter there.
+
+    A quotation copied from the middle of a sentence is sometimes given the sentence's
+    lowercase (`bamboo clumps …` for the page's `Bamboo clumps …`) or the reverse. That
+    single character is the only difference the verifier and the scorer tolerate beyond
+    exact containment (step 20, D-100); each caller still checks the variant for exact
+    occurrence with its own normalisation, so this helper changes no text itself.
+
+    Usage:
+        >>> quote_case_variant("bamboo clumps invites wild elephants")
+        'Bamboo clumps invites wild elephants'
+        >>> quote_case_variant("1984 floods") is None
+        True
+    """
+    if not text:
+        return None
+    first = text[0]
+    if not (first.isascii() and first.isalpha()):
+        return None
+    return first.swapcase() + text[1:]
+
+
 def page_words(doc: str, page: int, root: pathlib.Path = CORPUS) -> set[str]:
     """The page's own word list, for checks that compare a cell with printed words."""
     try:
