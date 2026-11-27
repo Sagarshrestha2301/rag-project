@@ -44,6 +44,7 @@ Limits: check A relies on honest commit messages (an agent that writes `OWNER:` 
 ## Log (newest first)
 Format: `YYYY-MM-DD | start, completion or approval | step NN or "docs" | owner`
 
+2026-11-27 | completion | step 20 | owner
 2026-11-27 | start | step 20 | owner
 2026-11-26 | start | step 19 | owner
 2026-11-26 | start | step 18 | owner
@@ -164,3 +165,12 @@ has not yet edited it.)
 `steps/20-quote-case-exactness.md` was drafted by the agent from the measured q052 defect (the
 page prints "Bamboo clumps invites wild elephants" and the answer quoted "bamboo clumps invites
 wild elephants", one lowercased first letter); the owner has not yet edited it.)
+
+(2026-11-27, step 20 completion: the line above was typed by the coding agent on the owner's chat
+instruction - "all approved for the step 20" - after the agent reported the measured run (44/55,
+only q052 moved) and its open items, and committed in an `OWNER:` commit as on every earlier
+approval above. Before typing it, checks A and B of this file were run: A printed nothing (no
+non-`OWNER:` commit since `step-05-approved` touched `AGENTS.md`, `PLAN.md`, `REQUIREMENTS.md` or
+`APPROVALS.md`) and B showed only ticked checkboxes plus the q042/q044/q050 question lines
+removed by the owner's earlier `OWNER:` commit `cdb9493`. The `step-20-approved` tag remains the
+owner's to create.)
