@@ -53,9 +53,10 @@ step 18  citation cap     BUILT      7/7  boxes - at most two extra verified pag
                                      re-stated (D-097 approved)
 step 19  one page reader  BUILT      6/6  boxes - scorer and verifier read page text the
                                      same way; q003 recovered, **D-086 met**
-step 20  quote case        BUILT      7/7  boxes - a quotation may differ only in its first
-                                     letter's case; **q052 verified, all 55 answers
-                                     byte-identical**, D-086 fully recovered (D-100)
+step 20  quote case        BUILT      7/7  boxes - **done agent-side**; a quotation may differ
+                                     only in its first letter's case, **q052 verified,
+                                     all 55 answers byte-identical**, D-086 fully
+                                     recovered (D-100). Completion line and tag are yours
 ```
 
 `git tag` lists **step-00-approved … step-05-approved** and nothing later. Completion lines
